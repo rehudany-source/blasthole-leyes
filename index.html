@@ -333,7 +333,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v8</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v9</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2480,7 +2480,7 @@ pv.onTap = (x, y) => {
     const hits = t2.lims.filter(L => L.closed && !t2.limOff.has(L.layer) && pointInPoly(x, y, L.pts)).sort((a, b) => a.area - b.area);
     if (!hits.length) { flashHint('Ahí no hay un polígono cerrado. Toca dentro de un límite o subdivisión.'); return; }
     const L = hits[0], i = t2.shapes.findIndex(s => s.lim === L.id);
-    if (i >= 0) { t2.shapes.splice(i, 1); selectFromShapes(); computeT2(); pv.draw(); } else addShape(L.pts.map(q => ({ x: q.x, y: q.y })), { lim: L.id });
+    if (i >= 0) { t2.shapes.splice(i, 1); selectFromShapes(); computeT2(); pv.draw(); } else addShape(L.pts.map(q => ({ x: q.x, y: q.y })), { lim: L.id, pid: projForLim(L) });
     return;
   }
   if (!t2.holes.length) return;
@@ -2499,6 +2499,14 @@ pv.onTap = (x, y) => {
   else { if (t2.manOff.has(k)) t2.manOff.delete(k); else t2.manOn.add(k); }
   selectFromShapes(); computeT2(); pv.draw();
 };
+// Si la capa o el archivo del límite lleva el código del proyecto (ej. S26-14A-638-013_C), el polígono queda asignado a ese proyecto
+function projForLim(L) {
+  const c = parseProjectCode(L.layer || '') || parseProjectCode(L.file || '');
+  if (!c) return '';
+  const nv = String(parseInt(c.nivel, 10)), nro = String(parseInt(c.nro, 10));
+  const p = t2.projs.find(p => { const k = projCode(p); return k.mina === c.mina && k.nivel === nv && String(parseInt(k.nro, 10)) === nro; });
+  return p ? p.id : '';
+}
 function startDraw(tool) {
   if (!t2.holes.length) { setMsg('t2Msg', 'err', 'Marca primero uno o varios proyectos.'); return; }
   if (tool === 'pick' && !t2.lims.length) { setMsg('t2Msg', 'err', 'Sube primero el DXF o CSV con los límites de rotura y subdivisiones.'); return; }
@@ -2904,7 +2912,8 @@ $('fsHint').addEventListener('click', e => {
 // ---- Lista de polígonos (en pantalla completa y en el panel lateral) ----
 const shTxt = (g, keysIn) => {
   if (!g) return keysIn != null ? `${keysIn} tal.` : '';
-  return `${g.n} tal.${g.tonnage ? ` · ${Math.round(g.tonnage).toLocaleString('es-PE')} t` : ''}`;
+  const tot = keysIn != null ? keysIn : g.n;
+  return `${tot} tal.${tot > g.n ? ` · ${g.n} con ley` : ''}${g.tonnage ? ` · ${Math.round(g.tonnage).toLocaleString('es-PE')} t` : ''}`;
 };
 const shVals = (g, R) => {
   if (!g) return '';
