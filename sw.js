@@ -1,7 +1,7 @@
 // BlastHole Leyes · service worker (funciona sin internet)
-const CACHE = 'bhl-1-1791928287';
+const CACHE = 'bhl-2-1791929087';
 const FONTS = 'bhl-fuentes';
-const BASE = ['./', 'index.html', 'manifest.webmanifest', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png'];
+const BASE = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'favicon-32.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
