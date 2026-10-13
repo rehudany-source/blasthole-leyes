@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="BH Leyes">
 <meta name="theme-color" content="#1c2126">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon-32.png">
 <style>
 @media (display-mode: standalone) { body { padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); } }
 html { -webkit-text-size-adjust: 100%; }
@@ -161,29 +161,104 @@ input.hin { font: .8rem var(--f-body); padding: 3px 5px; border: 1px solid var(-
 .pitem input { accent-color: var(--accent); width: 16px; height: 16px; }
 .pitem .pn { font-family: var(--f-mono); font-weight: 500; overflow-wrap: anywhere; }
 .pitem .pm { color: var(--muted); font-size: .76rem; white-space: nowrap; }
-.cadwrap.full { position: fixed; inset: 0; z-index: 80; height: 100% !important; min-height: 0; border: 0; border-radius: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.cadwrap.full { position: fixed; inset: 0; z-index: 80; height: 100% !important; min-height: 0; border: 0; border-radius: 0; --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px); --tb: calc(56px + var(--st)); --pw: 330px; }
 body.enfull { overflow: hidden; }
-.fulltools { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; align-items: center; background: rgba(20,24,28,.9); border: 1px solid #3a424a; border-radius: 8px; padding: 6px; max-width: calc(100% - 20px); z-index: 2; }
-.cadwrap.full .fulltools { bottom: auto; top: calc(8px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 420px); }
-.cadwrap:not(.full) #ftClear, .cadwrap:not(.full) .fulltools label { display: none; }
-.fulltools #ftDraw { background: #ffd60a; color: #1a1a1a; border-color: #ffd60a; }
-.cadwrap.full #cad2Mode { display: none; }
-.cadwrap.full .coords { display: none; }
-.fulltools button, .fullres button { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 6px; padding: 9px 13px; cursor: pointer; min-height: 40px; }
-.fulltools button.on { background: #ffd60a; color: #1a1a1a; border-color: #ffd60a; }
-.fulltools label { display: flex; align-items: center; gap: 6px; color: #e8ecef; font: 600 .85rem var(--f-body); padding: 0 6px; }
-.fulltools input { width: 18px; height: 18px; accent-color: #ffd60a; }
-.fullres { position: absolute; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 2; display: grid; gap: 8px; background: rgba(20,24,28,.94); color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 10px 12px; width: min(560px, calc(100% - 20px)); font-size: .86rem; }
-.fullres .frt { line-height: 1.5; font-variant-numeric: tabular-nums; }
-.fullres .frt b { color: #ffd60a; }
-.fullres .frb { display: flex; gap: 8px; flex-wrap: wrap; }
-.fullres #ftSave { background: #e0774c; border-color: #e0774c; color: #1a0f0a; }
-.fullres #ftSave:disabled { opacity: .45; }
-@media (max-width: 900px) { .cadwrap.full .fulltools { max-width: calc(100% - 20px); top: calc(48px + env(safe-area-inset-top, 0px)); } }
+.inplan { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 2; }
+.inplan button { display: inline-flex; align-items: center; gap: 8px; font: 600 .92rem var(--f-body); background: rgba(22,26,30,.92); color: #e8ecef; border: 1px solid #3a424a; border-radius: 999px; padding: 10px 16px; cursor: pointer; min-height: 44px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.inplan .ip-main { background: #ffd60a; color: #1a1a1a; border-color: #ffd60a; }
+.inplan svg, .fs-rail svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.fs-top, .fs-rail, .fs-hint, .fs-panel, .fs-show { display: none; }
+.cadwrap.full .inplan, .cadwrap.full > .cadbar, .cadwrap.full .coords { display: none; }
+.cadwrap.full .fs-top { display: flex; position: absolute; left: 0; right: 0; top: 0; height: var(--tb); box-sizing: border-box; padding: var(--st) 12px 0 14px; align-items: center; gap: 14px; background: rgba(20,24,28,.95); color: #e8ecef; border-bottom: 1px solid #333b42; z-index: 3; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.fs-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
+.fs-title b { font: 700 1.2rem var(--f-display, var(--f-body)); letter-spacing: .04em; text-transform: uppercase; }
+.fs-title span { color: #9fb0bc; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-anl .anl { position: static; background: transparent; border: 0; padding: 0; font-size: .9rem; }
+.fs-anl .anl select { font-size: .95rem; padding: 6px 8px; min-height: 36px; }
+.fs-exit { font: 600 .95rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 0 14px; min-height: 40px; cursor: pointer; }
+.cadwrap.full .fs-rail { display: flex; flex-direction: column; align-items: stretch; gap: 4px; position: absolute; left: 10px; top: calc(var(--tb) + 12px); padding: 6px; background: rgba(20,24,28,.95); border: 1px solid #333b42; border-radius: 14px; z-index: 3; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-height: calc(100% - var(--tb) - 24px - var(--sb)); overflow-y: auto; }
+.fs-rail button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 64px; min-height: 52px; padding: 6px 2px; border: 0; border-radius: 10px; background: transparent; color: #c9d1d9; font: 600 .7rem var(--f-body); cursor: pointer; }
+.fs-rail button svg { width: 24px; height: 24px; }
+.fs-rail button:hover { background: #2a3138; color: #fff; }
+.fs-rail button[aria-pressed="true"] { background: #ffd60a; color: #1a1a1a; }
+.fs-rail button[data-tool="erase"][aria-pressed="true"] { background: #ff6b6b; color: #1a0a0a; }
+.fs-rail .sep { display: block; height: 1px; background: #333b42; margin: 4px 6px; }
+.fs-libre { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9fb0bc; font: 600 .66rem var(--f-body); text-align: center; padding: 4px 0; cursor: pointer; }
+.fs-libre input { width: 20px; height: 20px; accent-color: #ffd60a; margin: 0; }
+.cadwrap.full .fs-hint:not(:empty) { display: flex; position: absolute; top: calc(var(--tb) + 12px); left: 96px; right: calc(var(--pw) + 22px); margin: 0 auto; width: max-content; max-width: calc(100% - var(--pw) - 118px); box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; padding: 8px 12px; background: rgba(20,24,28,.95); color: #e8ecef; border: 1px solid #333b42; border-radius: 12px; font-size: .88rem; line-height: 1.35; z-index: 3; }
+.cadwrap.full.nopanel .fs-hint:not(:empty) { right: 22px; max-width: calc(100% - 118px); }
+.fs-hint button { font: 600 .88rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 0 12px; min-height: 38px; cursor: pointer; }
+.fs-hint button.ok { background: #ffd60a; color: #1a1a1a; border-color: #ffd60a; }
+.fs-hint .okm { color: #7be29d; font-weight: 600; }
+.cadwrap.full .fs-panel { display: flex; flex-direction: column; position: absolute; right: 10px; top: calc(var(--tb) + 12px); bottom: calc(10px + var(--sb)); width: var(--pw); background: rgba(20,24,28,.96); color: #e8ecef; border: 1px solid #333b42; border-radius: 14px; z-index: 3; box-shadow: 0 6px 20px rgba(0,0,0,.25); overflow: hidden; }
+.cadwrap.full.nopanel .fs-panel { display: none; }
+.cadwrap.full.nopanel .fs-show { display: block; position: absolute; right: 10px; top: calc(var(--tb) + 12px); z-index: 3; font: 600 .9rem var(--f-body); background: rgba(20,24,28,.95); color: #e8ecef; border: 1px solid #333b42; border-radius: 10px; padding: 0 14px; min-height: 44px; cursor: pointer; }
+.fs-ph { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px 14px; border-bottom: 1px solid #2c343b; }
+.fs-ph b { font: 700 .8rem var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #9fb0bc; }
+.fs-ph button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #3a424a; background: #2a3138; color: #e8ecef; font-size: 1.2rem; cursor: pointer; }
+.fs-scroll { flex: 1; overflow-y: auto; padding: 10px 12px; display: grid; gap: 12px; align-content: start; -webkit-overflow-scrolling: touch; }
+.fs-foot { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #2c343b; }
+.fs-foot button { font: 700 .95rem var(--f-body); border-radius: 10px; min-height: 46px; cursor: pointer; border: 1px solid #3a424a; background: #2a3138; color: #e8ecef; padding: 0 14px; }
+.fs-foot .fs-save { flex: 1; background: #e0774c; border-color: #e0774c; color: #1a0f0a; }
+.fs-foot .fs-save:disabled { opacity: .4; cursor: default; }
+.fs-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-meta label { display: grid; gap: 4px; font: 600 .74rem var(--f-body); color: #9fb0bc; min-width: 0; }
+.fs-meta input { font: 500 .92rem var(--f-body); background: #14181c; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 8px; min-height: 38px; width: 100%; box-sizing: border-box; color-scheme: dark; }
+.fs-msg { margin: 0; font-size: .82rem; color: #ffc46b; line-height: 1.4; }
+.fs-msg:empty { display: none; }
+.fs-msg.ok { color: #7be29d; }
+.fs-res { display: grid; gap: 8px; }
+.fs-res .big { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-res .big div { background: #14181c; border: 1px solid #2c343b; border-radius: 10px; padding: 8px 10px; }
+.fs-res .big span, .fs-res .an span { display: block; font-size: .7rem; color: #9fb0bc; }
+.fs-res .big b { font: 700 1.3rem var(--f-mono, monospace); font-variant-numeric: tabular-nums; }
+.fs-res .an { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fs-res .an div { background: #14181c; border: 1px solid #2c343b; border-radius: 8px; padding: 6px 8px; }
+.fs-res .an b { font: 600 1rem var(--f-mono, monospace); font-variant-numeric: tabular-nums; color: #ffd60a; }
+.fs-res .cap { font-size: .74rem; color: #9fb0bc; margin: 0; }
+.fs-empty { color: #9fb0bc; font-size: .88rem; line-height: 1.45; margin: 0; }
+.shlist { display: grid; gap: 8px; margin: 8px 0; }
+.shlist:empty { display: none; }
+.shc { border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; background: var(--panel); }
+.fs-panel .shc { background: #14181c; border-color: #2c343b; border-left-color: var(--c); margin: 0; }
+.shh { display: flex; align-items: center; gap: 8px; }
+.shh .sw { width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #111; font: 700 .78rem var(--f-body); display: grid; place-items: center; flex: none; font-style: normal; }
+.shh b { font-size: .9rem; }
+.shh .shm { margin-left: auto; font-size: .76rem; color: var(--muted); white-space: nowrap; }
+.fs-panel .shh .shm { color: #9fb0bc; }
+.shh button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; flex: none; }
+.fs-panel .shh button { border-color: #3a424a; }
+.shf { display: grid; grid-template-columns: 1fr 92px; gap: 6px; }
+.shf label { display: grid; gap: 2px; font: 600 .7rem var(--f-body); color: var(--muted); min-width: 0; }
+.fs-panel .shf label { color: #9fb0bc; }
+.shf select, .shf input { font: 500 .88rem var(--f-body); border-radius: 7px; padding: 6px 7px; min-height: 34px; width: 100%; box-sizing: border-box; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.fs-panel .shf select, .fs-panel .shf input { background: #1c2126; color: #e8ecef; border-color: #3a424a; color-scheme: dark; }
+.shv { font-size: .78rem; color: var(--muted); line-height: 1.45; font-variant-numeric: tabular-nums; }
+.fs-panel .shv { color: #c9d1d9; }
+.shv .pct { font-weight: 700; color: var(--accent); }
+.fs-panel .shv .pct { color: #ffd60a; }
+@media (orientation: portrait) and (min-width: 761px) {
+  .cadwrap.full { --pw: 0px; }
+  .cadwrap.full .fs-panel { left: 96px; right: 10px; width: auto; top: auto; max-height: 40%; }
+  .cadwrap.full .fs-scroll { grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  .cadwrap.full .fs-scroll > .shlist { grid-column: 1; grid-row: 1 / span 3; margin: 0; }
+  .cadwrap.full .fs-scroll > :not(.shlist) { grid-column: 2; }
+  .cadwrap.full.nopanel .fs-show { top: auto; bottom: calc(10px + var(--sb)); }
+}
+@media (max-width: 760px) {
+  .cadwrap.full { --pw: 0px; }
+  .cadwrap.full .fs-panel { left: 10px; right: 10px; width: auto; top: auto; max-height: 48%; }
+  .cadwrap.full .fs-rail { flex-direction: row; top: auto; bottom: calc(10px + var(--sb)); left: 10px; right: 10px; overflow-x: auto; max-height: none; }
+  .cadwrap.full:not(.nopanel) .fs-rail { display: none; }
+  .cadwrap.full .fs-rail button { width: 58px; flex: none; }
+  .cadwrap.full .fs-rail .sep { width: 1px; height: auto; margin: 6px 2px; }
+  .cadwrap.full .fs-hint:not(:empty) { left: 10px; right: 10px; max-width: none; width: auto; }
+  .cadwrap.full.nopanel .fs-show { top: auto; bottom: calc(84px + var(--sb)); }
+  .fs-title span { display: none; }
+}
 .anl { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 6px; font: 600 .78rem var(--f-body); color: #e8ecef; background: rgba(20,24,28,.85); border: 1px solid #3a424a; border-radius: 4px; padding: 3px 4px 3px 9px; }
 .anl select { font: 600 .8rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 3px; padding: 3px 6px; width: auto; }
 td.pj { font-family: var(--f-mono); font-size: .78rem; white-space: normal; text-align: left; }
-#cad2Mode { top: 46px; left: 10px; bottom: auto; transform: none; max-width: calc(100% - 160px); }
 #tab2 .avgtiles { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 0; background: var(--panel); }
 #tab2 .avgtiles .t { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .avgbox { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
@@ -258,7 +333,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v1</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v3</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -445,12 +520,13 @@ td.e { color: var(--muted); }
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
           <label class="chk"><input type="checkbox" id="avLibre"> Dibujar a mano alzada con el dedo o el mouse</label>
+          <div class="shlist" id="avShapes"></div>
           <div class="btnrow">
-            <button class="btn" id="btnDraw" type="button">Dibujar polígono del avance</button>
-            <button class="btn sec small" id="btnPick" type="button">Elegir polígonos de límite</button>
+            <button class="btn" id="btnDraw" type="button">✏️ Dibujar avance</button>
+            <button class="btn sec small" id="btnPick" type="button">Elegir límites</button>
             <button class="btn sec small" id="btnClearAv" type="button">Limpiar</button>
           </div>
-          <p class="note" id="avHelp">Con el Apple Pencil traza el contorno de corrido y se cierra solo al levantar el lápiz. Con el dedo o el mouse, toca cada vértice y luego «Cerrar polígono», o activa la mano alzada. También puedes tocar los polígonos de límite o subdivisión que entran en el avance. Después, tocando un taladro lo quitas o lo agregas.</p>
+          <p class="note" id="avHelp">El plano se abre en pantalla completa. Con el Apple Pencil traza cada contorno de corrido (se cierra solo al levantar el lápiz); con el dedo o el mouse toca cada vértice. Puedes dibujar varios polígonos en un mismo avance (material sobre material): a cada uno le eliges el proyecto y, si quieres, un peso en %. Sin peso, cada polígono pesa por su tonelaje.</p>
         </div>
       </div>
 
@@ -469,20 +545,45 @@ td.e { color: var(--muted); }
             <button id="z2fit">Ajustar</button>
             <button id="z2full" title="Pantalla completa">⤢ Pantalla completa</button>
           </div>
-          <div class="fulltools" id="fullTools">
-            <button type="button" id="ftDraw">✎ Dibujar polígono</button>
-            <button type="button" id="ftPick">▢ Elegir polígonos</button>
-            <label><input type="checkbox" id="ftLibre"> Mano alzada</label>
-            <button type="button" id="ftClear">Limpiar</button>
-            <button type="button" id="ftCancel" hidden>Cancelar</button>
+          <div class="inplan" id="inPlan">
+            <button type="button" class="ip-main" id="ipDraw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M14 6.5l3 3"/></svg>Dibujar avance</button>
+            <button type="button" id="ipPick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l7-4 9 4-2 11-12 1z" stroke-dasharray="2.6 2.2"/><path d="M10 12l2 2 4-4"/></svg>Elegir límites</button>
           </div>
-          <div class="fullres" id="fullRes" hidden>
-            <div class="frt" id="fullResTxt">Dibuja el polígono del avance.</div>
-            <div class="frb">
-              <button type="button" id="ftSave" disabled>Guardar avance</button>
-              <button type="button" id="ftExit">Salir</button>
+          <div class="fs-top" id="fsTop">
+            <div class="fs-title"><b>Avance</b><span id="fsSub"></span></div>
+            <div class="fs-anl" id="fsAnlSlot"></div>
+            <button type="button" class="fs-exit" id="fsExit" aria-label="Salir de pantalla completa">✕ <span>Salir</span></button>
+          </div>
+          <div class="fs-rail" id="fsRail" role="toolbar" aria-label="Herramientas de dibujo">
+            <button type="button" data-tool="pan" title="Mover (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg><span>Mover</span></button>
+            <button type="button" data-tool="pen" title="Lápiz (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M14 6.5l3 3"/></svg><span>Lápiz</span></button>
+            <button type="button" data-tool="erase" title="Borrador (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5l4 4a1.5 1.5 0 0 1 0 2.1L11 19H7l-3-3a1.5 1.5 0 0 1 0-2.1l9.4-9.4a1.5 1.5 0 0 1 2.1 0z"/><path d="M9.5 9.5l5 5M13 19h8"/></svg><span>Borrador</span></button>
+            <button type="button" data-tool="pick" title="Elegir límites (L)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l7-4 9 4-2 11-12 1z" stroke-dasharray="2.6 2.2"/><path d="M10 12l2 2 4-4"/></svg><span>Límites</span></button>
+            <i class="sep"></i>
+            <button type="button" id="fsZin" title="Acercar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21M10.5 7.5v6M7.5 10.5h6"/></svg></button>
+            <button type="button" id="fsZout" title="Alejar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21M7.5 10.5h6"/></svg></button>
+            <button type="button" id="fsFit" title="Ajustar a la vista"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+            <i class="sep"></i>
+            <label class="fs-libre" title="El dedo también dibuja a mano alzada"><input type="checkbox" id="fsLibre"><span>Dedo<br>dibuja</span></label>
+          </div>
+          <div class="fs-hint" id="fsHint" aria-live="polite"></div>
+          <aside class="fs-panel" id="fsPanel" aria-label="Polígonos y promedio del avance">
+            <div class="fs-ph"><b>Polígonos del avance</b><button type="button" id="fsHide" aria-label="Ocultar panel">›</button></div>
+            <div class="fs-scroll">
+              <div class="shlist" id="fsShapes"></div>
+              <div class="fs-res" id="fsRes"></div>
+              <div class="fs-meta">
+                <label>Fecha<input type="date" id="fsFecha"></label>
+                <label>Nombre<input type="text" id="fsNombre" placeholder="opcional" autocomplete="off"></label>
+              </div>
+              <p class="fs-msg" id="fsMsg"></p>
             </div>
-          </div>
+            <div class="fs-foot">
+              <button type="button" class="fs-clear" id="fsClear">Limpiar</button>
+              <button type="button" class="fs-save" id="fsSave" disabled>Guardar avance</button>
+            </div>
+          </aside>
+          <button type="button" class="fs-show" id="fsShow">‹ Polígonos</button>
           <label class="anl">Ver ley
             <select id="anSel">
               <option value="fe">Fe</option><option value="feo">FeO</option><option value="s">S</option>
@@ -491,11 +592,6 @@ td.e { color: var(--muted); }
               <option value="">Ninguna</option>
             </select>
           </label>
-          <div class="cadmode" id="cad2Mode" hidden>
-            <span id="cad2ModeTxt">Toca cada vértice del contorno</span>
-            <button id="cm2Done" type="button">Cerrar polígono</button>
-            <button id="cm2Cancel" type="button">Cancelar</button>
-          </div>
           <div class="coords" id="coords2"></div>
         </div>
         <div class="legend" id="anLegend"></div>
@@ -1890,7 +1986,7 @@ const dbAll = store => idbStoreOp(store, 'readonly', st => st.getAll()).then(r =
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
 
 const lib = { projects: [], avances: [] };
-const t2 = { selIds: null, projs: [], holes: [], holeBy: new Map(), leyBy: new Map(), avs: [], prevKey: new Map(), poly: [], mode: null, sel: new Set(), result: null, viewing: null, fitted: false, analito: 'fe', lims: [], limOff: new Set(), picked: [] };
+const t2 = { selIds: null, projs: [], holes: [], holeBy: new Map(), leyBy: new Map(), avs: [], prevKey: new Map(), shapes: [], draft: [], tool: 'pan', manOn: new Set(), manOff: new Set(), groups: [], sel: new Set(), result: null, viewing: null, fitted: false, analito: 'fe', lims: [], limOff: new Set() };
 async function loadLibrary() {
   lib.projects = (await dbAll('projects')).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
   lib.avances = (await dbAll('avances')).map(normAvance);
@@ -2192,8 +2288,8 @@ function refreshT2() {
   const ids = new Set(t2.projs.map(p => p.id));
   t2.avs = lib.avances.filter(a => a.projectIds.some(id => ids.has(id))).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || a.createdAt - b.createdAt);
   t2.prevKey = new Map(); lib.avances.forEach(a => a.keys.forEach(k => t2.prevKey.set(k, a)));
-  // quitar de la selección actual lo que ya no está en el plano
-  t2.sel = new Set([...t2.sel].filter(k => t2.holeBy.has(k)));
+  // recalcular la selección con los polígonos sobre los proyectos marcados
+  t2.manOn = new Set([...t2.manOn].filter(k => t2.holeBy.has(k))); selectFromShapes();
   if (t2.viewing && !t2.avs.some(a => a.id === t2.viewing)) t2.viewing = null;
   const withRes = t2.holes.filter(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false; }).length;
   const noDepth = t2.projs.filter(p => !p.holes.some(h => h.depth)).map(p => p.name);
@@ -2272,8 +2368,11 @@ function renderPlan2(ctx, v) {
     ctx.setLineDash([]);
     if (v.v.s > 3) { const P = shapes[0]; const cx = P.reduce((s, q) => s + q.x, 0) / P.length, cy = P.reduce((s, q) => s + q.y, 0) / P.length; ctx.fillStyle = cur ? CAD.sel : CAD.ghostTxt; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : ''), v.sx(cx), v.sy(cy)); }
   });
-  // polígonos de límite elegidos para el avance
-  if (!viewing) t2.picked.forEach(id => { const L = t2.lims.find(l => l.id === id); if (!L) return; ctx.fillStyle = CAD.polyFill; ctx.strokeStyle = CAD.poly; ctx.lineWidth = 2.2; ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); ctx.fill(); ctx.stroke(); });
+  // polígonos del avance (cada uno con su color)
+  const path = P => { ctx.beginPath(); P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); };
+  if (!viewing) t2.shapes.forEach((s, i) => { const c = shColor(i); path(s.pts); ctx.globalAlpha = 0.12; ctx.fillStyle = c; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = c; ctx.lineWidth = 2.4; ctx.stroke(); });
+  const ringC = new Map();
+  if (!viewing) (t2.groups || []).forEach(g => g.keys.forEach(k => { if (!ringC.has(k)) ringC.set(k, g.s ? shColor(g.i) : CAD.sel); }));
   const F = anField(), br = anBreaks();
   const showId = v.v.s >= 9, showVal = F && v.v.s >= 7;
   const r = Math.max(2.5, Math.min(7, v.v.s * 0.25));
@@ -2285,9 +2384,10 @@ function renderPlan2(ctx, v) {
     const prev = !viewing && t2.prevKey.has(h.ck);
     const inSel = selKeys.has(h.ck);
     const val = has && F ? l[F.k] : null;
-    if (inSel) { ctx.fillStyle = CAD.selFill; ctx.strokeStyle = CAD.sel; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    const rc = inSel ? (ringC.get(h.ck) || CAD.sel) : null;
+    if (inSel) { ctx.beginPath(); ctx.arc(x, y, r * 2, 0, Math.PI * 2); ctx.globalAlpha = 0.22; ctx.fillStyle = rc; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = rc; ctx.lineWidth = 1.5; ctx.stroke(); }
     // sin texto (alejado): el punto toma el color de la ley
-    const dotColor = inSel ? CAD.sel : prev ? CAD.prev : !has ? CAD.noLey : F && !showVal ? anColor(val, br) : CAD.ink;
+    const dotColor = inSel ? rc : prev ? CAD.prev : !has ? CAD.noLey : F && !showVal ? anColor(val, br) : CAD.ink;
     ctx.strokeStyle = dotColor; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x - r, y + r); ctx.lineTo(x + r, y - r); ctx.stroke();
     const fs = Math.max(9, Math.min(14, v.v.s * 0.55));
@@ -2295,73 +2395,133 @@ function renderPlan2(ctx, v) {
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
     if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = prev ? CAD.prevTxt : anColor(val, br); ctx.font = `600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, ''), x, y - r - 2); }
   });
-  if (t2.poly.length && !viewing) {
-    ctx.strokeStyle = CAD.poly; ctx.lineWidth = 1.8; ctx.setLineDash(t2.mode === 'poly' ? [6, 4] : []);
-    ctx.beginPath(); t2.poly.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y))));
-    if (t2.mode !== 'poly') ctx.closePath();
-    ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = CAD.poly; t2.poly.forEach(q => { ctx.beginPath(); ctx.arc(v.sx(q.x), v.sy(q.y), 3.5, 0, Math.PI * 2); ctx.fill(); });
+  if (!viewing) {
+    // número y peso de cada polígono
+    t2.shapes.forEach((s, i) => {
+      const P = s.pts; let cx = 0, cy = 0; P.forEach(q => { cx += q.x; cy += q.y; }); cx = v.sx(cx / P.length); cy = v.sy(cy / P.length);
+      const c = shColor(i), lab = String(i + 1) + (s.w != null ? ` · ${+s.w.toFixed(1)}%` : '');
+      ctx.font = '700 13px system-ui, sans-serif'; const tw = ctx.measureText(lab).width + 16;
+      ctx.fillStyle = c; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(cx - tw / 2, cy - 12, tw, 24, 12); else ctx.rect(cx - tw / 2, cy - 12, tw, 24); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, cx, cy + 0.5);
+    });
+    // contorno que se está dibujando
+    if (t2.draft.length) {
+      const D = t2.draft, c = shColor(t2.shapes.length);
+      ctx.strokeStyle = c; ctx.lineWidth = 2.2; ctx.setLineDash([7, 5]);
+      ctx.beginPath(); D.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); ctx.setLineDash([]);
+      if (D.length < 40) { ctx.fillStyle = c; D.forEach(q => { ctx.beginPath(); ctx.arc(v.sx(q.x), v.sy(q.y), 4, 0, Math.PI * 2); ctx.fill(); }); }
+      if (D.length >= 3) { ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(v.sx(D[0].x), v.sy(D[0].y), 11, 0, Math.PI * 2); ctx.stroke(); }
+    }
   }
 }
 
-// ---- Polígono del avance ----
-function setMode2(m) {
-  t2.mode = m;
-  $('btnDraw').textContent = m === 'poly' ? 'Cerrar polígono' : 'Dibujar polígono del avance';
-  $('cad2ModeTxt').textContent = m === 'pick' ? 'Toca los polígonos que entran en el avance' : 'Dibuja el contorno: con el lápiz o a mano alzada traza de corrido; con el dedo o el mouse, toca cada vértice';
-  $('cm2Done').textContent = m === 'pick' ? 'Listo' : 'Cerrar polígono';
-  $('cad2Mode').hidden = !m;
-  $('btnPick').textContent = m === 'pick' ? 'Listo' : 'Elegir polígonos de límite';
-  if (m === 'pick') { t2.viewing = null; }
-  if (m === 'poly') { t2.viewing = null; t2.poly = []; t2.sel = new Set(); const r = $('cad2wrap').getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) $('cad2wrap').scrollIntoView({ block: 'center' }); }
-  pv.draw();
+// ---- Polígonos del avance: varios por avance, cada uno con proyecto y peso ----
+const SH_D = ['#ffd60a', '#ff5ea8', '#4cc9f0', '#7ae582', '#c77dff', '#ff9f1c'];
+const SH_L = ['#c48a00', '#d1307a', '#0e8fb0', '#2a9d4a', '#8a46c9', '#d96a00'];
+function shColor(i) { const P = (typeof planClaro === 'function' && planClaro()) ? SH_L : SH_D; return P[((i % P.length) + P.length) % P.length]; }
+const TOOL_HINT = {
+  pan: 'Mover: arrastra con un dedo y pellizca para el zoom. Toca un taladro para quitarlo o agregarlo.',
+  pen: 'Lápiz: traza el contorno con el Apple Pencil (se cierra al levantarlo). Con el dedo o el mouse, toca cada vértice.',
+  erase: 'Borrador: toca o pasa por encima de un polígono para borrarlo.',
+  pick: 'Límites: toca un límite o subdivisión para sumarlo como polígono; tócalo de nuevo para quitarlo.',
+};
+function setTool(t) {
+  if (t === 'pick' && !t2.lims.length) { flashHint('Primero sube los límites de rotura (DXF o CSV) en el panel «Límites y subdivisiones».'); t = 'pan'; }
+  t2.tool = t; if (t !== 'pen') t2.draft = [];
+  paintTools(); pv.draw();
 }
-function currentShapes() {
-  const s = t2.poly.length >= 3 ? [t2.poly] : [];
-  t2.picked.forEach(id => { const L = t2.lims.find(l => l.id === id); if (L) s.push(L.pts); });
-  return s;
+function shapeKeys(s) {
+  const excl = $('avExcl').checked, P = s.pts;
+  const pid = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+  return t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !(excl && t2.prevKey.has(h.ck)) && !t2.manOff.has(h.ck)).map(h => h.ck);
 }
-function avShapes(a) { return (a.polys && a.polys.length ? a.polys : a.poly && a.poly.length >= 3 ? [a.poly] : []); }
 function selectFromShapes() {
-  const shapes = currentShapes(), excl = $('avExcl').checked;
-  t2.sel = new Set(t2.holes.filter(h => shapes.some(P => pointInPoly(h.x, h.y, P))).map(h => h.ck).filter(k => !(excl && t2.prevKey.has(k))));
+  const gs = t2.shapes.map((s, i) => ({ s, i, keys: shapeKeys(s) }));
+  const inAny = new Set(gs.flatMap(g => g.keys));
+  const loose = [...t2.manOn].filter(k => t2.holeBy.has(k) && !inAny.has(k) && !t2.manOff.has(k));
+  if (loose.length) gs.push({ s: null, i: -1, keys: loose });
+  t2.groups = gs; t2.sel = new Set(gs.flatMap(g => g.keys));
 }
-function closePoly2() {
-  if (t2.poly.length < 3) { setMsg('t2Msg', 'err', 'El polígono necesita al menos 3 vértices.'); return; }
-  setMode2(null);
-  selectFromShapes(); computeT2(); pv.draw();
+function currentShapes() { return t2.shapes.map(s => s.pts); }
+function avShapes(a) { return (a.polys && a.polys.length ? a.polys : a.poly && a.poly.length >= 3 ? [a.poly] : []); }
+function addShape(pts, extra) {
+  t2.shapes.push(Object.assign({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts, pid: '', w: null }, extra || {}));
+  t2.viewing = null; selectFromShapes(); computeT2(); pv.draw();
 }
-pv.wantsDraw = e => t2.mode === 'poly' && (e.pointerType === 'pen' || $('avLibre').checked);
+function closeDraft() {
+  if (t2.draft.length < 3) { flashHint('El polígono necesita al menos 3 vértices.'); return; }
+  const pts = t2.draft; t2.draft = []; addShape(pts); paintTools();
+}
+function eraseAt(x, y) {
+  const tol = 10 / pv.v.s; let hit = -1;
+  for (let i = t2.shapes.length - 1; i >= 0 && hit < 0; i--) {
+    const P = t2.shapes[i].pts;
+    if (pointInPoly(x, y, P)) hit = i;
+    else for (let j = 0; j < P.length; j++) { const a = P[j], b = P[(j + 1) % P.length]; if (segDist(x, y, a, b) < tol) { hit = i; break; } }
+  }
+  let changed = false;
+  if (hit >= 0) { t2.shapes.splice(hit, 1); changed = true; }
+  const near = [...t2.manOn].filter(k => { const h = t2.holeBy.get(k); return h && Math.hypot(h.x - x, h.y - y) < tol * 1.2; });
+  if (near.length) { near.forEach(k => t2.manOn.delete(k)); changed = true; }
+  if (changed) { selectFromShapes(); computeT2(); pv.draw(); }
+}
+function segDist(x, y, a, b) { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy; let t = L ? ((x - a.x) * dx + (y - a.y) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a.x + t * dx), y - (a.y + t * dy)); }
+
+pv.wantsDraw = e => (t2.tool === 'pen' && (e.pointerType === 'pen' || $('avLibre').checked)) || t2.tool === 'erase';
 pv.onDraw = (fase, x, y) => {
-  if (fase === 'start') { t2.poly = [{ x, y }]; pv.draw(); return; }
-  if (fase === 'move') { const q = t2.poly[t2.poly.length - 1]; if (Math.hypot(q.x - x, q.y - y) * pv.v.s >= 3) { t2.poly.push({ x, y }); pv.draw(); } return; }
-  if (t2.poly.length >= 3) closePoly2(); else { t2.poly = []; pv.draw(); }
+  if (t2.tool === 'erase') { if (fase !== 'end') eraseAt(x, y); return; }
+  if (fase === 'start') { t2.draft = [{ x, y }]; t2.viewing = null; pv.draw(); paintHint(); return; }
+  if (fase === 'move') { const q = t2.draft[t2.draft.length - 1]; if (q && Math.hypot(q.x - x, q.y - y) * pv.v.s >= 3) { t2.draft.push({ x, y }); pv.draw(); } return; }
+  if (t2.draft.length >= 3) closeDraft(); else { t2.draft = []; pv.draw(); paintHint(); }
 };
 pv.onTap = (x, y) => {
-  if (t2.mode === 'pick') {
+  if (t2.tool === 'pick') {
     const hits = t2.lims.filter(L => L.closed && !t2.limOff.has(L.layer) && pointInPoly(x, y, L.pts)).sort((a, b) => a.area - b.area);
-    if (!hits.length) { setMsg('t2Msg', 'err', 'Ahí no hay un polígono cerrado. Toca dentro de un límite o subdivisión.'); return; }
-    const id = hits[0].id, i = t2.picked.indexOf(id);
-    if (i >= 0) t2.picked.splice(i, 1); else t2.picked.push(id);
-    selectFromShapes(); computeT2(); pv.draw(); return;
+    if (!hits.length) { flashHint('Ahí no hay un polígono cerrado. Toca dentro de un límite o subdivisión.'); return; }
+    const L = hits[0], i = t2.shapes.findIndex(s => s.lim === L.id);
+    if (i >= 0) { t2.shapes.splice(i, 1); selectFromShapes(); computeT2(); pv.draw(); } else addShape(L.pts.map(q => ({ x: q.x, y: q.y })), { lim: L.id });
+    return;
   }
   if (!t2.holes.length) return;
-  if (t2.mode === 'poly') { t2.poly.push({ x, y }); pv.draw(); return; }
+  if (t2.tool === 'pen') {
+    const f = t2.draft[0];
+    if (t2.draft.length >= 3 && f && Math.hypot(f.x - x, f.y - y) * pv.v.s < 16) { closeDraft(); return; }
+    t2.viewing = null; t2.draft.push({ x, y }); pv.draw(); paintHint(); return;
+  }
+  if (t2.tool === 'erase') return;
   if (t2.viewing) { t2.viewing = null; renderHistory(); computeT2(); pv.draw(); return; }
   let best = null, bd = Math.max(1.5, 12 / pv.v.s);
   for (const h of t2.holes) { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h; } }
   if (!best) return;
-  if (t2.sel.has(best.ck)) t2.sel.delete(best.ck); else t2.sel.add(best.ck);
-  computeT2(); pv.draw();
+  const k = best.ck;
+  if (t2.sel.has(k)) { if (t2.manOn.has(k)) t2.manOn.delete(k); else t2.manOff.add(k); }
+  else { if (t2.manOff.has(k)) t2.manOff.delete(k); else t2.manOn.add(k); }
+  selectFromShapes(); computeT2(); pv.draw();
 };
-$('btnDraw').addEventListener('click', () => { if (!t2.holes.length) { setMsg('t2Msg', 'err', 'Marca primero uno o varios proyectos.'); return; } if (t2.mode === 'poly') closePoly2(); else setMode2('poly'); });
-$('cm2Done').addEventListener('click', () => { if (t2.mode === 'pick') { setMode2(null); computeT2(); } else closePoly2(); });
-$('cm2Cancel').addEventListener('click', () => { if (t2.mode === 'pick') t2.picked = []; else t2.poly = []; setMode2(null); selectFromShapes(); computeT2(); });
-$('btnPick').addEventListener('click', () => { if (!t2.lims.length) { setMsg('t2Msg', 'err', 'Sube primero el DXF o CSV con los límites de rotura y subdivisiones.'); return; } if (t2.mode === 'pick') { setMode2(null); computeT2(); } else { t2.poly = []; setMode2('pick'); } });
-$('btnClearAv').addEventListener('click', () => { t2.poly = []; t2.picked = []; t2.sel = new Set(); t2.viewing = null; setMode2(null); renderHistory(); computeT2(); });
+function startDraw(tool) {
+  if (!t2.holes.length) { setMsg('t2Msg', 'err', 'Marca primero uno o varios proyectos.'); return; }
+  if (tool === 'pick' && !t2.lims.length) { setMsg('t2Msg', 'err', 'Sube primero el DXF o CSV con los límites de rotura y subdivisiones.'); return; }
+  if (t2.viewing) { t2.viewing = null; renderHistory(); computeT2(); }
+  setFull(true); setTool(tool);
+}
+function clearAvance() { t2.shapes = []; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set(); t2.viewing = null; selectFromShapes(); renderHistory(); computeT2(); pv.draw(); paintHint(); }
+$('btnDraw').addEventListener('click', () => startDraw('pen'));
+$('btnPick').addEventListener('click', () => startDraw('pick'));
+$('ipDraw').addEventListener('click', () => startDraw('pen'));
+$('ipPick').addEventListener('click', () => startDraw('pick'));
+$('btnClearAv').addEventListener('click', clearAvance);
 ['avB', 'avE'].forEach(id => $(id).addEventListener('input', () => computeT2()));
-$('avExcl').addEventListener('change', () => { if (currentShapes().length && t2.mode !== 'poly') { selectFromShapes(); computeT2(); pv.draw(); } });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && t2.mode) { if (t2.mode === 'poly') t2.poly = []; setMode2(null); computeT2(); } });
+$('avExcl').addEventListener('change', () => { selectFromShapes(); computeT2(); pv.draw(); });
+document.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, select, textarea')) return;
+  if (e.key === 'Escape') { if (t2.draft.length) { t2.draft = []; pv.draw(); paintHint(); } else if (enFull) setFull(false); return; }
+  if (!enFull) return;
+  if (e.key === 'Enter' && t2.draft.length) { closeDraft(); return; }
+  if ((e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) && t2.draft.length) { e.preventDefault(); t2.draft.pop(); pv.draw(); paintHint(); return; }
+  const k = { m: 'pan', v: 'pan', p: 'pen', e: 'erase', l: 'pick' }[e.key.toLowerCase()];
+  if (k && !e.ctrlKey && !e.metaKey && !e.altKey) setTool(k);
+});
 
 function setMsg(id, cls, text) { const m = $(id); m.className = 'msg' + (cls ? ' ' + cls : ''); m.textContent = text; }
 const num = id => { const v = parseFloat($(id).value); return isNaN(v) || v <= 0 ? null : v; };
@@ -2374,8 +2534,8 @@ function labelsFor(keys) {
 function computeT2() {
   t2.result = null;
   const tiles = $('t2Tiles');
-  if (t2.viewing) { const a = t2.avs.find(a => a.id === t2.viewing); renderTiles(a.result, `${fmtDate(a.fecha)}${a.nombre ? ' · ' + a.nombre : ''}`); setMsg('t2Msg', '', `Viendo el avance guardado (${a.projectNames.join(' + ')}). Toca el plano para volver al avance nuevo.`); $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = false; return; }
-  if (!t2.holes.length || !t2.sel.size) { tiles.innerHTML = ''; $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = true; if (t2.holes.length) setMsg('t2Msg', '', t2.mode === 'poly' ? '' : 'Dibuja el polígono del avance en el plano.'); else setMsg('t2Msg', '', ''); return; }
+  if (t2.viewing) { const a = t2.avs.find(a => a.id === t2.viewing); renderTiles(a.result, `${fmtDate(a.fecha)}${a.nombre ? ' · ' + a.nombre : ''}`); setMsg('t2Msg', '', `Viendo el avance guardado (${a.projectNames.join(' + ')}). Toca el plano para volver al avance nuevo.`); $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = false; paintPanel(); return; }
+  if (!t2.holes.length || !t2.sel.size) { tiles.innerHTML = ''; $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = true; setMsg('t2Msg', '', t2.holes.length && !t2.shapes.length ? 'Dibuja el polígono del avance en el plano.' : t2.shapes.length ? 'Los polígonos no tienen taladros de los proyectos marcados.' : ''); paintPanel(); return; }
   const keys = [...t2.sel];
   const items = [], pending = [], noLey = [], repeated = [];
   keys.forEach(k => {
@@ -2384,20 +2544,49 @@ function computeT2() {
     if (!l) noLey.push(k); else if (l.hasData === false) pending.push(k); else items.push({ hole: h, ley: l });
   });
   const B = num('avB'), E = num('avE');
-  const w = weightedAverage(items, { B, E, medDepth: median(t2.holes.map(h => h.depth)), medDensity: median([...t2.leyBy.values()].map(l => l.density)) });
+  const opts = { B, E, medDepth: median(t2.holes.map(h => h.depth)), medDensity: median([...t2.leyBy.values()].map(l => l.density)) };
+  const w = weightedAverage(items, opts);
+  const fields = Object.fromEntries(AVG_FIELDS.map(f => [f.k, Object.assign({}, w.res[f.k])]));
+  // Por polígono: cada uno con su promedio; si alguno tiene peso (%), el promedio del avance combina los polígonos con esos pesos
+  const gs = t2.groups || [];
+  let groups = null, weighted = false, wNote = '';
+  if (gs.length > 1 || gs.some(g => g.s && g.s.w != null)) {
+    const byKey = new Map(items.map(i => [i.hole.ck, i]));
+    groups = gs.map(g => {
+      const it = g.keys.map(k => byKey.get(k)).filter(Boolean), gw = weightedAverage(it, opts);
+      const pid = g.s && g.s.pid && t2.projs.some(p => p.id === g.s.pid) ? g.s.pid : '';
+      return { idx: g.i, label: g.s ? `Polígono ${g.i + 1}` : 'Taladros sueltos', pid, pname: pid ? (t2.projs.find(p => p.id === pid) || {}).name : '', lim: g.s && g.s.lim || null, w: g.s && g.s.w != null ? g.s.w : null, n: it.length, mass: gw.tonnage || gw.wsum || 0, tonnage: gw.tonnage, fields: Object.fromEntries(AVG_FIELDS.map(f => [f.k, gw.res[f.k].mean])) };
+    });
+    const live = groups.filter(g => g.n), exp = live.filter(g => g.w != null), auto = live.filter(g => g.w == null);
+    weighted = exp.length > 0;
+    if (weighted) {
+      const sExp = exp.reduce((s, g) => s + g.w, 0), mAuto = auto.reduce((s, g) => s + g.mass, 0), rest = Math.max(0, 100 - sExp);
+      exp.forEach(g => { g.wEff = g.w; });
+      auto.forEach(g => { g.wEff = mAuto ? rest * g.mass / mAuto : 0; });
+      if (!auto.length && Math.abs(sExp - 100) > 0.05) wNote = `Los pesos suman ${+sExp.toFixed(1)} %: se reparten en proporción.`;
+      else if (auto.length && sExp >= 100) wNote = 'Los pesos ya suman 100 %: los polígonos sin peso no cuentan en el promedio.';
+      else if (auto.length) wNote = `Los polígonos sin peso se reparten el ${+rest.toFixed(1)} % restante según su tonelaje.`;
+      AVG_FIELDS.forEach(F => { let sw = 0, sv = 0; live.forEach(g => { const m = g.fields[F.k]; if (m != null && g.wEff > 0) { sw += g.wEff; sv += g.wEff * m; } }); fields[F.k].mean = sw ? sv / sw : null; });
+    } else live.forEach(g => { g.wEff = g.mass; });
+    const tot = live.reduce((s, g) => s + (g.wEff || 0), 0);
+    groups.forEach(g => { g.pct = tot && g.n ? 100 * (g.wEff || 0) / tot : 0; });
+  }
   const pids = [...new Set(items.map(i => i.hole.pid))];
-  t2.result = { n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, fields: Object.fromEntries(AVG_FIELDS.map(f => [f.k, w.res[f.k]])), depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => ({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w })) };
-  renderTiles(t2.result, pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo');
+  t2.result = { n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => ({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w })) };
+  renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
+  if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (pending.length) notes.push(`${pending.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pending)}.`);
   if (noLey.length) notes.push(`${noLey.length} taladro(s) sin muestra en la base (no entran).`);
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
   if (w.depthDef) notes.push(`${w.depthDef} taladro(s) sin profundidad: se usó ${w.medDepth.toFixed(2)} m.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
-  setMsg('t2Msg', pending.length || repeated.length || w.depthDef || w.densDef ? 'warn' : '', notes.join(' '));
+  setMsg('t2Msg', pending.length || repeated.length || w.depthDef || w.densDef || wNote ? 'warn' : '', notes.join(' '));
+  t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote };
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
+  paintPanel();
 }
 function sortIds(ids) { return ids.slice().sort(sortNum); }
 
@@ -2411,12 +2600,14 @@ function renderTiles(r, title) {
 $('btnSaveAv').addEventListener('click', async () => {
   if (!t2.result) return;
   const fecha = $('avFecha').value || todayISO();
-  const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), tipo: $('avTipo').value.trim(), tipoMat: $('avMat').value.trim(), obs: $('avObs').value.trim(), poly: t2.poly.slice(), keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
+  const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), shapes: t2.shapes.map(s => ({ pts: s.pts, pid: s.pid || '', w: s.w, lim: s.lim || null })), tipo: $('avTipo').value.trim(), tipoMat: $('avMat').value.trim(), obs: $('avObs').value.trim(), poly: [], keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
   const ok = await dbSave('avances', rec);
   if (!ok) { setMsg('t2Msg', 'err', 'No se pudo guardar el avance en esta PC.'); return; }
-  t2.poly = []; t2.picked = []; t2.sel = new Set(); $('avNombre').value = ''; $('avObs').value = ''; $('avMat').value = '';
+  t2.shapes = []; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set(); t2.sel = new Set(); t2.groups = [];
+  $('avNombre').value = ''; $('fsNombre').value = ''; $('avObs').value = ''; $('avMat').value = '';
   await loadLibrary();
-  setMsg('t2Msg', 'ok', `Avance del ${fmtDate(fecha)} guardado con ${rec.result.n} taladros (${rec.projectNames.join(' + ')}).`);
+  const okTxt = `Avance del ${fmtDate(fecha)} guardado con ${rec.result.n} taladros (${rec.projectNames.join(' + ')}).`;
+  setMsg('t2Msg', 'ok', okTxt); paintPanel(); flashHint('✓ ' + okTxt, true);
 });
 
 function summaryText(r, fecha, nombre, names) {
@@ -2433,14 +2624,17 @@ $('btnCopyAv').addEventListener('click', () => {
 });
 
 // ---- Historial ----
-function cumulative() {
-  if (!t2.avs.length) return null;
-  const keys = new Set(); t2.avs.forEach(a => a.keys.forEach(k => keys.add(k)));
-  const items = [...keys].map(k => ({ hole: t2.holeBy.get(k), ley: t2.leyBy.get(k) })).filter(i => i.hole && i.ley && i.ley.hasData !== false);
-  const w = weightedAverage(items, { medDepth: median(t2.holes.map(h => h.depth)), medDensity: median([...t2.leyBy.values()].map(l => l.density)) });
-  const ton = t2.avs.reduce((s, a) => s + (a.result.tonnage || 0), 0);
-  return { n: items.length, tonnage: ton || null, wsum: w.wsum, fields: w.res };
+// Combina los resultados guardados de varios avances (respeta los pesos por polígono de cada uno)
+function combineAvances(avs) {
+  if (!avs.length) return null;
+  const allT = avs.every(a => a.result.tonnage);
+  const mass = a => (allT ? a.result.tonnage : a.result.wsum || a.result.tonnage || a.result.n || 0);
+  const fields = {};
+  AVG_FIELDS.forEach(F => { let sw = 0, sv = 0, n = 0; avs.forEach(a => { const x = a.result.fields[F.k] || {}; if (x.mean != null && mass(a) > 0) { sw += mass(a); sv += mass(a) * x.mean; n += x.n || 0; } }); fields[F.k] = { mean: sw ? sv / sw : null, n }; });
+  const ton = avs.reduce((s, a) => s + (a.result.tonnage || 0), 0);
+  return { n: avs.reduce((s, a) => s + a.result.n, 0), tonnage: ton || null, wsum: avs.reduce((s, a) => s + (a.result.wsum || 0), 0), fields };
 }
+function cumulative() { return combineAvances(t2.avs); }
 function renderHistory() {
   const tb = $('histTbl');
   if (!t2.projs.length) { tb.innerHTML = ''; return; }
@@ -2465,7 +2659,7 @@ $('histTbl').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const id = b.dataset.id;
   if (b.dataset.act === 'view') {
-    t2.viewing = t2.viewing === id ? null : id; t2.poly = []; setMode2(null);
+    t2.viewing = t2.viewing === id ? null : id; t2.draft = [];
     const a = t2.avs.find(a => a.id === id);
     const missing = a ? a.projectIds.filter(pid => !t2.selIds.has(pid)) : [];
     if (t2.viewing && missing.length) { missing.forEach(pid => t2.selIds.add(pid)); refreshT2(); }
@@ -2536,13 +2730,11 @@ $('btnReporte').addEventListener('click', async () => {
       .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: a.tipoMat || '' }, box), { v: a.obs || '', border: true }]));
   });
   if (avs.length > 1) {
-    const keys = new Set(); avs.forEach(a => a.keys.forEach(k => keys.add(k)));
-    const items = [...keys].map(k => ({ hole: t2.holeBy.get(k), ley: t2.leyBy.get(k) })).filter(i => i.hole && i.ley && i.ley.hasData !== false);
-    const w = weightedAverage(items, { medDepth: median(t2.holes.map(h => h.depth)), medDensity: median([...t2.leyBy.values()].map(l => l.density)) });
+    const cb = combineAvances(avs);
     const ton = avs.reduce((s, a) => s + (a.result.tonnage || 0), 0);
     const tot = Object.assign({ bold: true, fill: 'D9E1F2' }, box);
-    rows.push([Object.assign({ v: 'TOTAL' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: `${avs.length} avances` }, tot), Object.assign({ v: items.length, t: 'n', dec: 0 }, tot), ton ? Object.assign({ v: Math.round(ton), t: 'n', fmt: '#,##0' }, tot) : Object.assign({ v: '-' }, tot)]
-      .concat(cols.slice(7, 17).map(c => { const cell = c[2] ? numC(w.res[c[2]].mean, c[3]) : Object.assign({ v: '-' }, box); return Object.assign(cell, { bold: true, fill: 'D9E1F2' }); }))
+    rows.push([Object.assign({ v: 'TOTAL' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: `${avs.length} avances` }, tot), Object.assign({ v: cb.n, t: 'n', dec: 0 }, tot), ton ? Object.assign({ v: Math.round(ton), t: 'n', fmt: '#,##0' }, tot) : Object.assign({ v: '-' }, tot)]
+      .concat(cols.slice(7, 17).map(c => { const cell = c[2] ? numC(cb.fields[c[2]].mean, c[3]) : Object.assign({ v: '-' }, box); return Object.assign(cell, { bold: true, fill: 'D9E1F2' }); }))
       .concat([Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot)]));
   }
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true, fill: AZ, border: true, align: 'center' }))];
@@ -2616,7 +2808,7 @@ $('limList').addEventListener('click', async e => {
   if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Quitar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Quitar'; b.classList.remove('danger'); } }, 4000); return; }
   const prev = (await idbGet('limites')) || [];
   const arr = prev.filter(l => l.file !== b.dataset.delfile);
-  await saveLimites(arr, prev); t2.picked = []; await loadLimits(); selectFromShapes(); computeT2();
+  await saveLimites(arr, prev); await loadLimits(); t2.shapes = t2.shapes.filter(s => !s.lim || t2.lims.some(l => l.id === s.lim)); selectFromShapes(); computeT2(); pv.draw();
 });
 async function addLimitFiles(files) {
   const msg = $('limMsg'); const added = [], errs = [];
@@ -2654,45 +2846,153 @@ function setFull(on) {
   if (on === enFull) return;
   const c = pv.v, cx = pv.wx(pv.W / 2), cy = pv.wy(pv.H / 2);
   enFull = on;
-  $('cad2wrap').classList.toggle('full', on);
+  const w = $('cad2wrap'), anl = document.querySelector('#cad2wrap .anl');
+  w.classList.toggle('full', on);
   document.body.classList.toggle('enfull', on);
-  $('fullTools').hidden = !on; $('fullRes').hidden = !on;
-  $('z2full').textContent = on ? '⤡ Salir' : '⤢ Pantalla completa';
-  requestAnimationFrame(() => { pv.resize(); c.ox = cx - pv.W / 2 / c.s; c.oy = cy + pv.H / 2 / c.s; pv.draw(); });
-  pintarFull();
+  if (anl) { if (on) $('fsAnlSlot').appendChild(anl); else w.appendChild(anl); }
+  if (!on) { t2.tool = 'pan'; t2.draft = []; }
+  $('fsFecha').value = $('avFecha').value; $('fsNombre').value = $('avNombre').value; $('fsLibre').checked = $('avLibre').checked;
+  let np = false; try { np = localStorage.getItem('bhl-nopanel') === '1'; } catch (e) {}
+  w.classList.toggle('nopanel', on && np);
+  requestAnimationFrame(() => {
+    pv.resize();
+    if (on && t2.holes.length) fitFull(); else { c.ox = cx - pv.W / 2 / c.s; c.oy = cy + pv.H / 2 / c.s; }
+    pv.draw();
+  });
+  paintTools(); paintPanel();
 }
-function pintarFull() {
-  $('ftDraw').classList.toggle('on', t2.mode === 'poly');
-  $('ftPick').classList.toggle('on', t2.mode === 'pick');
-  $('ftDraw').textContent = t2.mode === 'poly' ? '✓ Cerrar polígono' : '✎ Dibujar polígono';
-  $('ftPick').textContent = t2.mode === 'pick' ? '✓ Listo' : '▢ Elegir polígonos';
-  $('ftLibre').checked = $('avLibre').checked;
-  $('ftCancel').hidden = !t2.mode;
-  if (!enFull) return;
-  const r = t2.result, a = t2.viewing ? t2.avs.find(x => x.id === t2.viewing) : null, R = a ? a.result : r;
-  const box = $('fullResTxt');
-  if (!R) { box.innerHTML = t2.mode === 'poly' ? 'Traza el contorno del avance con el lápiz, o toca cada vértice y pulsa «Cerrar polígono».' : t2.mode === 'pick' ? 'Toca los polígonos de límite o subdivisión que entran en el avance.' : 'Pulsa «Dibujar polígono» o «Elegir polígonos».'; $('ftSave').disabled = true; return; }
-  const f = (v, d) => fmt(v, d, '—');
-  const fecha = a ? a.fecha : ($('avFecha').value || todayISO());
-  box.innerHTML = `<b>${R.n} taladros</b>${R.tonnage ? ` · ${Math.round(R.tonnage).toLocaleString('es-PE')} t` : ''} · ${fmtDate(fecha)}${a ? ' (guardado)' : ''}${!a && t2.sel.size > R.n ? ` · ${t2.sel.size - R.n} sin resultados (no entran)` : ''}<br>` +
-    AVG_FIELDS.filter(F => (R.fields[F.k] || {}).mean != null).map(F => `${F.label} <b>${f(R.fields[F.k].mean, F.dec)}</b>`).join(' · ');
-  $('ftSave').disabled = !!a || !r || !r.n;
+// Encuadra los taladros (o los polígonos) en el espacio libre entre la barra de herramientas y el panel
+function fitFull(b) {
+  b = b || t2Bounds(); if (!b) return;
+  const r = pv.cv.getBoundingClientRect(), vis = el => el && el.offsetParent !== null ? el.getBoundingClientRect() : null;
+  const rail = vis($('fsRail')), pan = vis($('fsPanel')), top = vis($('fsTop'));
+  let L = 12, R = 12, T = 12, B = 12;
+  if (top) T = top.bottom - r.top + 60;
+  if (rail) { if (rail.height > rail.width) L = rail.right - r.left + 12; else B = r.bottom - rail.top + 12; }
+  if (pan) { if (pan.top > r.top + r.height * 0.4) B = Math.max(B, r.bottom - pan.top + 12); else R = r.right - pan.left + 12; }
+  const w = Math.max(80, pv.W - L - R), h = Math.max(80, pv.H - T - B);
+  const s = Math.min(w / (b.x1 - b.x0 + 8), h / (b.y1 - b.y0 + 8));
+  pv.v.s = Math.min(400, Math.max(0.5, s));
+  pv.v.ox = (b.x0 + b.x1) / 2 - (L + w / 2) / pv.v.s; pv.v.oy = (b.y0 + b.y1) / 2 + (T + h / 2) / pv.v.s;
 }
-$('z2full').addEventListener('click', () => setFull(!enFull));
-$('ftExit').addEventListener('click', () => { if (t2.mode) setMode2(null); setFull(false); });
-$('ftDraw').addEventListener('click', () => $('btnDraw').click());
-$('ftPick').addEventListener('click', () => $('btnPick').click());
-$('ftCancel').addEventListener('click', () => $('cm2Cancel').click());
-$('ftClear').addEventListener('click', () => $('btnClearAv').click());
-$('ftLibre').addEventListener('change', () => { $('avLibre').checked = $('ftLibre').checked; });
-$('ftSave').addEventListener('click', () => $('btnSaveAv').click());
-// Al empezar a dibujar o elegir polígonos, el plano pasa a pantalla completa
-['btnDraw', 'btnPick'].forEach(id => $(id).addEventListener('click', () => { if (t2.mode && !enFull) setFull(true); setTimeout(pintarFull, 0); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && enFull && !t2.mode) setFull(false); });
-{ const _m = setMode2, _c = computeT2;
-  setMode2 = function (m) { _m(m); pintarFull(); };
-  computeT2 = function () { _c(); pintarFull(); }; }
-pintarFull();
+function paintTools() {
+  document.querySelectorAll('#fsRail button[data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t2.tool)));
+  $('cad2').style.cursor = t2.tool === 'pen' ? 'crosshair' : t2.tool === 'erase' ? 'cell' : '';
+  paintHint();
+}
+let hintFlash = null;
+function flashHint(t, ok) {
+  if (!enFull) { setMsg('t2Msg', ok ? 'ok' : 'err', t); return; }
+  hintFlash = { t, ok }; paintHint();
+  clearTimeout(flashHint.tm); flashHint.tm = setTimeout(() => { hintFlash = null; paintHint(); }, 3500);
+}
+function paintHint() {
+  const el = $('fsHint');
+  if (!enFull) { el.innerHTML = ''; return; }
+  if (hintFlash) { el.innerHTML = `<span class="${hintFlash.ok ? 'okm' : ''}">${esc(hintFlash.t)}</span>`; return; }
+  const a = t2.viewing ? t2.avs.find(x => x.id === t2.viewing) : null;
+  if (a) { el.innerHTML = `<span>Viendo el avance guardado del ${fmtDate(a.fecha)}. Toca el plano con «Mover» para volver al avance nuevo.</span>`; return; }
+  const n = t2.draft.length;
+  if (t2.tool === 'pen' && n) { el.innerHTML = `<span>${n} vértice${n === 1 ? '' : 's'}</span><button type="button" class="ok" data-h="close"${n < 3 ? ' disabled' : ''}>✓ Cerrar polígono</button><button type="button" data-h="undo">↶ Deshacer</button><button type="button" data-h="cancel">Cancelar</button>`; return; }
+  el.innerHTML = `<span>${TOOL_HINT[t2.tool] || ''}</span>`;
+}
+$('fsHint').addEventListener('click', e => {
+  const b = e.target.closest('button[data-h]'); if (!b) return;
+  if (b.dataset.h === 'close') closeDraft(); else { if (b.dataset.h === 'undo') t2.draft.pop(); else t2.draft = []; pv.draw(); paintHint(); }
+});
+
+// ---- Lista de polígonos (en pantalla completa y en el panel lateral) ----
+const shTxt = (g, keysIn) => {
+  if (!g) return keysIn != null ? `${keysIn} tal.` : '';
+  return `${g.n} tal.${g.tonnage ? ` · ${Math.round(g.tonnage).toLocaleString('es-PE')} t` : ''}`;
+};
+const shVals = (g, R) => {
+  if (!g) return '';
+  const top = AVG_FIELDS.filter(F => g.fields[F.k] != null).slice(0, 4).map(F => `${F.label} ${fmt(g.fields[F.k], F.dec, '—')}`).join(' · ');
+  const pct = g.n ? `<span class="pct">${+g.pct.toFixed(1)} % del promedio</span>` : '<span class="pct">sin taladros con resultados</span>';
+  return (top ? top + '<br>' : '') + pct;
+};
+function renderShapeList(el, a) {
+  if (a) {
+    const gs = a.result.groups || [];
+    el.dataset.sig = 'v' + a.id;
+    el.innerHTML = gs.length > 1 || gs.some(g => g.w != null) ? gs.map(g => `<div class="shc" style="--c:${g.idx >= 0 ? shColor(g.idx) : CAD.sel}"><div class="shh"><i class="sw">${g.idx >= 0 ? g.idx + 1 : '+'}</i><b>${esc(g.label)}</b><span class="shm">${shTxt(g)}</span></div><div class="shv">${esc(g.pname || 'Todos los proyectos')} · peso ${g.w != null ? +g.w.toFixed(1) + ' %' : 'auto'}<br>${shVals(g)}</div></div>`).join('') : '';
+    return;
+  }
+  const loose = (t2.groups || []).find(g => !g.s);
+  const sig = t2.shapes.map(s => s.id).join(',') + '|' + t2.projs.map(p => p.id).join(',') + '|' + (loose ? 1 : 0);
+  if (el.dataset.sig !== sig) {
+    el.dataset.sig = sig;
+    const opts = '<option value="">Todos los proyectos</option>' + t2.projs.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    el.innerHTML = t2.shapes.map((s, i) => `<div class="shc" data-sid="${s.id}" style="--c:${shColor(i)}"><div class="shh"><i class="sw">${i + 1}</i><b>${s.lim ? 'Límite' : 'Polígono'} ${i + 1}</b><span class="shm"></span><button type="button" data-shdel="${s.id}" aria-label="Borrar polígono ${i + 1}">✕</button></div>` +
+      `<div class="shf"><label>Proyecto<select data-k="pid" data-sid="${s.id}">${opts}</select></label><label>Peso %<input type="number" inputmode="decimal" min="0" max="100" step="1" placeholder="auto" data-k="w" data-sid="${s.id}"></label></div><div class="shv"></div></div>`).join('') +
+      (loose ? `<div class="shc" data-sid="loose" style="--c:${CAD.sel}"><div class="shh"><i class="sw">+</i><b>Taladros sueltos</b><span class="shm"></span></div><div class="shv"></div></div>` : '');
+  }
+  const groups = t2.result && t2.result.groups;
+  t2.shapes.forEach((s, i) => {
+    const c = el.querySelector(`[data-sid="${s.id}"]`); if (!c) return;
+    const g = groups ? groups.find(g => g.idx === i) : null, gk = (t2.groups || []).find(g => g.s === s);
+    c.querySelector('.shm').textContent = shTxt(g, gk ? gk.keys.length : 0);
+    c.querySelector('.shv').innerHTML = g ? shVals(g) : t2.shapes.length === 1 && t2.result ? '<span class="pct">100 % del promedio</span>' : '';
+    const inp = c.querySelector('input[data-k=w]'), sel = c.querySelector('select[data-k=pid]');
+    if (document.activeElement !== inp) inp.value = s.w != null ? s.w : '';
+    if (document.activeElement !== sel) sel.value = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
+  });
+  if (loose) { const c = el.querySelector('[data-sid="loose"]'), g = groups ? groups.find(g => g.idx === -1) : null; if (c) { c.querySelector('.shm').textContent = shTxt(g, loose.keys.length); c.querySelector('.shv').innerHTML = g ? shVals(g) : 'Tocados a mano con «Mover».'; } }
+}
+['fsShapes', 'avShapes'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('input', e => {
+    const t = e.target, s = t2.shapes.find(s => s.id === t.dataset.sid); if (!s || t.dataset.k !== 'w') return;
+    const v = parseFloat(String(t.value).replace(',', '.'));
+    s.w = t.value === '' || isNaN(v) ? null : Math.max(0, Math.min(100, v));
+    selectFromShapes(); computeT2(); pv.draw();
+  });
+  el.addEventListener('change', e => {
+    const t = e.target, s = t2.shapes.find(s => s.id === t.dataset.sid); if (!s || t.dataset.k !== 'pid') return;
+    s.pid = t.value; selectFromShapes(); computeT2(); pv.draw();
+  });
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button[data-shdel]'); if (!b) return;
+    t2.shapes = t2.shapes.filter(s => s.id !== b.dataset.shdel); selectFromShapes(); computeT2(); pv.draw();
+  });
+});
+function paintPanel() {
+  const a = t2.viewing ? t2.avs.find(x => x.id === t2.viewing) : null;
+  $('fsSub').textContent = a ? `Guardado · ${fmtDate(a.fecha)}${a.nombre ? ' · ' + a.nombre : ''} · ${a.projectNames.join(' + ')}` : `${fmtDate($('avFecha').value || todayISO())}${t2.projs.length ? ' · ' + t2.projs.map(p => p.name).join(' + ') : ''}`;
+  renderShapeList($('fsShapes'), a); renderShapeList($('avShapes'), a);
+  const R = a ? a.result : t2.result, box = $('fsRes');
+  if (R && !R.n) box.innerHTML = `<p class="fs-empty">Ningún taladro dentro de los polígonos tiene resultados de laboratorio todavía.</p>`;
+  else if (!R) box.innerHTML = `<p class="fs-empty">${t2.shapes.length ? 'Los polígonos no tienen taladros con resultados de los proyectos marcados.' : 'Dibuja el contorno del avance con el <b>Lápiz</b> o toca límites con <b>Límites</b>. Puedes dibujar varios polígonos y darle un peso a cada uno.'}</p>`;
+  else box.innerHTML = `<div class="big"><div><span>Taladros</span><b>${R.n}</b></div><div><span>${R.tonnage ? 'Tonelaje (t)' : 'Peso (prof × dens)'}</span><b>${Math.round(R.tonnage || R.wsum || 0).toLocaleString('es-PE')}</b></div></div>` +
+    `<div class="an">${AVG_FIELDS.filter(F => (R.fields[F.k] || {}).mean != null).map(F => `<div><span>${F.label}</span><b>${fmt(R.fields[F.k].mean, F.dec, '—')}</b></div>`).join('')}</div>` +
+    `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
+  const m = $('fsMsg'), src = $('t2Msg');
+  m.className = 'fs-msg' + (src.classList.contains('ok') ? ' ok' : ''); m.textContent = a ? '' : src.textContent;
+  $('fsSave').disabled = !!a || !t2.result || !t2.result.n;
+  paintHint();
+}
+$('fsRail').addEventListener('click', e => { const b = e.target.closest('button[data-tool]'); if (b) setTool(b.dataset.tool); });
+$('fsZin').onclick = () => pv.zoomAt(1.5, pv.W / 2, pv.H / 2);
+$('fsZout').onclick = () => pv.zoomAt(1 / 1.5, pv.W / 2, pv.H / 2);
+$('fsFit').onclick = () => { fitFull(); pv.draw(); };
+$('fsLibre').addEventListener('change', () => { $('avLibre').checked = $('fsLibre').checked; });
+$('avLibre').addEventListener('change', () => { $('fsLibre').checked = $('avLibre').checked; });
+$('fsFecha').addEventListener('input', () => { $('avFecha').value = $('fsFecha').value; paintPanel(); });
+$('avFecha').addEventListener('input', () => { $('fsFecha').value = $('avFecha').value; });
+$('fsNombre').addEventListener('input', () => { $('avNombre').value = $('fsNombre').value; });
+$('avNombre').addEventListener('input', () => { $('fsNombre').value = $('avNombre').value; });
+$('fsSave').addEventListener('click', () => $('btnSaveAv').click());
+$('fsClear').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Borrar todo?'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = 'Limpiar'; }, 3500); return; }
+  b.dataset.confirm = ''; b.textContent = 'Limpiar'; clearAvance();
+});
+$('fsExit').addEventListener('click', () => setFull(false));
+$('fsHide').addEventListener('click', () => { $('cad2wrap').classList.add('nopanel'); requestAnimationFrame(() => { fitFull(); pv.draw(); }); try { localStorage.setItem('bhl-nopanel', '1'); } catch (e) {} });
+$('fsShow').addEventListener('click', () => { $('cad2wrap').classList.remove('nopanel'); try { localStorage.removeItem('bhl-nopanel'); } catch (e) {} });
+$('z2full').addEventListener('click', () => { setFull(!enFull); if (enFull) setTool('pan'); });
+paintTools(); paintPanel();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
