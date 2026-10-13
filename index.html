@@ -173,6 +173,9 @@ body.enfull { overflow: hidden; }
 .fs-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
 .fs-title b { font: 700 1.2rem var(--f-display, var(--f-body)); letter-spacing: .04em; text-transform: uppercase; }
 .fs-title span { color: #9fb0bc; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-fil { display: flex; align-items: center; gap: 6px; font: 600 .82rem var(--f-body); color: #c9d1d9; }
+.fs-fil select { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 6px; padding: 6px 8px; min-height: 36px; max-width: 120px; }
+@media (max-width: 900px) { .fs-fil { display: none; } }
 .fs-anl .anl { position: static; background: transparent; border: 0; padding: 0; font-size: .9rem; }
 .fs-anl .anl select { font-size: .95rem; padding: 6px 8px; min-height: 36px; }
 .fs-exit { font: 600 .95rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 0 14px; min-height: 40px; cursor: pointer; }
@@ -333,7 +336,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v9</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v10</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -551,6 +554,7 @@ td.e { color: var(--muted); }
           </div>
           <div class="fs-top" id="fsTop">
             <div class="fs-title"><b>Avance</b><span id="fsSub"></span></div>
+            <label class="fs-fil">Mina<select id="fsMina"></select></label><label class="fs-fil">Nivel<select id="fsNivel"></select></label>
             <div class="fs-anl" id="fsAnlSlot"></div>
             <button type="button" class="fs-exit" id="fsExit" aria-label="Salir de pantalla completa">✕ <span>Salir</span></button>
           </div>
@@ -2230,9 +2234,11 @@ function projCode(p) {
 }
 const sortNum = (a, b) => (parseFloat(a) - parseFloat(b)) || String(a).localeCompare(String(b));
 
+let filGuardado = null; try { filGuardado = JSON.parse(localStorage.getItem('bhl-fil') || 'null'); } catch (e) {}
 function fillFilters() {
   const fm = $('fMina'), fn = $('fNivel');
-  const curM = fm.value, curN = fn.value;
+  let curM = fm.value, curN = fn.value;
+  if (filGuardado && lib.projects.length) { curM = filGuardado.m || ''; curN = filGuardado.n || ''; filGuardado = null; }
   const minas = [...new Set(lib.projects.map(p => projCode(p).mina))].sort(sortNum);
   fm.innerHTML = '<option value="">Todas</option>' + minas.map(m => `<option value="${esc(m)}">Mina ${esc(m)}</option>`).join('');
   fm.value = minas.includes(curM) ? curM : '';
@@ -2260,8 +2266,10 @@ $('pList').addEventListener('change', e => {
   if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id);
   t2.fitted = false; refreshT2();
 });
-$('fMina').addEventListener('change', () => { $('fNivel').value = ''; fillFilters(); renderProjectList(); });
-$('fNivel').addEventListener('change', () => renderProjectList());
+// El filtro de mina / nivel también decide qué se ve en el plano: solo esa mina (y ese nivel)
+function filtroCambio() { try { localStorage.setItem('bhl-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} t2.fitted = false; refreshT2(); if (enFull) requestAnimationFrame(() => { fitFull(); pv.draw(); }); }
+$('fMina').addEventListener('change', () => { $('fNivel').value = ''; fillFilters(); filtroCambio(); });
+$('fNivel').addEventListener('change', filtroCambio);
 $('pAll').addEventListener('click', () => { visibleProjects().forEach(p => t2.selIds.add(p.id)); t2.fitted = false; refreshT2(); });
 $('pNone').addEventListener('click', () => { t2.selIds = new Set(); refreshT2(); });
 $('anSel').addEventListener('change', () => { t2.analito = $('anSel').value; try { localStorage.setItem('bhl-an', t2.analito); } catch (e) {} renderAnLegend(); pv.draw(); });
@@ -2271,7 +2279,10 @@ try { const a = localStorage.getItem('bhl-an'); if (a != null) { t2.analito = a;
 function refreshT2() {
   fillFilters(); renderProjectList();
   try { localStorage.setItem('bhl-sel', JSON.stringify([...t2.selIds])); } catch (e) {}
-  t2.projs = lib.projects.filter(p => t2.selIds.has(p.id));
+  const vis = new Set(visibleProjects().map(p => p.id));
+  t2.projs = lib.projects.filter(p => t2.selIds.has(p.id) && vis.has(p.id));
+  t2.ocultos = [...t2.selIds].filter(id => !vis.has(id) && lib.projects.some(p => p.id === id)).length;
+  paintFsFiltro();
   t2.holes = []; t2.holeBy = new Map(); t2.leyBy = new Map();
   const errs = [];
   t2.projs.forEach(p => {
@@ -2294,10 +2305,11 @@ function refreshT2() {
   const withRes = t2.holes.filter(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false; }).length;
   const noDepth = t2.projs.filter(p => !p.holes.some(h => h.depth)).map(p => p.name);
   const info = $('pInfo');
-  if (!t2.projs.length) info.innerHTML = lib.projects.length ? 'Marca uno o varios proyectos para verlos en el plano.' : '';
+  const ocult = t2.ocultos ? `<br><span class="note">${t2.ocultos} proyecto${t2.ocultos > 1 ? 's' : ''} marcado${t2.ocultos > 1 ? 's' : ''} de otra mina o nivel no se muestra${t2.ocultos > 1 ? 'n' : ''} por el filtro.</span>` : '';
+  if (!t2.projs.length) info.innerHTML = (lib.projects.length ? 'Marca uno o varios proyectos para verlos en el plano.' : '') + ocult;
   else info.innerHTML = `${t2.projs.length} proyecto${t2.projs.length > 1 ? 's' : ''} · ${t2.holes.length} taladros · ${withRes} con resultados · ${t2.avs.length} avance${t2.avs.length === 1 ? '' : 's'}` +
     (errs.length ? `<br><span class="warnc">${esc([...new Set(errs)].join(' '))}</span>` : '') +
-    (noDepth.length ? `<br><span class="warnc">Sin profundidad (se pondera solo por densidad): ${esc(noDepth.join(', '))}.</span>` : '');
+    (noDepth.length ? `<br><span class="warnc">Sin profundidad (se pondera solo por densidad): ${esc(noDepth.join(', '))}.</span>` : '') + ocult;
   if (!pv.W) pv.resize();
   if (!t2.fitted && pv.W && t2.holes.length) { pv.fit(t2Bounds()); t2.fitted = true; }
   renderAnLegend(); renderHistory(); computeT2(); pv.draw();
@@ -2451,6 +2463,9 @@ function addShape(pts, extra) {
 }
 function closeDraft() {
   if (t2.draft.length < 3) { flashHint('El polígono necesita al menos 3 vértices.'); return; }
+  const D = t2.draft; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; D.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+  const lado = Math.max(x1 - x0, y1 - y0), area = polyArea(D);
+  if (area < 4 || area < 0.08 * lado * lado) { t2.draft = []; pv.draw(); flashHint('Ese trazo no encierra un área (parece una raya): no se tomó como polígono.'); return; }
   const pts = t2.draft; t2.draft = []; addShape(pts); paintTools();
 }
 function eraseAt(x, y) {
@@ -3002,6 +3017,16 @@ $('fsHide').addEventListener('click', () => { $('cad2wrap').classList.add('nopan
 $('fsShow').addEventListener('click', () => { $('cad2wrap').classList.remove('nopanel'); try { localStorage.removeItem('bhl-nopanel'); } catch (e) {} });
 $('z2full').addEventListener('click', () => { setFull(!enFull); if (enFull) setTool('pan'); });
 paintTools(); paintPanel();
+
+// Mina y nivel también desde la pantalla completa
+function paintFsFiltro() {
+  const m = $('fsMina'), n = $('fsNivel'); if (!m) return;
+  m.innerHTML = $('fMina').innerHTML; m.value = $('fMina').value;
+  n.innerHTML = $('fNivel').innerHTML; n.value = $('fNivel').value;
+}
+$('fsMina').addEventListener('change', () => { $('fMina').value = $('fsMina').value; $('fMina').dispatchEvent(new Event('change')); });
+$('fsNivel').addEventListener('change', () => { $('fNivel').value = $('fsNivel').value; $('fNivel').dispatchEvent(new Event('change')); });
+paintFsFiltro();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
