@@ -333,7 +333,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v3</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v8</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3269,7 +3269,7 @@ function mostrarAvisoAct(a, error) {
   if (error) {
     box.innerHTML = `<div class="ic">!</div><div class="tx"><b>No se puede actualizar</b><span>${esc(error)}</span></div><button class="x" type="button" aria-label="Cerrar">×</button>`;
   } else {
-    box.innerHTML = `<div class="ic">↑</div><div class="tx"><b>Actualización disponible · V${a.version}</b><span>Tienes la V${VERSION_ACTUAL}. Tus proyectos y avances se conservan.</span><small>${esc(a.nombre)} · en ${esc(a.carpeta)}</small><button class="btn small" type="button" id="btnActAhora">Actualizar ahora</button></div><button class="x" type="button" aria-label="Más tarde" title="Más tarde">×</button>`;
+    box.innerHTML = `<div class="ic">↑</div><div class="tx"><b>Actualización disponible · V${a.version}</b><span>Tienes la V${VERSION_ACTUAL}. Tus proyectos y avances se conservan.</span><small>${a.carpeta === 'actualizaciones' ? 'Ya descargada de internet · se instala sola la próxima vez que abras el programa' : esc(a.nombre) + ' · en ' + esc(a.carpeta)}</small><button class="btn small" type="button" id="btnActAhora">Actualizar ahora</button></div><button class="x" type="button" aria-label="Más tarde" title="Más tarde">×</button>`;
     $('btnActAhora').addEventListener('click', async () => {
       const capa = document.createElement('div'); capa.id = 'actCapa';
       capa.innerHTML = `<div>Actualizando BlastHole Leyes a V${a.version}…<small>El programa se cierra y se vuelve a abrir solo en unos segundos. Tus datos se conservan.</small></div>`;
@@ -3289,6 +3289,7 @@ let VERSION_ACTUAL = VERSION_APP;
   const revisar = async () => {
     try { const a = await window.bhlBuscarActualizacion(); if (a && a.version > VERSION_ACTUAL && a.version !== avisoActOculto) mostrarAvisoAct(a); } catch (e) {}
   };
+  window.bhlRevisarAct = revisar;
   setTimeout(revisar, 1500);
   setInterval(revisar, 10 * 60000);
   $('btnUpd').addEventListener('click', async () => {
@@ -3316,18 +3317,30 @@ iniciarSync();
 </script>
 
 <script>
-// App instalable: funciona sin internet gracias al service worker
+// App instalable: funciona sin internet y se actualiza sola desde GitHub
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-  let recargado = false; const habia = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (recargado || !habia) return;
-    recargado = true;
-    const b = document.createElement('button');
-    b.textContent = 'Hay una versión nueva · toca para actualizar';
-    b.style.cssText = 'position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:200;font:600 .95rem system-ui;padding:12px 18px;border-radius:8px;border:0;background:#e0774c;color:#1a0f0a;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+  const habia = !!navigator.serviceWorker.controller;
+  let recargado = false;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // al volver a la app (o cada 30 min) revisa si hay versión nueva
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+    setInterval(() => reg.update().catch(() => {}), 30 * 60000);
+  }).catch(() => {});
+  const ocupado = () => { try { return enFull || t2.draft.length > 0 || t2.shapes.length > 0 || !!document.querySelector('input:focus, select:focus, textarea:focus'); } catch (e) { return false; } };
+  const aviso = () => {
+    if (document.getElementById('bhlNueva')) return;
+    const b = document.createElement('button'); b.id = 'bhlNueva';
+    b.textContent = 'Versión nueva lista · toca para actualizar';
+    b.style.cssText = 'position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:200;font:600 .95rem system-ui;padding:12px 18px;border-radius:10px;border:0;background:#e0774c;color:#1a0f0a;box-shadow:0 4px 16px rgba(0,0,0,.3)';
     b.onclick = () => location.reload();
     document.body.appendChild(b);
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargado || !habia) return;
+    // si no estás dibujando, se recarga sola; si estás a mitad de un avance, espera a que termines
+    if (!ocupado()) { recargado = true; location.reload(); return; }
+    aviso();
+    const t = setInterval(() => { if (!ocupado() && document.hidden) { clearInterval(t); recargado = true; location.reload(); } }, 5000);
   });
 }
 </script>
