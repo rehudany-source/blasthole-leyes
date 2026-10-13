@@ -239,6 +239,11 @@ body.enfull { overflow: hidden; }
 .shv { font-size: .78rem; color: var(--muted); line-height: 1.45; font-variant-numeric: tabular-nums; }
 .fs-panel .shv { color: #c9d1d9; }
 .shv .pct { font-weight: 700; color: var(--accent); }
+.shv .prv { color: var(--muted); font-style: italic; }
+.fs-panel .shv .prv { color: #9fb0bc; }
+.shc.warn { box-shadow: inset 0 0 0 1px #ff9f1c; }
+.shc.warn .pct { color: #ff9f1c !important; }
+.fs-msg:not(.ok) { white-space: pre-line; }
 .fs-panel .shv .pct { color: #ffd60a; }
 @media (orientation: portrait) and (min-width: 761px) {
   .cadwrap.full { --pw: 0px; }
@@ -336,7 +341,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v10</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v11</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2411,7 +2416,8 @@ function renderPlan2(ctx, v) {
     // número y peso de cada polígono
     t2.shapes.forEach((s, i) => {
       const P = s.pts; let cx = 0, cy = 0; P.forEach(q => { cx += q.x; cy += q.y; }); cx = v.sx(cx / P.length); cy = v.sy(cy / P.length);
-      const c = shColor(i), lab = String(i + 1) + (s.w != null ? ` · ${+s.w.toFixed(1)}%` : '');
+      const gg = t2.result && t2.result.groups ? t2.result.groups.find(g => g.idx === i) : null;
+      const c = shColor(i), lab = String(i + 1) + (s.w != null ? ` · ${+s.w.toFixed(1)}%` : '') + (gg && !gg.n ? ' · sin ley' : '');
       ctx.font = '700 13px system-ui, sans-serif'; const tw = ctx.measureText(lab).width + 16;
       ctx.fillStyle = c; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(cx - tw / 2, cy - 12, tw, 24, 12); else ctx.rect(cx - tw / 2, cy - 12, tw, 24); ctx.fill();
       ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, cx, cy + 0.5);
@@ -2446,7 +2452,9 @@ function shapeKeys(s) {
   const excl = $('avExcl').checked, P = s.pts;
   const pid = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
-  return t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !(excl && t2.prevKey.has(h.ck)) && !t2.manOff.has(h.ck)).map(h => h.ck);
+  const dentro = t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !t2.manOff.has(h.ck));
+  s._prev = excl ? dentro.filter(h => t2.prevKey.has(h.ck)).length : 0;
+  return dentro.filter(h => !(excl && t2.prevKey.has(h.ck))).map(h => h.ck);
 }
 function selectFromShapes() {
   const gs = t2.shapes.map((s, i) => ({ s, i, keys: shapeKeys(s) }));
@@ -2581,14 +2589,16 @@ function computeT2() {
       return { idx: g.i, label: g.s ? `Polígono ${g.i + 1}` : 'Taladros sueltos', pid, pname: pid ? (t2.projs.find(p => p.id === pid) || {}).name : '', lim: g.s && g.s.lim || null, w: g.s && g.s.w != null ? g.s.w : null, n: it.length, mass: gw.tonnage || gw.wsum || 0, tonnage: gw.tonnage, fields: Object.fromEntries(AVG_FIELDS.map(f => [f.k, gw.res[f.k].mean])) };
     });
     const live = groups.filter(g => g.n), exp = live.filter(g => g.w != null), auto = live.filter(g => g.w == null);
+    const sinLey = groups.filter(g => !g.n && g.w != null);
+    if (sinLey.length) wNote = `⚠ ${sinLey.map(g => `${g.label} (peso ${+g.w.toFixed(1)} %)`).join(' y ')} no tiene${sinLey.length > 1 ? 'n' : ''} taladros con resultados de laboratorio: no entra${sinLey.length > 1 ? 'n' : ''} en el promedio, que sale solo de ${live.map(g => g.label).join(' y ') || 'ningún polígono'}. `;
     weighted = exp.length > 0;
     if (weighted) {
       const sExp = exp.reduce((s, g) => s + g.w, 0), mAuto = auto.reduce((s, g) => s + g.mass, 0), rest = Math.max(0, 100 - sExp);
       exp.forEach(g => { g.wEff = g.w; });
       auto.forEach(g => { g.wEff = mAuto ? rest * g.mass / mAuto : 0; });
-      if (!auto.length && Math.abs(sExp - 100) > 0.05) wNote = `Los pesos suman ${+sExp.toFixed(1)} %: se reparten en proporción.`;
-      else if (auto.length && sExp >= 100) wNote = 'Los pesos ya suman 100 %: los polígonos sin peso no cuentan en el promedio.';
-      else if (auto.length) wNote = `Los polígonos sin peso se reparten el ${+rest.toFixed(1)} % restante según su tonelaje.`;
+      if (!auto.length && Math.abs(sExp - 100) > 0.05 && !sinLey.length) wNote += `Los pesos suman ${+sExp.toFixed(1)} %: se reparten en proporción.`;
+      else if (auto.length && sExp >= 100) wNote += 'Los pesos ya suman 100 %: los polígonos sin peso no cuentan en el promedio.';
+      else if (auto.length) wNote += `Los polígonos sin peso se reparten el ${+rest.toFixed(1)} % restante según su tonelaje.`;
       AVG_FIELDS.forEach(F => { let sw = 0, sv = 0; live.forEach(g => { const m = g.fields[F.k]; if (m != null && g.wEff > 0) { sw += g.wEff; sv += g.wEff * m; } }); fields[F.k].mean = sw ? sv / sw : null; });
     } else live.forEach(g => { g.wEff = g.mass; });
     const tot = live.reduce((s, g) => s + (g.wEff || 0), 0);
@@ -2607,7 +2617,8 @@ function computeT2() {
   if (w.depthDef) notes.push(`${w.depthDef} taladro(s) sin profundidad: se usó ${w.medDepth.toFixed(2)} m.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   setMsg('t2Msg', pending.length || repeated.length || w.depthDef || w.densDef || wNote ? 'warn' : '', notes.join(' '));
-  t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote };
+  t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: items.length && w.depthDef === items.length };
+  t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
   paintPanel();
 }
@@ -2930,10 +2941,11 @@ const shTxt = (g, keysIn) => {
   const tot = keysIn != null ? keysIn : g.n;
   return `${tot} tal.${tot > g.n ? ` · ${g.n} con ley` : ''}${g.tonnage ? ` · ${Math.round(g.tonnage).toLocaleString('es-PE')} t` : ''}`;
 };
+const shPrev = s => (s && s._prev ? `<br><span class="prv">${s._prev} taladro${s._prev > 1 ? 's' : ''} ya en otro avance (no se repite${s._prev > 1 ? 'n' : ''})</span>` : '');
 const shVals = (g, R) => {
   if (!g) return '';
   const top = AVG_FIELDS.filter(F => g.fields[F.k] != null).slice(0, 4).map(F => `${F.label} ${fmt(g.fields[F.k], F.dec, '—')}`).join(' · ');
-  const pct = g.n ? `<span class="pct">${+g.pct.toFixed(1)} % del promedio</span>` : '<span class="pct">sin taladros con resultados</span>';
+  const pct = g.n ? `<span class="pct">${+g.pct.toFixed(1)} % del promedio</span>` : `<span class="pct">${g.w != null ? `⚠ Peso ${+g.w.toFixed(1)} % sin efecto: ` : ''}sin taladros con resultados</span>`;
   return (top ? top + '<br>' : '') + pct;
 };
 function renderShapeList(el, a) {
@@ -2957,7 +2969,8 @@ function renderShapeList(el, a) {
     const c = el.querySelector(`[data-sid="${s.id}"]`); if (!c) return;
     const g = groups ? groups.find(g => g.idx === i) : null, gk = (t2.groups || []).find(g => g.s === s);
     c.querySelector('.shm').textContent = shTxt(g, gk ? gk.keys.length : 0);
-    c.querySelector('.shv').innerHTML = g ? shVals(g) : t2.shapes.length === 1 && t2.result ? '<span class="pct">100 % del promedio</span>' : '';
+    c.querySelector('.shv').innerHTML = (g ? shVals(g) : t2.shapes.length === 1 && t2.result && t2.result.n ? '<span class="pct">100 % del promedio</span>' : '') + shPrev(s);
+    c.classList.toggle('warn', !!(g && !g.n && g.w != null));
     const inp = c.querySelector('input[data-k=w]'), sel = c.querySelector('select[data-k=pid]');
     if (document.activeElement !== inp) inp.value = s.w != null ? s.w : '';
     if (document.activeElement !== sel) sel.value = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
@@ -2988,9 +3001,9 @@ function paintPanel() {
   const R = a ? a.result : t2.result, box = $('fsRes');
   if (R && !R.n) box.innerHTML = `<p class="fs-empty">Ningún taladro dentro de los polígonos tiene resultados de laboratorio todavía.</p>`;
   else if (!R) box.innerHTML = `<p class="fs-empty">${t2.shapes.length ? 'Los polígonos no tienen taladros con resultados de los proyectos marcados.' : 'Dibuja el contorno del avance con el <b>Lápiz</b> o toca límites con <b>Límites</b>. Puedes dibujar varios polígonos y darle un peso a cada uno.'}</p>`;
-  else box.innerHTML = `<div class="big"><div><span>Taladros</span><b>${R.n}</b></div><div><span>${R.tonnage ? 'Tonelaje (t)' : 'Peso (prof × dens)'}</span><b>${Math.round(R.tonnage || R.wsum || 0).toLocaleString('es-PE')}</b></div></div>` +
+  else box.innerHTML = `<div class="big"><div><span>Taladros</span><b>${R.n}</b></div><div><span>${R.tonnage ? 'Tonelaje (t)' : R.sinProf ? 'Peso (densidad)' : 'Peso (prof × dens)'}</span><b>${Math.round(R.tonnage || R.wsum || 0).toLocaleString('es-PE')}</b></div></div>` +
     `<div class="an">${AVG_FIELDS.filter(F => (R.fields[F.k] || {}).mean != null).map(F => `<div><span>${F.label}</span><b>${fmt(R.fields[F.k].mean, F.dec, '—')}</b></div>`).join('')}</div>` +
-    `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
+    `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : R.sinProf ? 'Promedio ponderado por densidad (los archivos de taladros no traen profundidad).' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
   const m = $('fsMsg'), src = $('t2Msg');
   m.className = 'fs-msg' + (src.classList.contains('ok') ? ' ok' : ''); m.textContent = a ? '' : src.textContent;
   $('fsSave').disabled = !!a || !t2.result || !t2.result.n;
