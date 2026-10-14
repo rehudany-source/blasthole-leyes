@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-32.png">
 <style>
-@media (display-mode: standalone) { body { padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); } }
+@media (display-mode: standalone) { body:not(.app) { padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); } }
 html { -webkit-text-size-adjust: 100%; }
 body { overscroll-behavior: none; }
 </style>
@@ -336,12 +336,86 @@ td.e { color: var(--muted); }
 .section { display: grid; gap: 8px; }
 .row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ===== Vista de app (iPad / iPhone) ===== */
+.apptop, .appbar, .hcards { display: none; }
+body.app { font-size: 15px; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
+body.app header { display: none; }
+body.app .wrap { max-width: none; padding-inline: 12px; padding-block: 0 calc(96px + env(safe-area-inset-bottom, 0px)); gap: 12px; }
+body.app .apptop { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; z-index: 40; margin-inline: -12px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px; background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+body.app .apptop h1 { margin: 0; font: 700 1.75rem/1.1 var(--f-display); letter-spacing: .01em; color: var(--ink); }
+body.app .apptop-r { display: flex; gap: 8px; align-items: center; }
+body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
+body.app .appbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
+.appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.appbar button[aria-current="page"] { color: var(--accent); }
+.appbar button[aria-current="page"] svg { stroke-width: 2.1; }
+/* tarjetas y controles táctiles */
+body.app .box, body.app .section { border: 0; border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent); padding: 16px; }
+body.app .section { display: grid; gap: 10px; }
+body.app input[type=number], body.app input[type=text], body.app input[type=date], body.app select { font-size: 16px; min-height: 44px; border-radius: 10px; padding: 8px 12px; font-family: var(--f-body); }
+body.app .btn { min-height: 48px; border-radius: 12px; font-size: 1rem; }
+body.app .btn.small { min-height: 42px; font-size: .92rem; padding: 9px 14px; }
+body.app .chk { min-height: 40px; align-items: center; }
+body.app .chk input { width: 22px; height: 22px; }
+body.app .pitem { min-height: 48px; padding: 10px 12px; border-radius: 10px; }
+body.app .pitem input { width: 22px; height: 22px; }
+body.app .drop { border-radius: 14px; }
+body.app .cadwrap { border-radius: 16px; height: min(60vh, 640px); min-height: 320px; }
+body.app .cadwrap.full { border-radius: 0; height: 100% !important; }
+body.app .legend { font-size: .82rem; }
+body.app .msg:empty { display: none; }
+/* qué se ve en cada pestaña */
+body.app[data-apptab="avance"] #tab2 > .section { display: none; }
+body.app[data-apptab="hist"] #tab2 > .main { display: none; }
+body.app[data-apptab="hist"] #tab2 > .section .row h2 { display: none; }
+@media (max-width: 900px) {
+  body.app .main { display: flex; flex-direction: column; gap: 12px; }
+  body.app #tab2 .viewer { order: -1; }
+}
+/* historial en tarjetas */
+body.app .hcards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+body.app #histWrap { display: none; }
+.hc { background: var(--bg); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent); }
+.hc.cur { box-shadow: 0 0 0 2px var(--accent); }
+.hc .h1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.hc .h1 b { font: 700 1.05rem var(--f-display); letter-spacing: .02em; }
+.hc .h1 span { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.hc .pj { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.hc .lv { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.hc .lv div { background: var(--panel); border-radius: 8px; padding: 5px 6px; text-align: center; }
+.hc .lv span { display: block; font-size: .64rem; color: var(--muted); }
+.hc .lv b { font: 600 .92rem var(--f-mono); font-variant-numeric: tabular-nums; }
+.hc .ac { display: flex; gap: 8px; }
+.hc .ac .btn { flex: 1; min-height: 40px; }
+.hc.tot { background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+/* ajustes, estilo lista de iOS */
+.appset { display: none; }
+body.app .appset:not([hidden]) { display: grid; gap: 20px; padding-top: 6px; }
+.agrp { display: grid; gap: 6px; }
+.agrp h3 { margin: 0 4px; font: 600 .78rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.acard { background: var(--panel); border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent); }
+.arow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px; padding: 0 16px; font: 500 1rem var(--f-body); color: var(--ink); width: 100%; box-sizing: border-box; background: none; border: 0; text-align: left; }
+.arow + .arow { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.arow b { font-weight: 600; color: var(--muted); }
+.abtn { cursor: pointer; color: var(--accent); }
+.abtn span { color: var(--muted); font-size: 1.3rem; }
+.anote { margin: 0 4px; font-size: .82rem; color: var(--muted); }
+#appTemaSlot .tema { display: grid; grid-template-columns: repeat(3, 1fr); padding: 8px; gap: 6px; border: 0; }
+#appTemaSlot .tema button { min-height: 44px; border-radius: 10px; font-size: .95rem; }
+body.app .cadwrap:not(.full) .anl { padding: 3px 4px 3px 10px; border-radius: 10px; }
+body.app .cadwrap:not(.full) .anl select { font-size: 15px; min-height: 34px; padding: 4px 8px; border-radius: 8px; }
+body.app .cadwrap:not(.full) > .cadbar #z2in, body.app .cadwrap:not(.full) > .cadbar #z2out { display: none; }
+body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius: 10px; padding: 6px 12px; }
+.avgtiles:empty { display: none; }
+@media (max-width: 600px) { body.app .cadwrap:not(.full) > .cadbar #z2fit { display: none; } body.app #z2full { font-size: 0; padding: 6px 10px; } body.app #z2full::before { content: "⤢"; font-size: 18px; } }
 </style>
 
 <div class="wrap">
+  <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v12</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v13</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -485,6 +559,18 @@ td.e { color: var(--muted); }
   </div>
   </section>
 
+  <section class="tab appset" id="appAjustes" hidden>
+    <div class="agrp"><h3>Apariencia</h3><div class="acard" id="appTemaSlot"></div></div>
+    <div class="agrp"><h3>Sincronización</h3>
+      <div class="acard"><div class="arow"><span>Estado</span><b id="appSyncTxt">—</b></div>
+      <button class="arow abtn" type="button" id="appSyncBtn">Cuenta y sincronización<span>›</span></button></div>
+      <p class="anote">Tus proyectos, avances y límites se comparten entre la PC, el iPad y el iPhone con tu correo.</p></div>
+    <div class="agrp"><h3>Aplicación</h3>
+      <div class="acard"><div class="arow"><span>Versión</span><b id="appVer">—</b></div>
+      <button class="arow abtn" type="button" id="appRecargar">Buscar actualización ahora<span>›</span></button></div>
+      <p class="anote">Las actualizaciones llegan solas al abrir la app con internet.</p></div>
+  </section>
+
   <section class="tab" id="tab2" hidden>
     <div class="main">
       <div class="side">
@@ -611,7 +697,7 @@ td.e { color: var(--muted); }
           <span><i style="background:#6b7480"></i>Ya promediado antes</span>
           <span><i style="background:#f2f2f2;border:1px solid var(--line)"></i>Con leyes</span>
           <span><i style="background:#4a5058"></i>Sin leyes todavía</span>
-          <span>Ponderado por tonelaje: profundidad × densidad</span>
+          <span>Ponderado por tonelaje: densidad, misma profundidad para todos</span>
         </div>
       </div>
     </div>
@@ -627,10 +713,18 @@ td.e { color: var(--muted); }
         </div>
       </div>
       <p class="msg" id="histMsg"></p>
-      <div class="tablewrap"><table id="histTbl"></table></div>
+      <div class="tablewrap" id="histWrap"><table id="histTbl"></table></div>
+      <div class="hcards" id="histCards"></div>
     </div>
   </section>
 </div>
+
+<nav class="appbar" id="appBar" aria-label="Secciones de la app">
+  <button type="button" data-at="avance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span>Avance</span></button>
+  <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
+  <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
+  <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
+</nav>
 
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
@@ -2148,7 +2242,7 @@ function renderLibrary() {
 $('libTbl').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const id = b.dataset.id;
-  if (b.dataset.act === 'avg') { t2.selIds = new Set([id]); $('fMina').value = ''; $('fNivel').value = ''; t2.fitted = false; refreshT2(); showTab(2); return; }
+  if (b.dataset.act === 'avg') { t2.selIds = new Set([id]); $('fMina').value = ''; $('fNivel').value = ''; t2.fitted = false; refreshT2(); if (ES_APP) appTab('avance'); else showTab(2); return; }
   if (b.dataset.act === 'del') {
     if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Borrar con sus avances?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Borrar'; b.classList.remove('danger'); } }, 4000); return; }
     for (const a of lib.avances.filter(a => a.projectIds.includes(id))) await dbRemove('avances', a.id);
@@ -2679,6 +2773,7 @@ function combineAvances(avs) {
 }
 function cumulative() { return combineAvances(t2.avs); }
 function renderHistory() {
+  renderHistCards();
   const tb = $('histTbl');
   if (!t2.projs.length) { tb.innerHTML = ''; return; }
   if (!t2.avs.length) { tb.innerHTML = '<tbody><tr><td class="empty">Los proyectos marcados aún no tienen avances guardados.</td></tr></tbody>'; return; }
@@ -2698,7 +2793,7 @@ $('histTbl').addEventListener('change', async e => {
   const nom = { tipo: 'Tipo', tipoMat: 'Tipo de material', obs: 'Observación' }[i.dataset.k];
   setMsg('histMsg', ok ? 'ok' : 'err', ok ? `${nom} guardado en el avance del ${fmtDate(a.fecha)}.` : 'No se pudo guardar el cambio.');
 });
-$('histTbl').addEventListener('click', async e => {
+const histClick = async e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const id = b.dataset.id;
   if (b.dataset.act === 'view') {
@@ -2711,7 +2806,9 @@ $('histTbl').addEventListener('click', async e => {
   if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Borrar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Borrar'; b.classList.remove('danger'); } }, 4000); return; }
   await dbRemove('avances', id); if (t2.viewing === id) t2.viewing = null;
   await loadLibrary();
-});
+};
+$('histTbl').addEventListener('click', histClick);
+$('histCards').addEventListener('click', histClick);
 
 function exportName() {
   const n = t2.projs.length === 1 ? t2.projs[0].name : `${t2.projs.length}_proyectos`;
@@ -3050,6 +3147,61 @@ $('fsMina').addEventListener('change', () => { $('fMina').value = $('fsMina').va
 $('fsNivel').addEventListener('change', () => { $('fNivel').value = $('fsNivel').value; $('fNivel').dispatchEvent(new Event('change')); });
 paintFsFiltro();
 
+// ===== Historial en tarjetas (vista de app) =====
+function renderHistCards() {
+  const box = $('histCards');
+  if (!t2.projs.length) { box.innerHTML = '<p class="note">Marca proyectos en la pestaña «Avance» para ver sus avances.</p>'; return; }
+  if (!t2.avs.length) { box.innerHTML = '<p class="note">Los proyectos marcados aún no tienen avances guardados.</p>'; return; }
+  const f = (v, d) => fmt(v, d, '—');
+  const KS = ['fe', 'feo', 's', 's100', 'sfe'];
+  const lv = r => '<div class="lv">' + KS.map(k => { const F = AVG_FIELDS.find(F => F.k === k); return `<div><span>${F.label}</span><b>${f((r.fields[k] || {}).mean, F.dec)}</b></div>`; }).join('') + '</div>';
+  const c = cumulative();
+  box.innerHTML = t2.avs.slice().reverse().map(a => `<div class="hc${t2.viewing === a.id ? ' cur' : ''}"><div class="h1"><b>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''}</b><span>${a.result.n} tal.${a.result.tonnage ? ' · ' + Math.round(a.result.tonnage).toLocaleString('es-PE') + ' t' : ''}</span></div>` +
+    `<div class="pj">${esc(a.projectNames.join(' + '))}${(a.result.groups || []).length > 1 ? ` · ${a.result.groups.length} polígonos` : ''}</div>${lv(a.result)}` +
+    `<div class="ac"><button class="btn sec small" data-act="view" data-id="${a.id}">${t2.viewing === a.id ? 'Dejar de ver' : 'Ver en el plano'}</button><button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></div></div>`).join('') +
+    (c ? `<div class="hc tot"><div class="h1"><b>Acumulado</b><span>${t2.avs.length} avances · ${c.n} tal.</span></div>${lv(c)}</div>` : '');
+}
+
+// ===== Vista de app para iPad y iPhone =====
+const ES_APP = (() => {
+  try {
+    const forz = localStorage.getItem('bhl-app'); if (forz === '1') return true; if (forz === '0') return false;
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return ios || matchMedia('(display-mode: standalone)').matches || (matchMedia('(pointer: coarse)').matches && innerWidth < 1100);
+  } catch (e) { return false; }
+})();
+const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', ajustes: 'Ajustes' };
+function appTab(at) {
+  if (!APP_TIT[at]) at = 'avance';
+  document.body.dataset.apptab = at;
+  $('appTitle').textContent = APP_TIT[at];
+  document.querySelectorAll('#appBar button').forEach(b => b.setAttribute('aria-current', b.dataset.at === at ? 'page' : 'false'));
+  const aj = at === 'ajustes';
+  $('appAjustes').hidden = !aj;
+  if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; pintarAjustes(); }
+  else showTab(at === 'proy' ? 1 : 2);
+  try { localStorage.setItem('bhl-apptab', at); } catch (e) {}
+  window.scrollTo(0, 0);
+}
+function pintarAjustes() {
+  $('appVer').textContent = $('verBadge').textContent;
+  $('appSyncTxt').textContent = ($('btnSync').textContent || '').replace('☁', '').trim() || '—';
+}
+if (ES_APP) {
+  document.body.classList.add('app');
+  $('appTopR').appendChild($('btnSync'));
+  $('appTemaSlot').appendChild(document.querySelector('.tema'));
+  $('appBar').addEventListener('click', e => { const b = e.target.closest('button[data-at]'); if (b) appTab(b.dataset.at); });
+  $('appSyncBtn').addEventListener('click', () => $('btnSync').click());
+  $('appRecargar').addEventListener('click', async () => {
+    try { const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (r) await r.update(); } catch (e) {}
+    location.reload();
+  });
+  $('histCards').addEventListener('click', e => { const b = e.target.closest('button[data-act="view"]'); if (b && t2.viewing) appTab('avance'); });
+  let ini = 'avance'; try { ini = localStorage.getItem('bhl-apptab') || 'avance'; } catch (e) {}
+  appTab(ini);
+}
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -3366,7 +3518,7 @@ if (SAMPLE_BH) {
 resize(); recompute(true);
 restoreBase().then(loadLibrary).then(() => refrescarCopias());
 loadLibrary();
-try { if (localStorage.getItem('bhl-tab') === '2') showTab(2); } catch (e) {}
+try { if (!document.body.classList.contains('app') && localStorage.getItem('bhl-tab') === '2') showTab(2); } catch (e) {}
 let temaGuardado = 'auto'; try { temaGuardado = localStorage.getItem('bhl-tema') || 'auto'; } catch (e) {}
 setTema(temaGuardado);
 iniciarSync();
@@ -3387,7 +3539,7 @@ if ('serviceWorker' in navigator) {
     if (document.getElementById('bhlNueva')) return;
     const b = document.createElement('button'); b.id = 'bhlNueva';
     b.textContent = 'Versión nueva lista · toca para actualizar';
-    b.style.cssText = 'position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:200;font:600 .95rem system-ui;padding:12px 18px;border-radius:10px;border:0;background:#e0774c;color:#1a0f0a;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+    b.style.cssText = 'position:fixed;left:50%;bottom:calc(' + (document.body.classList.contains('app') ? 84 : 16) + 'px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:200;font:600 .95rem system-ui;padding:12px 18px;border-radius:10px;border:0;background:#e0774c;color:#1a0f0a;box-shadow:0 4px 16px rgba(0,0,0,.3)';
     b.onclick = () => location.reload();
     document.body.appendChild(b);
   };
