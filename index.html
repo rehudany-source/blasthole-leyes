@@ -460,7 +460,8 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .prev-opts select { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 6px 8px; min-height: 36px; width: auto; color-scheme: dark; }
 .prev-zoom { display: flex; gap: 4px; }
 .prev-zoom button { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; min-width: 38px; min-height: 36px; padding: 0 10px; cursor: pointer; }
-.prev-body { flex: 1; overflow: auto; padding: 24px; display: grid; place-items: start center; -webkit-overflow-scrolling: touch; }
+.prev-body { flex: 1; overflow: auto; padding: 24px; display: block; position: relative; -webkit-overflow-scrolling: touch; }
+.prev-body .prev-paper { margin: 0 auto; }
 .prev-paper { background: #fff; box-shadow: 0 8px 30px rgba(0,0,0,.45); position: relative; }
 .prev-paper svg { display: block; width: 100%; height: auto; }
 .prev-paper.busy::after { content: "Preparando el plano…"; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,.75); color: #333; font: 600 1rem var(--f-body); }
@@ -503,7 +504,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v22</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v23</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -606,7 +607,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
         <button class="btn sec" id="btnCsv" disabled>Descargar CSV unido</button>
         <div class="grid3">
           <label class="f">Hoja<select id="pdfHoja"><option value="A4">A4</option><option value="A3" selected>A3</option><option value="A2">A2</option><option value="A1">A1</option></select></label>
-          <label class="f">Letra de leyes<select id="pdfLetra"><option value="0">Como el DXF</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option></select></label>
+          <label class="f">Letra de leyes<select id="pdfLetra"><option value="0">Como el DXF</option><option value="8">8 pt</option><option value="9">9 pt</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option><option value="14">14 pt</option><option value="16">16 pt</option><option value="18">18 pt</option><option value="20">20 pt</option><option value="24">24 pt</option></select></label>
           <label class="f">Escala<select id="pdfEsc"><option value="0" selected>Ajustar a la hoja</option><option value="250">1:250</option><option value="500">1:500</option><option value="750">1:750</option><option value="1000">1:1000</option><option value="2000">1:2000</option></select></label>
         </div>
         <div class="btnrow2">
@@ -814,7 +815,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
               <option value="all">Todas (como pestaña 1)</option>
               <option value="">Ninguna</option>
             </select>
-            <select id="letraSel" title="Tamaño de letra de las leyes" aria-label="Tamaño de letra de las leyes"><option value="0">Aa</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option></select>
+            <select id="letraSel" title="Tamaño de letra de las leyes" aria-label="Tamaño de letra de las leyes"><option value="0">Aa</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24">24</option></select>
           </label>
           <div class="coords" id="coords2"></div>
         </div>
@@ -861,7 +862,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
       <label>Escala<select id="pvEsc"></select></label>
       <label>Letra<select id="pvLetra"></select></label>
     </div>
-    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar">−</button><button type="button" id="pvAjustar">Ajustar</button><button type="button" id="pvMas" aria-label="Acercar">+</button></div>
+    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar">−</button><button type="button" id="pvAjustar" title="Acercar al dibujo del proyecto">Ajustar</button><button type="button" id="pvHojaComp" title="Ver la hoja completa">Hoja</button><button type="button" id="pvMas" aria-label="Acercar">+</button></div>
   </div>
   <div class="prev-body" id="prevBody"><div class="prev-paper" id="prevPaper"></div></div>
   <div class="prev-foot">
@@ -1812,6 +1813,7 @@ function layoutPlot(P, o) {
   const k = PT_PER_M_1 / scale;
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   const X = x => ax + aw / 2 + (x - cx) * k, Y = y => ay + ah / 2 + (y - cy) * k;
+  const dbox = { x0: Math.max(ax, X(b.x0)), x1: Math.min(ax + aw, X(b.x1)), y0: Math.max(ay, Y(b.y0)), y1: Math.min(ay + ah, Y(b.y1)) };
   const D = [];
   const BLACK = [0, 0, 0], grey = [0.45, 0.48, 0.5];
   const line = (x1, y1, x2, y2, col, w) => D.push({ t: 'line', x1, y1, x2, y2, col: col || BLACK, w: w || 0.5 });
@@ -1876,7 +1878,7 @@ function layoutPlot(P, o) {
   rect(bx0, by, bar * k, 4, { stroke: BLACK, lw: 0.6 }); rect(bx0, by, bar * k / 2, 4, { fill: BLACK });
   text('0', bx0, by - 9, 6.5, { align: 'center' }); text(`${bar / 2}`, bx0 + bar * k / 2, by - 9, 6.5, { align: 'center' }); text(`${bar} m`, rx, by - 9, 6.5, { align: 'center' });
   if (note) text(note, M + 10, 10, 7, { col: [0.75, 0.2, 0.1] });
-  return { D, W, H, scale, note, paper: o.paper || 'A3', title: o.title || 'Plano' };
+  return { D, W, H, scale, note, paper: o.paper || 'A3', title: o.title || 'Plano', dbox };
 }
 
 const nP = v => (Math.round(v * 100) / 100).toString();
@@ -1952,7 +1954,7 @@ function buildPlotSVG(P, o) {
   });
   while (open--) out.push('</g>');
   out.push('</svg>');
-  return { svg: out.join(''), W: L.W, H: L.H, scale: L.scale, note: L.note, paper: L.paper };
+  return { svg: out.join(''), W: L.W, H: L.H, scale: L.scale, note: L.note, paper: L.paper, dbox: L.dbox ? { x: L.dbox.x0, y: H - L.dbox.y1, w: L.dbox.x1 - L.dbox.x0, h: L.dbox.y1 - L.dbox.y0 } : null };
 }
 // Imprime el SVG en una hoja del tamaño elegido (sin márgenes del navegador)
 function printPlotSVG(r) {
@@ -2406,7 +2408,7 @@ async function save(filename, data, msgEl) {
 const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace(/[\\/:*?"<>|]+/g, '_');
 // Dibujo para imprimir con la letra elegida: busca la escala en la que esa letra cabe sin amontonar
 // los bloques (letra entre 1 y 1.6 veces la del LISP) y la hoja más chica donde entra.
-const ESC_LETRA = [100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
+const ESC_LETRA = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
 function planoP(o) {
   const pt = parseFloat($('pdfLetra').value) || 0;
   o.aviso = '';
@@ -2419,7 +2421,7 @@ function planoP(o) {
     for (const s of (fijo ? [fijo] : ESC_LETRA)) {
       const f = pt * s / PT_PER_M_1 / 0.4;
       if (f < 0.6) continue;
-      if (f > 1.6) break;
+      if (f > 3.2) break;
       const P = conF(f);
       const L = layoutPlot(P, Object.assign({}, o, { paper: hojas[hi], scale: s }));
       if (!L.note) {
@@ -2462,7 +2464,7 @@ let prevZoom = 0, prevR = null;
 });
 function abrirPrevia() {
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
-  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; pintarPrevia();
+  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'dibujo'; pintarPrevia();
 }
 function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; }
 function ajustarPapel() {
@@ -2472,13 +2474,26 @@ function ajustarPapel() {
   const z = prevZoom || fit;
   paper.style.width = Math.max(120, prevR.W * z) + 'px';
 }
+// «Ajustar»: acerca la vista previa al dibujo del proyecto (no a la hoja entera)
+function ajustarAlDibujo() {
+  if (!prevR || !prevR.dbox) { prevZoom = 0; ajustarPapel(); return; }
+  const body = $('prevBody'), b = prevR.dbox, pad = 16;
+  const z = Math.min(8, Math.max(0.15, Math.min((body.clientWidth - 48) / (b.w + pad), (body.clientHeight - 48) / (b.h + pad))));
+  prevZoom = z; ajustarPapel();
+  const paper = $('prevPaper');
+  requestAnimationFrame(() => {
+    body.scrollLeft = paper.offsetLeft + (b.x + b.w / 2) * z - body.clientWidth / 2;
+    body.scrollTop = paper.offsetTop + (b.y + b.h / 2) * z - body.clientHeight / 2;
+  });
+}
+let prevModo = 'dibujo';
 function pintarPrevia() {
   const paper = $('prevPaper'), info = $('prevInfo');
   paper.classList.add('busy');
   setTimeout(() => {
     try {
       const o = planoOpts(); const P = planoP(o); prevR = buildPlotSVG(P, o); prevR.aviso = o.aviso;
-      paper.innerHTML = prevR.svg; ajustarPapel();
+      paper.innerHTML = prevR.svg; if (prevModo === 'dibujo') ajustarAlDibujo(); else ajustarPapel();
       const avisos = [o.aviso, prevR.note].filter(Boolean).join(' ');
       info.className = 'prev-info' + (avisos ? ' warn' : '');
       info.textContent = `Hoja ${prevR.paper} ${prevR.W > prevR.H ? 'horizontal' : 'vertical'} · escala 1:${prevR.scale}` + (avisos ? ' · ' + avisos : '');
@@ -2487,10 +2502,11 @@ function pintarPrevia() {
   }, 30);
 }
 $('pvCerrar').onclick = cerrarPrevia;
-$('pvAjustar').onclick = () => { prevZoom = 0; ajustarPapel(); };
-$('pvMas').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; prevZoom = Math.min(6, w * 1.4); ajustarPapel(); };
-$('pvMenos').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; prevZoom = Math.max(0.15, w / 1.4); ajustarPapel(); };
-window.addEventListener('resize', () => { if (!$('dlgPrev').hidden && !prevZoom) ajustarPapel(); });
+$('pvAjustar').onclick = () => { prevModo = 'dibujo'; ajustarAlDibujo(); };
+$('pvHojaComp').onclick = () => { prevModo = 'hoja'; prevZoom = 0; ajustarPapel(); };
+$('pvMas').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; prevModo = 'zoom'; prevZoom = Math.min(8, w * 1.4); ajustarPapel(); };
+$('pvMenos').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; prevModo = 'zoom'; prevZoom = Math.max(0.15, w / 1.4); ajustarPapel(); };
+window.addEventListener('resize', () => { if (!$('dlgPrev').hidden) { if (prevModo === 'dibujo') ajustarAlDibujo(); else if (prevModo === 'hoja') { prevZoom = 0; ajustarPapel(); } } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dlgPrev').hidden) cerrarPrevia(); });
 $('pvImprimir').onclick = () => { if (!prevR) return; printPlotSVG(prevR); };
 $('pvPdf').onclick = () => $('btnPdf').click();
