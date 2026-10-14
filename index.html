@@ -409,13 +409,45 @@ body.app .cadwrap:not(.full) > .cadbar #z2in, body.app .cadwrap:not(.full) > .ca
 body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius: 10px; padding: 6px 12px; }
 .avgtiles:empty { display: none; }
 @media (max-width: 600px) { body.app .cadwrap:not(.full) > .cadbar #z2fit { display: none; } body.app #z2full { font-size: 0; padding: 6px 10px; } body.app #z2full::before { content: "⤢"; font-size: 18px; } }
+/* filtro de mina / nivel / proyectos dentro del plano (iPad y iPhone) */
+.fs-filbtn { display: none; }
+body.app .cadwrap.full .fs-fil { display: none; }
+body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; gap: 6px; font: 600 .92rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 999px; padding: 0 14px; min-height: 40px; cursor: pointer; white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+.fs-filbtn span { overflow: hidden; text-overflow: ellipsis; }
+.fs-sheet { display: none; }
+.cadwrap.full .fs-sheet:not([hidden]) { display: flex; flex-direction: column; position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--tb) + 10px); width: min(560px, calc(100% - 20px)); max-height: calc(100% - var(--tb) - 30px - var(--sb)); background: rgba(20,24,28,.98); color: #e8ecef; border: 1px solid #3a424a; border-radius: 16px; z-index: 6; box-shadow: 0 12px 40px rgba(0,0,0,.45); overflow: hidden; }
+.fs-sh-h { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #2c343b; }
+.fs-sh-h b { font: 700 1rem var(--f-body); }
+.fs-sh-h button { font: 700 .95rem var(--f-body); background: #ffd60a; color: #1a1a1a; border: 0; border-radius: 10px; padding: 0 16px; min-height: 38px; cursor: pointer; }
+.fs-sh-b { overflow-y: auto; padding: 6px 14px 14px; -webkit-overflow-scrolling: touch; }
+.fs-sh-b h4 { margin: 14px 0 8px; font: 600 .74rem var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #9fb0bc; display: flex; align-items: center; gap: 10px; }
+.fs-sh-b .lnk { font: 600 .8rem var(--f-body); letter-spacing: 0; text-transform: none; background: none; border: 0; color: #ffd60a; cursor: pointer; padding: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { font: 600 .92rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 999px; padding: 0 16px; min-height: 40px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: #ffd60a; color: #1a1a1a; border-color: #ffd60a; }
+.chlist { display: grid; gap: 6px; }
+.chlist label { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; background: #1c2126; border: 1px solid #2c343b; border-radius: 10px; font: 500 .95rem var(--f-mono, monospace); cursor: pointer; }
+.chlist label input { width: 22px; height: 22px; accent-color: #ffd60a; margin: 0; }
+.chlist label span { margin-left: auto; font: .78rem var(--f-body); color: #9fb0bc; }
+@media (max-width: 760px) {
+  body.app .cadwrap.full .fs-title b { display: none; }
+  body.app .cadwrap.full .fs-anl .anl { font-size: 0; gap: 0; }
+  body.app .cadwrap.full .fs-anl .anl select { font-size: 15px; }
+  body.app .cadwrap.full .fs-top { gap: 8px; padding-inline: 10px; }
+  body.app .cadwrap.full .fs-exit span { display: none; }
+  .cadwrap.full .fs-rail { display: grid !important; grid-auto-flow: column; grid-auto-columns: 1fr; overflow: visible; }
+  .cadwrap.full:not(.nopanel) .fs-rail { display: none !important; }
+  .cadwrap.full .fs-rail button { width: auto; min-width: 0; }
+  .cadwrap.full .fs-rail #fsZin, .cadwrap.full .fs-rail #fsZout, .cadwrap.full .fs-rail .sep { display: none; }
+}
+.cadwrap.full.sheet .fs-hint { display: none !important; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v13</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v14</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -647,6 +679,7 @@ body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius:
           </div>
           <div class="fs-top" id="fsTop">
             <div class="fs-title"><b>Avance</b><span id="fsSub"></span></div>
+            <button type="button" class="fs-filbtn" id="fsFilBtn" aria-haspopup="dialog"><span id="fsFilTxt">Todas las minas</span> ▾</button>
             <label class="fs-fil">Mina<select id="fsMina"></select></label><label class="fs-fil">Nivel<select id="fsNivel"></select></label>
             <div class="fs-anl" id="fsAnlSlot"></div>
             <button type="button" class="fs-exit" id="fsExit" aria-label="Salir de pantalla completa">✕ <span>Salir</span></button>
@@ -681,6 +714,15 @@ body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius:
             </div>
           </aside>
           <button type="button" class="fs-show" id="fsShow">‹ Polígonos</button>
+          <div class="fs-sheet" id="fsSheet" role="dialog" aria-label="Elegir mina, nivel y proyectos" hidden>
+            <div class="fs-sh-h"><b>Qué ver en el plano</b><button type="button" id="fsSheetOk">Listo</button></div>
+            <div class="fs-sh-b">
+              <h4>Mina</h4><div class="chips" id="fsChMina"></div>
+              <h4>Nivel</h4><div class="chips" id="fsChNivel"></div>
+              <h4>Proyectos <button type="button" class="lnk" id="fsChAll">Marcar todos</button> <button type="button" class="lnk" id="fsChNone">Ninguno</button></h4>
+              <div class="chlist" id="fsChProj"></div>
+            </div>
+          </div>
           <label class="anl">Ver ley
             <select id="anSel">
               <option value="fe">Fe</option><option value="feo">FeO</option><option value="s">S</option>
@@ -2990,7 +3032,7 @@ function setFull(on) {
   w.classList.toggle('full', on);
   document.body.classList.toggle('enfull', on);
   if (anl) { if (on) $('fsAnlSlot').appendChild(anl); else w.appendChild(anl); }
-  if (!on) { t2.tool = 'pan'; t2.draft = []; }
+  if (!on) { t2.tool = 'pan'; t2.draft = []; $('fsSheet').hidden = true; $('cad2wrap').classList.remove('sheet'); }
   $('fsFecha').value = $('avFecha').value; $('fsNombre').value = $('avNombre').value; $('fsLibre').checked = $('avLibre').checked;
   let np = false; try { np = localStorage.getItem('bhl-nopanel') === '1'; } catch (e) {}
   w.classList.toggle('nopanel', on && np);
@@ -3142,7 +3184,26 @@ function paintFsFiltro() {
   const m = $('fsMina'), n = $('fsNivel'); if (!m) return;
   m.innerHTML = $('fMina').innerHTML; m.value = $('fMina').value;
   n.innerHTML = $('fNivel').innerHTML; n.value = $('fNivel').value;
+  // botón y hoja para iPad / iPhone
+  const mv = $('fMina').value, nv = $('fNivel').value;
+  $('fsFilTxt').textContent = (mv ? 'Mina ' + mv : 'Todas las minas') + (nv ? ' · Nivel ' + nv : '') + (t2.projs && t2.projs.length ? ` · ${t2.projs.length} proy.` : '');
+  if ($('fsSheet').hidden) return;
+  const chips = (sel, el) => { el.innerHTML = [...sel.options].map(o => `<button type="button" data-v="${esc(o.value)}" aria-pressed="${o.value === sel.value}">${esc(o.textContent)}</button>`).join(''); };
+  chips($('fMina'), $('fsChMina')); chips($('fNivel'), $('fsChNivel'));
+  const vis = visibleProjects();
+  $('fsChProj').innerHTML = vis.length ? vis.map(p => `<label><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}>${esc(p.name)}<span>${p.holes.length} tal.</span></label>`).join('') : '<p class="fs-empty">No hay proyectos con ese filtro.</p>';
 }
+$('fsFilBtn').addEventListener('click', () => { $('fsSheet').hidden = !$('fsSheet').hidden; $('cad2wrap').classList.toggle('sheet', !$('fsSheet').hidden); paintFsFiltro(); });
+$('fsSheetOk').addEventListener('click', () => { $('fsSheet').hidden = true; $('cad2wrap').classList.remove('sheet'); });
+$('fsChMina').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; $('fMina').value = b.dataset.v; $('fMina').dispatchEvent(new Event('change')); });
+$('fsChNivel').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; $('fNivel').value = b.dataset.v; $('fNivel').dispatchEvent(new Event('change')); });
+$('fsChProj').addEventListener('change', e => {
+  const cb = e.target.closest('input[data-id]'); if (!cb) return;
+  if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id);
+  t2.fitted = false; refreshT2(); requestAnimationFrame(() => { fitFull(); pv.draw(); });
+});
+$('fsChAll').addEventListener('click', () => { visibleProjects().forEach(p => t2.selIds.add(p.id)); t2.fitted = false; refreshT2(); requestAnimationFrame(() => { fitFull(); pv.draw(); }); });
+$('fsChNone').addEventListener('click', () => { t2.selIds = new Set(); refreshT2(); });
 $('fsMina').addEventListener('change', () => { $('fMina').value = $('fsMina').value; $('fMina').dispatchEvent(new Event('change')); });
 $('fsNivel').addEventListener('change', () => { $('fNivel').value = $('fsNivel').value; $('fNivel').dispatchEvent(new Event('change')); });
 paintFsFiltro();
