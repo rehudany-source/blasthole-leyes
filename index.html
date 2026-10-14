@@ -455,7 +455,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v18</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v19</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -538,8 +538,9 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
         <label class="f">Nombre del archivo<input type="text" id="outName" value="Avance_14A_614-007"></label>
         <button class="btn sec" id="btnZip" disabled>Descargar DXF (.zip)</button>
         <button class="btn sec" id="btnCsv" disabled>Descargar CSV unido</button>
-        <div class="grid2">
+        <div class="grid3">
           <label class="f">Hoja<select id="pdfHoja"><option value="A4">A4</option><option value="A3" selected>A3</option><option value="A2">A2</option><option value="A1">A1</option></select></label>
+          <label class="f">Letra de leyes<select id="pdfLetra"><option value="0">Como el DXF</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option></select></label>
           <label class="f">Escala<select id="pdfEsc"><option value="0" selected>Ajustar a la hoja</option><option value="250">1:250</option><option value="500">1:500</option><option value="750">1:750</option><option value="1000">1:1000</option><option value="2000">1:2000</option></select></label>
         </div>
         <div class="btnrow2">
@@ -746,6 +747,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
               <option value="insol">Insol</option><option value="rec">%Rec (-100)</option>
               <option value="">Ninguna</option>
             </select>
+            <select id="letraSel" title="Tamaño de letra de las leyes" aria-label="Tamaño de letra de las leyes"><option value="0">Aa</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option></select>
           </label>
           <div class="coords" id="coords2"></div>
         </div>
@@ -1056,38 +1058,40 @@ const shift = (b, dx, dy) => ({ x0: b.x0 + dx, x1: b.x1 + dx, y0: b.y0 + dy, y1:
 
 // Bloque de leyes de un taladro, en la posición por defecto (como insertar_Leyes_12)
 function leyBlock(h, l, o, z) {
+  // f agranda el bloque entero (letra y separaciones) para el plano impreso; 1 = tamaño del LISP
+  const f = o.tf || 1;
   const P = [];
-  const px = h.x + o.dx, py = h.y + o.dy - 2.2;
-  const xizq = px - 1.2, xder = xizq + 1.6;
-  const e = o.empty;
-  P.push({ t: 'text', layer: 'REGISTRO', x: px, y: py + 2.2, z, h: 0.7, s: l.grupo, j: 'MC' });
+  const px = h.x + o.dx * f, py = h.y + o.dy * f - 2.2 * f;
+  const xizq = px - 1.2 * f, xder = xizq + 1.6 * f;
+  const e = o.empty, th = 0.4 * f;
+  P.push({ t: 'text', layer: 'REGISTRO', x: px, y: py + 2.2 * f, z, h: 0.7 * f, s: l.grupo, j: 'MC' });
   if (l.hasData === false) { // grupo registrado en la base pero aún sin resultados: solo el N° de grupo
     const T0 = P.filter(p => p.s !== '');
-    return { P: T0, box: union(T0.map(p => textBox(p, 0.1))), tb: T0.map(p => textBox(p, 0)) };
+    return { P: T0, box: union(T0.map(p => textBox(p, 0.1 * f))), tb: T0.map(p => textBox(p, 0)) };
   }
-  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py + 1.2, z, h: 0.4, s: fmt(l.fe, 'c3', e), j: 'L', color: colorFe(l.fe) });
-  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py + 0.6, z, h: 0.4, s: fmt(l.feo, 'c3', e), j: 'L' });
-  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py, z, h: 0.4, s: fmt(l.s, 'c3', e), j: 'L' });
-  P.push({ t: 'text', layer: '100-SFES', x: xder, y: py + 1.2, z, h: 0.4, s: fmt(l.s100, 'c3', e), j: 'L', color: 3 });
-  P.push({ t: 'text', layer: '100-SFES', x: xder, y: py, z, h: 0.4, s: fmt(l.sfe, 'c3', e), j: 'L', color: 1 });
+  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py + 1.2 * f, z, h: th, s: fmt(l.fe, 'c3', e), j: 'L', color: colorFe(l.fe) });
+  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py + 0.6 * f, z, h: th, s: fmt(l.feo, 'c3', e), j: 'L' });
+  P.push({ t: 'text', layer: 'Fe-FeO-S', x: xizq, y: py, z, h: th, s: fmt(l.s, 'c3', e), j: 'L' });
+  P.push({ t: 'text', layer: '100-SFES', x: xder, y: py + 1.2 * f, z, h: th, s: fmt(l.s100, 'c3', e), j: 'L', color: 3 });
+  P.push({ t: 'text', layer: '100-SFES', x: xder, y: py, z, h: th, s: fmt(l.sfe, 'c3', e), j: 'L', color: 1 });
   if (o.cuzn) {
-    P.push({ t: 'text', layer: 'Cu-Zn', x: px, y: py - 0.4, z, h: 0.4, s: 'Cu ' + fmt(l.cu, 2, e), j: 'MC' });
-    P.push({ t: 'text', layer: 'Cu-Zn', x: px, y: py - 1.0, z, h: 0.4, s: 'Zn ' + fmt(l.zn, 2, e), j: 'MC' });
+    P.push({ t: 'text', layer: 'Cu-Zn', x: px, y: py - 0.4 * f, z, h: th, s: 'Cu ' + fmt(l.cu, 2, e), j: 'MC' });
+    P.push({ t: 'text', layer: 'Cu-Zn', x: px, y: py - 1.0 * f, z, h: th, s: 'Zn ' + fmt(l.zn, 2, e), j: 'MC' });
   }
   const T = P.filter(p => p.s !== '');
-  return { P: T, box: union(T.map(p => textBox(p, 0.1))), tb: T.map(p => textBox(p, 0)) };
+  return { P: T, box: union(T.map(p => textBox(p, 0.1 * f))), tb: T.map(p => textBox(p, 0)) };
 }
 
 // Busca para cada bloque el desplazamiento más corto que no choque con
 // otros bloques, ni con las X ni los ID de otros taladros.
 function placeBlocks(items, holes, idBoxes, o) {
-  const R = 7, STEP = 0.35, cands = [];
+  const f = o.tf || 1, R = 7 * f, STEP = 0.35 * f, cands = [];
   for (let dx = -R; dx <= R + 1e-9; dx += STEP)
     for (let dy = -R; dy <= R + 1e-9; dy += STEP) cands.push([Math.round(dx * 100) / 100, Math.round(dy * 100) / 100, Math.hypot(dx, dy)]);
   cands.sort((a, b) => a[2] - b[2]);
   const xBox = h => ({ x0: h.x - 0.35, x1: h.x + 0.35, y0: h.y - 0.35, y1: h.y + 0.35 });
   items.forEach(it => {
-    const cx = (it.box.x0 + it.box.x1) / 2, cy = (it.box.y0 + it.box.y1) / 2, near = 9 + R;
+    const cx = (it.box.x0 + it.box.x1) / 2, cy = (it.box.y0 + it.box.y1) / 2, near = 9 * f + R;
     it.obs = [];
     holes.forEach((h, i) => {
       if (Math.abs(h.x - cx) > near || Math.abs(h.y - cy) > near) return;
@@ -1100,7 +1104,7 @@ function placeBlocks(items, holes, idBoxes, o) {
   });
   const cost = (it, dx, dy, d) => {
     const b = shift(it.box, dx, dy);
-    let c = 0.25 * d + 0.06 * d * d;
+    const df = d / f; let c = 0.25 * df + 0.06 * df * df;
     for (const ob of it.obs) { const a = ovl(b, ob.b); if (a) c += 4 + ob.w * a; }
     if (ovl(b, it.own)) for (const t of it.tb) { const a = ovl(shift(t, dx, dy), it.own); if (a) c += 3 + 40 * a; }
     for (const j of it.nb) { if (!j.placed) continue; const a = ovl(b, shift(j.box, j.dx, j.dy)); if (a) c += 10 + 120 * a; }
@@ -1109,14 +1113,14 @@ function placeBlocks(items, holes, idBoxes, o) {
   const best = it => {
     let bc = Infinity, bx = 0, by = 0;
     for (const [dx, dy, d] of cands) {
-      if (0.25 * d + 0.06 * d * d >= bc) break; // ya no puede mejorar
+      if (0.25 * d / f + 0.06 * (d / f) * (d / f) >= bc) break; // ya no puede mejorar
       const c = cost(it, dx, dy, d);
       if (c < bc) { bc = c; bx = dx; by = dy; }
     }
     it.dx = bx; it.dy = by; it.placed = true;
   };
   // primero los más apretados
-  const order = items.slice().sort((a, b) => b.nb.filter(j => Math.hypot(j.h.x - a.h.x, j.h.y - a.h.y) < 6).length - a.nb.filter(j => Math.hypot(j.h.x - b.h.x, j.h.y - b.h.y) < 6).length);
+  const order = items.slice().sort((a, b) => b.nb.filter(j => Math.hypot(j.h.x - a.h.x, j.h.y - a.h.y) < 6 * f).length - a.nb.filter(j => Math.hypot(j.h.x - b.h.x, j.h.y - b.h.y) < 6 * f).length);
   order.forEach(best);
   for (let pass = 0; pass < 4; pass++) order.forEach(it => { it.placed = false; best(it); });
   let conflicts = 0;
@@ -2295,6 +2299,36 @@ async function save(filename, data, msgEl) {
   msg.className = 'msg ok'; msg.textContent = `Listo: ${filename}`;
 }
 const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace(/[\\/:*?"<>|]+/g, '_');
+// Dibujo para imprimir con la letra elegida: busca la escala en la que esa letra cabe sin amontonar
+// los bloques (letra entre 1 y 1.6 veces la del LISP) y la hoja más chica donde entra.
+const ESC_LETRA = [100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
+function planoP(o) {
+  const pt = parseFloat($('pdfLetra').value) || 0;
+  o.aviso = '';
+  if (!pt || !state.rb || !state.m) return state.P;
+  const hojas = ['A4', 'A3', 'A2', 'A1'], desde = Math.max(0, hojas.indexOf(o.paper));
+  const fijo = parseInt(o.scale, 10) || 0;
+  const cache = {};
+  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = layout(state.rb.holes, state.m.matched, Object.assign(opts(), { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f }))); };
+  for (let hi = desde; hi < hojas.length; hi++) {
+    for (const s of (fijo ? [fijo] : ESC_LETRA)) {
+      const f = pt * s / PT_PER_M_1 / 0.4;
+      if (f < 0.6) continue;
+      if (f > 1.6) break;
+      const P = conF(f);
+      const L = layoutPlot(P, Object.assign({}, o, { paper: hojas[hi], scale: s }));
+      if (!L.note) {
+        if (hi !== desde) o.aviso = `Con letra de ${pt} pt este plano no entra en ${o.paper}: se usó ${hojas[hi]} a 1:${s}.`;
+        o.paper = hojas[hi]; o.scale = s; return P;
+      }
+    }
+  }
+  // no entra ni en A1: letra lo más grande posible en la hoja elegida
+  o.aviso = `Con letra de ${pt} pt el plano no entra ni en A1; se imprimió con la letra más grande que cabe en ${o.paper}.`;
+  return state.P;
+}
+try { const v = localStorage.getItem('bhl-letra-imp'); if (v != null) $('pdfLetra').value = v; } catch (e) {}
+$('pdfLetra').addEventListener('change', () => { try { localStorage.setItem('bhl-letra-imp', $('pdfLetra').value); } catch (e) {} });
 function planoOpts() {
   const proj = ((parseProjectCode(state.bhName) || {}).text) || (state.found && state.found.p && state.found.p.label) || '';
   const conLey = state.m && state.m.matched ? state.m.matched.length : 0;
@@ -2307,16 +2341,16 @@ if (window.claude && window.claude.use) { $('btnPrint').hidden = true; $('btnPdf
 $('btnPrint').onclick = () => {
   const m = $('dlMsg');
   try {
-    const r = buildPlotSVG(state.P, planoOpts());
-    m.className = 'msg' + (r.note ? ' warn' : ' ok'); m.textContent = (r.note ? r.note + ' ' : '') + `Imprimiendo en ${r.paper} a 1:${r.scale}. En el diálogo elige la impresora y el mismo tamaño de hoja.`;
+    const o = planoOpts(); const r = buildPlotSVG(planoP(o), o);
+    m.className = 'msg' + (r.note || o.aviso ? ' warn' : ' ok'); m.textContent = (o.aviso ? o.aviso + ' ' : '') + (r.note ? r.note + ' ' : '') + `Imprimiendo en ${r.paper} a 1:${r.scale}. En el diálogo elige la impresora y el tamaño de hoja ${r.paper}.`;
     printPlotSVG(r);
   } catch (e) { m.className = 'msg err'; m.textContent = 'No se pudo preparar la impresión: ' + (e && e.message || e); }
 };
 $('btnPdf').onclick = async () => {
   try {
-    const r = await buildPlotPDF(state.P, planoOpts());
+    const o = planoOpts(); const r = await buildPlotPDF(planoP(o), o);
     await save(baseName() + '.pdf', r.blob);
-    if (r.note) { const m = $('dlMsg'); m.className = 'msg warn'; m.textContent = r.note + ` Quedó a 1:${r.scale}.`; }
+    { const m = $('dlMsg'); if (r.note || o.aviso) { m.className = 'msg warn'; m.textContent = (o.aviso ? o.aviso + ' ' : '') + (r.note ? r.note + ' ' : '') + `PDF en ${r.paper} a 1:${r.scale}.`; } }
   } catch (e) { const m = $('dlMsg'); m.className = 'msg err'; m.textContent = 'No se pudo generar el PDF: ' + (e && e.message || e); }
 };
 $('btnZip').onclick = async () => {
@@ -2658,6 +2692,9 @@ $('pAll').addEventListener('click', () => { visibleProjects().forEach(p => t2.se
 $('pNone').addEventListener('click', () => { t2.selIds = new Set(); refreshT2(); });
 $('anSel').addEventListener('change', () => { t2.analito = $('anSel').value; try { localStorage.setItem('bhl-an', t2.analito); } catch (e) {} renderAnLegend(); pv.draw(); });
 try { const a = localStorage.getItem('bhl-an'); if (a != null) { t2.analito = a; $('anSel').value = a; } } catch (e) {}
+// Tamaño de letra de las leyes en el plano (Aa = automático según el zoom)
+try { const l = localStorage.getItem('bhl-letra'); if (l) { $('letraSel').value = l; t2.letra = parseFloat(l) || 0; } } catch (e) {}
+$('letraSel').addEventListener('change', () => { t2.letra = parseFloat($('letraSel').value) || 0; try { localStorage.setItem('bhl-letra', $('letraSel').value); } catch (e) {} pv.draw(); });
 
 // ---- Cargar los proyectos elegidos en el plano ----
 function refreshT2() {
@@ -2786,7 +2823,7 @@ function renderPlan2(ctx, v) {
     const dotColor = inSel ? rc : prev ? CAD.prev : !has ? CAD.noLey : F && !showVal ? anColor(val, br) : CAD.ink;
     ctx.strokeStyle = dotColor; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x - r, y + r); ctx.lineTo(x + r, y - r); ctx.stroke();
-    const fs = Math.max(9, Math.min(14, v.v.s * 0.55));
+    const fs = t2.letra || Math.max(9, Math.min(14, v.v.s * 0.55));
     ctx.font = `${fs}px Arial, sans-serif`; ctx.textAlign = 'center';
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
     if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = prev ? CAD.prevTxt : anColor(val, br); ctx.font = `600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, ''), x, y - r - 2); }
