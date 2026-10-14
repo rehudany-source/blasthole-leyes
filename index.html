@@ -489,6 +489,8 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.hin.auto { color: var(--accent); font-weight: 600; }
+.hc .mat { color: var(--accent); }
 .dlgbox { max-height: calc(100vh - 32px); overflow-y: auto; }
 .dlgsub { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
 .dlgsub h3 { margin: 0; font: 700 .9rem var(--f-body); }
@@ -504,7 +506,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v23</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v24</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -727,7 +729,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
           <p class="note">Todos los taladros se calculan con la misma profundidad. El promedio no depende de ella; con burden, espaciamiento y profundidad se muestra además el tonelaje.</p>
           <div class="grid3">
             <label class="f">Tipo<input type="text" id="avTipo" placeholder="ej. Resp" autocomplete="off"></label>
-            <label class="f">Tipo material<input type="text" id="avMat" placeholder="ej. M4" autocomplete="off"></label>
+            <label class="f">Tipo material<input type="text" id="avMat" placeholder="automático por S/FeS" autocomplete="off" title="Se llena solo según S/FeS (M1 ≤0.30 · M2 ≤0.60 · M3 ≤0.90 · M4 ≤1.50 · M5 &gt;1.50). Escribe aquí solo si quieres otro."></label>
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
@@ -3212,6 +3214,7 @@ function computeT2() {
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
   paintPanel();
+  try { const m = matAuto(t2.result); $('avMat').placeholder = m ? `${m} (automático por S/FeS)` : 'automático por S/FeS'; } catch (e) {}
 }
 function sortIds(ids) { return ids.slice().sort(sortNum); }
 
@@ -3225,7 +3228,7 @@ function renderTiles(r, title) {
 $('btnSaveAv').addEventListener('click', async () => {
   if (!t2.result) return;
   const fecha = $('avFecha').value || todayISO();
-  const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), shapes: t2.shapes.map(s => ({ pts: s.pts, pid: s.pid || '', w: s.w, lim: s.lim || null })), tipo: $('avTipo').value.trim(), tipoMat: $('avMat').value.trim(), obs: $('avObs').value.trim(), poly: [], keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
+  const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), shapes: t2.shapes.map(s => ({ pts: s.pts, pid: s.pid || '', w: s.w, lim: s.lim || null })), tipo: $('avTipo').value.trim(), tipoMat: ($('avMat').value.trim().toUpperCase() === matAuto(t2.result) ? '' : $('avMat').value.trim()), obs: $('avObs').value.trim(), poly: [], keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
   const ok = await dbSave('avances', rec);
   if (!ok) { setMsg('t2Msg', 'err', 'No se pudo guardar el avance en esta PC.'); return; }
   t2.shapes = []; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set(); t2.sel = new Set(); t2.groups = [];
@@ -3260,6 +3263,14 @@ function combineAvances(avs) {
   return { n: avs.reduce((s, a) => s + a.result.n, 0), tonnage: ton || null, wsum: avs.reduce((s, a) => s + (a.result.wsum || 0), 0), fields };
 }
 function cumulative() { return combineAvances(t2.avs); }
+// Tipo de material automático según S/FeS: 0–0.30 M1 · 0.31–0.60 M2 · 0.61–0.90 M3 · 0.91–1.50 M4 · 1.51 o más M5
+function matSFe(v) {
+  if (v == null || isNaN(v)) return '';
+  const r = Math.round(v * 100) / 100;
+  return r <= 0.30 ? 'M1' : r <= 0.60 ? 'M2' : r <= 0.90 ? 'M3' : r <= 1.50 ? 'M4' : 'M5';
+}
+const matAuto = res => matSFe(res && res.fields && res.fields.sfe ? res.fields.sfe.mean : null);
+const matDe = a => a.tipoMat || matAuto(a.result);
 function renderHistory() {
   renderHistCards();
   const tb = $('histTbl');
@@ -3270,14 +3281,16 @@ function renderHistory() {
   const c = cumulative();
   const inp = (a, k, ph, w) => `<input class="hin" data-id="${a.id}" data-k="${k}" value="${esc(a[k] || '')}" placeholder="${ph}" style="width:${w}" aria-label="${ph}">`;
   tb.innerHTML = '<thead><tr><th>Fecha</th><th>Proyectos</th><th>Avance</th><th>Taladros</th><th>Tonelaje (t)</th>' + AVG_FIELDS.map(F => `<th>${F.label}</th>`).join('') + '<th>Tipo</th><th>Material</th><th>Obs.</th><th></th></tr></thead><tbody>' +
-    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td>${inp(a, 'tipoMat', 'M4', '4em')}</td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
-    (c ? `<tr class="tot"><td><b>Acumulado</b></td><td></td><td>${t2.avs.length} avances</td>${row(c)}<td colspan="4"></td></tr>` : '') + '</tbody>';
+    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td><input class="hin${a.tipoMat ? '' : ' auto'}" data-id="${a.id}" data-k="tipoMat" value="${esc(matDe(a))}" placeholder="${matAuto(a.result) || 'M?'}" style="width:4em" aria-label="Tipo de material" title="Automático por S/FeS: ${matAuto(a.result) || '—'}. Bórralo para volver al automático."></td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
+    (c ? `<tr class="tot"><td><b>Acumulado</b></td><td></td><td>${t2.avs.length} avances</td>${row(c)}<td></td><td><b>${matAuto(c)}</b></td><td colspan="2"></td></tr>` : '') + '</tbody>';
 }
 $('histTbl').addEventListener('change', async e => {
   const i = e.target.closest('input.hin'); if (!i) return;
   const a = lib.avances.find(a => a.id === i.dataset.id); if (!a) return;
   a[i.dataset.k] = i.value.trim();
+  if (i.dataset.k === 'tipoMat' && a.tipoMat.toUpperCase() === matAuto(a.result)) a.tipoMat = '';
   const ok = await dbSave('avances', a);
+  if (i.dataset.k === 'tipoMat') renderHistory();
   const nom = { tipo: 'Tipo', tipoMat: 'Tipo de material', obs: 'Observación' }[i.dataset.k];
   setMsg('histMsg', ok ? 'ok' : 'err', ok ? `${nom} guardado en el avance del ${fmtDate(a.fecha)}.` : 'No se pudo guardar el cambio.');
 });
@@ -3302,14 +3315,14 @@ function exportName() {
   const n = t2.projs.length === 1 ? t2.projs[0].name : `${t2.projs.length}_proyectos`;
   return n.replace(/[^A-Za-z0-9-]+/g, '_');
 }
-const histHead = ['Fecha', 'Proyectos', 'Avance', 'Taladros', 'Tonelaje (t)'].concat(AVG_FIELDS.map(F => F.label)).concat(['Taladros incluidos']);
+const histHead = ['Fecha', 'Proyectos', 'Avance', 'Taladros', 'Tonelaje (t)'].concat(AVG_FIELDS.map(F => F.label)).concat(['Material', 'Taladros incluidos']);
 $('btnHistXlsx').addEventListener('click', async () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const numCell = (v, dec) => (v == null ? '' : dec === 'c3' ? { v: Number(fmt(v, 'c3', '')), t: 'n', dec: fmt(v, 'c3', '').split('.')[1]?.length || 0 } : { v: Number(v.toFixed(dec)), t: 'n', dec });
   const sh1 = [histHead.map(h => ({ v: h, bold: true }))].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', { v: r.n, t: 'n', dec: 0 }, r.tonnage ? { v: Math.round(r.tonnage), t: 'n', dec: 0 } : '']
-    .concat(AVG_FIELDS.map(F => numCell((r.fields[F.k] || {}).mean, F.dec))).concat([labelsFor(a.keys).join(', ')]); }));
+    .concat(AVG_FIELDS.map(F => numCell((r.fields[F.k] || {}).mean, F.dec))).concat([matDe(a), labelsFor(a.keys).join(', ')]); }));
   const c = cumulative();
-  if (c) sh1.push([{ v: 'Acumulado', bold: true }, '', `${t2.avs.length} avances`, { v: c.n, t: 'n', dec: 0 }, c.tonnage ? { v: Math.round(c.tonnage), t: 'n', dec: 0 } : ''].concat(AVG_FIELDS.map(F => numCell(c.fields[F.k].mean, F.dec))));
+  if (c) sh1.push([{ v: 'Acumulado', bold: true }, '', `${t2.avs.length} avances`, { v: c.n, t: 'n', dec: 0 }, c.tonnage ? { v: Math.round(c.tonnage), t: 'n', dec: 0 } : ''].concat(AVG_FIELDS.map(F => numCell(c.fields[F.k].mean, F.dec))).concat([matAuto(c)]));
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true }))];
   t2.avs.forEach(a => (a.result.rows || []).forEach(x => {
     const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id));
@@ -3355,7 +3368,7 @@ $('btnReporte').addEventListener('click', async () => {
     rows.push([Object.assign({ v: fmtDate(a.fecha) }, box), Object.assign({ v: uniq(cs.map(c => c.mina)) }, box), Object.assign({ v: uniq(cs.map(c => c.nivel)) }, box), Object.assign({ v: a.projectNames.join(' + ') }, box), Object.assign({ v: a.nombre || '' }, box),
       Object.assign({ v: r.n, t: 'n', dec: 0 }, box), r.tonnage ? Object.assign({ v: Math.round(r.tonnage), t: 'n', fmt: '#,##0' }, box) : Object.assign({ v: '-' }, box)]
       .concat(cols.slice(7, 17).map(c => (c[2] ? numC((r.fields[c[2]] || {}).mean, c[3]) : Object.assign({ v: '-' }, box))))
-      .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: a.tipoMat || '' }, box), { v: a.obs || '', border: true }]));
+      .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: matDe(a) }, box), { v: a.obs || '', border: true }]));
   });
   if (avs.length > 1) {
     const cb = combineAvances(avs);
@@ -3380,7 +3393,7 @@ $('btnReporte').addEventListener('click', async () => {
 $('btnHistCsv').addEventListener('click', () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const q = s => (/[",\n]/.test(String(s)) ? `"${String(s).replace(/"/g, '""')}"` : s);
-  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, r.tonnage ? Math.round(r.tonnage) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([labelsFor(a.keys).join(' ')]).map(q).join(','); }));
+  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, r.tonnage ? Math.round(r.tonnage) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([matDe(a), labelsFor(a.keys).join(' ')]).map(q).join(','); }));
   save(`Avances_${exportName()}.csv`, lines.join('\r\n') + '\r\n', $('histMsg'));
 });
 
@@ -3686,9 +3699,9 @@ function renderHistCards() {
   const lv = r => '<div class="lv">' + KS.map(k => { const F = AVG_FIELDS.find(F => F.k === k); return `<div><span>${F.label}</span><b>${f((r.fields[k] || {}).mean, F.dec)}</b></div>`; }).join('') + '</div>';
   const c = cumulative();
   box.innerHTML = t2.avs.slice().reverse().map(a => `<div class="hc${t2.viewing === a.id ? ' cur' : ''}"><div class="h1"><b>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''}</b><span>${a.result.n} tal.${a.result.tonnage ? ' · ' + Math.round(a.result.tonnage).toLocaleString('es-PE') + ' t' : ''}</span></div>` +
-    `<div class="pj">${esc(a.projectNames.join(' + '))}${(a.result.groups || []).length > 1 ? ` · ${a.result.groups.length} polígonos` : ''}</div>${lv(a.result)}` +
+    `<div class="pj">${esc(a.projectNames.join(' + '))}${(a.result.groups || []).length > 1 ? ` · ${a.result.groups.length} polígonos` : ''}${matDe(a) ? ` · <b class="mat">${esc(matDe(a))}</b>` : ''}</div>${lv(a.result)}` +
     `<div class="ac"><button class="btn sec small" data-act="view" data-id="${a.id}">${t2.viewing === a.id ? 'Dejar de ver' : 'Ver en el plano'}</button><button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></div></div>`).join('') +
-    (c ? `<div class="hc tot"><div class="h1"><b>Acumulado</b><span>${t2.avs.length} avances · ${c.n} tal.</span></div>${lv(c)}</div>` : '');
+    (c ? `<div class="hc tot"><div class="h1"><b>Acumulado</b><span>${t2.avs.length} avances · ${c.n} tal.${matAuto(c) ? ' · ' + matAuto(c) : ''}</span></div>${lv(c)}</div>` : '');
 }
 
 // ===== Vista de app para iPad y iPhone =====
