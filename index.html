@@ -478,13 +478,22 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   .prev-foot { gap: 8px; } .prev-info { width: 100%; font-size: .8rem; }
   .prev-foot .btn { flex: 1; padding: 0 10px; }
 }
+.dlgbox { max-height: calc(100vh - 32px); overflow-y: auto; }
+.dlgsub { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+.dlgsub h3 { margin: 0; font: 700 .9rem var(--f-body); }
+.adm-lista { display: grid; gap: 6px; }
+.adm-u { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.adm-u > div { display: grid; gap: 1px; min-width: 0; }
+.adm-u span { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.adm-u small { font-size: .74rem; color: var(--muted); }
+.adm-tag { font: 600 .72rem var(--f-body); color: var(--accent); white-space: nowrap; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v20</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v21</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -640,9 +649,9 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <section class="tab appset" id="appAjustes" hidden>
     <div class="agrp"><h3>Apariencia</h3><div class="acard" id="appTemaSlot"></div></div>
     <div class="agrp"><h3>Sincronización</h3>
-      <div class="acard"><div class="arow"><span>Estado</span><b id="appSyncTxt">—</b></div>
-      <button class="arow abtn" type="button" id="appSyncBtn">Cuenta y sincronización<span>›</span></button></div>
-      <p class="anote">Tus proyectos, avances y límites se comparten entre la PC, el iPad y el iPhone con tu correo.</p></div>
+      <div class="acard"><div class="arow"><span>Cuenta</span><b id="appSyncTxt">—</b></div>
+      <button class="arow abtn" type="button" id="appSyncBtn">Cuenta, contraseña y usuarios<span>›</span></button></div>
+      <p class="anote">Cada persona entra con su correo y solo ve sus propios proyectos, avances y límites.</p></div>
     <div class="agrp"><h3>Aplicación</h3>
       <div class="acard"><div class="arow"><span>Versión</span><b id="appVer">—</b></div>
       <button class="arow abtn" type="button" id="appRecargar">Buscar actualización ahora<span>›</span></button></div>
@@ -836,12 +845,13 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
-    <h2 id="syncTit">Sincronización PC ⇄ iPad</h2>
-    <p class="note">Tus proyectos, avances y límites se guardan también en la nube (Supabase «BlastHole Leyes») y aparecen en todos tus equipos. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
+    <h2 id="syncTit">Tu cuenta</h2>
+    <p class="note">Cada persona entra con su propio correo y solo ve sus proyectos, avances y límites, en todos sus equipos. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
     <div id="syncLogin" class="dlgsec">
       <label class="f">Correo<input type="email" id="syncEmail" autocomplete="username"></label>
       <label class="f">Contraseña<input type="password" id="syncPw" autocomplete="current-password" placeholder="mínimo 6 caracteres"></label>
       <div class="btnrow"><button class="btn small" id="syncEntrar" type="button">Entrar</button><button class="btn sec small" id="syncCrear" type="button">Crear cuenta (primera vez)</button></div>
+      <p class="note">Para crear tu cuenta, el administrador debe autorizar tu correo primero.</p>
     </div>
     <div id="syncMcp" class="dlgsec" hidden>
       <p class="note">En esta versión (Claude, iPad) la sincronización usa tu conector de Supabase. La primera vez Claude te pide permiso.</p>
@@ -849,7 +859,22 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
     </div>
     <div id="syncOn" class="dlgsec" hidden>
       <p id="syncWho"></p>
-      <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Desconectar</button></div>
+      <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Cerrar sesión</button></div>
+      <label class="chk" id="syncWipeL"><input type="checkbox" id="syncWipe" checked> Al cerrar sesión, quitar mis datos de este equipo (siguen guardados en mi cuenta)</label>
+      <div id="syncCuenta" class="dlgsub" hidden>
+        <h3>Cambiar contraseña</h3>
+        <div class="grid2"><label class="f">Nueva<input type="password" id="syncPw1" autocomplete="new-password" placeholder="mínimo 6 caracteres"></label><label class="f">Repetir<input type="password" id="syncPw2" autocomplete="new-password"></label></div>
+        <div class="btnrow"><button class="btn sec small" id="syncPwOk" type="button">Guardar contraseña</button></div>
+        <p class="msg" id="syncPwMsg"></p>
+      </div>
+      <div id="syncAdmin" class="dlgsub" hidden>
+        <h3>Usuarios del programa</h3>
+        <p class="note">Solo los correos de esta lista pueden crear cuenta. Cada uno ve únicamente sus propios datos.</p>
+        <div class="adm-lista" id="admLista"></div>
+        <div class="grid2"><label class="f">Correo<input type="email" id="admEmail" placeholder="nombre@empresa.com" autocomplete="off"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off"></label></div>
+        <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Autorizar correo</button></div>
+        <p class="msg" id="admMsg"></p>
+      </div>
     </div>
     <p class="note" id="syncStatus"></p>
     <p class="msg" id="syncMsg"></p>
@@ -3638,7 +3663,7 @@ function appTab(at) {
 }
 function pintarAjustes() {
   $('appVer').textContent = $('verBadge').textContent;
-  $('appSyncTxt').textContent = ($('btnSync').textContent || '').replace('☁', '').trim() || '—';
+  $('appSyncTxt').textContent = (typeof sync !== 'undefined' && sync.session && sync.session.email) || ($('btnSync').textContent || '').replace('☁', '').trim() || '—';
 }
 if (ES_APP) {
   document.body.classList.add('app');
@@ -3703,7 +3728,8 @@ const rest = {
     return j;
   },
   guardar(j) {
-    sync.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || SYNC.email };
+    const prev = sync.session || {};
+    sync.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || prev.email || '', uid: (j.user && j.user.id) || jwtSub(j.access_token) || prev.uid || '' };
     try { localStorage.setItem('bhl-sess', JSON.stringify(sync.session)); } catch (e) {}
   },
   async login(email, pw) { rest.guardar(await rest.auth('token?grant_type=password', { email, password: pw })); },
@@ -3723,6 +3749,12 @@ const rest = {
     if (!r.ok) throw new Error((j && (j.message || j.hint)) || `Error ${r.status}`);
     return j;
   },
+  async cambiarPw(pw) {
+    const tk = await rest.token();
+    const r = await fetch(`${SYNC.url}/auth/v1/user`, { method: 'PUT', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
+  },
   pull: since => rest.rpc('bhl_pull', { p_since: since }),
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
 };
@@ -3730,7 +3762,9 @@ function traducirError(m) {
   if (/invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
   if (/already registered|already exists/i.test(m)) return 'Esa cuenta ya existe: usa «Entrar».';
   if (/password should be at least/i.test(m)) return 'La contraseña debe tener al menos 6 caracteres.';
-  if (/registro no permitido|database error saving new user/i.test(m)) return 'Este correo no está autorizado para crear cuenta.';
+  if (/registro no permitido|no autorizado|database error saving new user/i.test(m)) return `Este correo no está autorizado. Pide al administrador (${SYNC.email}) que lo agregue en Ajustes → Usuarios.`;
+  if (/same.*password|different from the old/i.test(m)) return 'La contraseña nueva debe ser distinta de la actual.';
+  if (/banned|user is banned/i.test(m)) return 'Esta cuenta fue desactivada por el administrador.';
   if (/failed to fetch|networkerror|load failed/i.test(m)) return 'Sin conexión a internet.';
   return m;
 }
@@ -3770,6 +3804,23 @@ function parseSqlResult(res) {
   const a = body.indexOf('['), b = body.lastIndexOf(']');
   if (a < 0 || b < a) throw new Error('No se pudo leer la respuesta de Supabase.');
   return JSON.parse(body.slice(a, b + 1));
+}
+
+function jwtSub(t) { try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || ''; } catch (e) { return ''; } }
+const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.session.email).toLowerCase() === SYNC.email;
+
+// ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
+async function borrarLocal() {
+  for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
+  await idbSet('limites', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
+  try { await loadLibrary(); await loadLimits(); } catch (e) {}
+}
+async function fijarDueno(uid) {
+  if (!uid) return;
+  const prev = await idbGet('bhl-owner');
+  if (prev && prev !== uid) await borrarLocal();
+  await idbSet('bhl-owner', uid);
 }
 
 function transporte() { return sync.mode === 'mcp' ? viaMcp : rest; }
@@ -3863,9 +3914,16 @@ function abrirPanelSync() {
   $('syncLogin').hidden = mcp || conectado;
   $('syncMcp').hidden = !mcp || conectado;
   $('syncOn').hidden = !conectado;
-  $('syncWho').textContent = mcp ? `Sincronizando con tu conector de Supabase (${SYNC.email}).` : sync.session ? `Sesión iniciada: ${sync.session.email}` : '';
+  $('syncWho').innerHTML = mcp ? `Sincronizando con tu conector de Supabase (${esc(SYNC.email)}).` : sync.session ? `Cuenta: <b>${esc(sync.session.email)}</b>${esAdmin() ? ' · administrador' : ''}` : '';
   $('syncStatus').textContent = sync.err ? 'Último error: ' + sync.err : sync.last ? `Última sincronización: ${sync.last.toLocaleString('es-PE')}` : '';
-  $('syncEmail').value = SYNC.email; $('syncMsg').textContent = ''; $('syncMsg').className = 'msg';
+  let ult = ''; try { ult = localStorage.getItem('bhl-email') || ''; } catch (e) {}
+  if (!$('syncEmail').value) $('syncEmail').value = ult;
+  $('syncMsg').textContent = ''; $('syncMsg').className = 'msg';
+  $('syncCuenta').hidden = !(conectado && sync.mode === 'rest');
+  $('syncWipeL').hidden = sync.mode !== 'rest';
+  $('syncAdmin').hidden = !(conectado && esAdmin());
+  $('syncWipe').checked = true;
+  if (conectado && esAdmin()) cargarUsuarios();
   d.hidden = false;
 }
 async function loginRest(crear) {
@@ -3874,6 +3932,8 @@ async function loginRest(crear) {
     const email = $('syncEmail').value.trim().toLowerCase(), pw = $('syncPw').value;
     if (crear) await rest.signup(email, pw); else await rest.login(email, pw);
     $('syncPw').value = '';
+    try { localStorage.setItem('bhl-email', email); } catch (e) {}
+    await fijarDueno(sync.session.uid);
     activarSync(); $('dlgSync').hidden = true;
   } catch (e) { msg.className = 'msg err'; msg.textContent = traducirError(e.message); }
 }
@@ -3899,6 +3959,8 @@ async function iniciarSync() {
   } else {
     sync.mode = 'rest';
     try { sync.session = JSON.parse(localStorage.getItem('bhl-sess') || 'null'); } catch (e) {}
+    if (sync.session && !sync.session.uid) sync.session.uid = jwtSub(sync.session.access_token);
+    if (sync.session && sync.session.uid) { const o = await idbGet('bhl-owner'); if (!o) await idbSet('bhl-owner', sync.session.uid); }
     pintarSync(sync.session ? 'busy' : 'login');
     if (sync.session) activarSync();
   }
@@ -3912,10 +3974,55 @@ $('syncEntrar').addEventListener('click', () => loginRest(false));
 $('syncCrear').addEventListener('click', () => loginRest(true));
 $('syncConectar').addEventListener('click', conectarMcp);
 $('syncAhora').addEventListener('click', () => { $('dlgSync').hidden = true; pedirSync(0); });
-$('syncSalir').addEventListener('click', () => {
+$('syncSalir').addEventListener('click', async () => {
+  const msg = $('syncMsg'), wipe = sync.mode === 'rest' && $('syncWipe').checked;
+  if (wipe) {
+    // antes de quitar los datos del equipo, subir lo que falte
+    const pend = (await dbAll('projects')).some(r => r._dirty) || (await dbAll('avances')).some(r => r._dirty) || ((await idbGet('limites')) || []).some(l => l._dirty) || ((await idbGet('bhl-tomb')) || []).length;
+    if (pend) {
+      msg.className = 'msg'; msg.textContent = 'Subiendo tus últimos cambios…';
+      await sincronizar();
+      const sigue = (await dbAll('projects')).some(r => r._dirty) || (await dbAll('avances')).some(r => r._dirty);
+      if (sigue) { msg.className = 'msg err'; msg.textContent = 'Hay cambios sin subir (¿sin internet?). Conéctate y vuelve a intentar, o desmarca «Quitar mis datos de este equipo».'; return; }
+    }
+  }
   sync.on = false; sync.session = null;
   try { localStorage.removeItem('bhl-sess'); localStorage.removeItem('bhl-mcp-on'); } catch (e) {}
+  if (wipe) { await borrarLocal(); await idbSet('bhl-owner', ''); }
   pintarSync(sync.mode === 'mcp' ? 'off' : 'login'); $('dlgSync').hidden = true;
+});
+// ---- Cambiar contraseña ----
+$('syncPwOk').addEventListener('click', async () => {
+  const a = $('syncPw1').value, b = $('syncPw2').value, m = $('syncPwMsg');
+  if (a.length < 6) { m.className = 'msg err'; m.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (a !== b) { m.className = 'msg err'; m.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  m.className = 'msg'; m.textContent = 'Guardando…';
+  try { await rest.cambiarPw(a); $('syncPw1').value = $('syncPw2').value = ''; m.className = 'msg ok'; m.textContent = 'Contraseña cambiada. Úsala la próxima vez que entres en cualquier equipo.'; }
+  catch (e) { m.className = 'msg err'; m.textContent = traducirError(e.message); }
+});
+// ---- Usuarios (solo administrador) ----
+async function cargarUsuarios() {
+  const box = $('admLista'), m = $('admMsg');
+  box.innerHTML = '<p class="note">Cargando…</p>';
+  try {
+    const us = await rest.rpc('bhl_admin_usuarios', {});
+    const f = d => (d ? new Date(d).toLocaleDateString('es-PE') : '—');
+    box.innerHTML = (us || []).map(u => `<div class="adm-u"><div><b>${esc(u.nombre || u.email)}</b><span>${esc(u.email)}</span><small>${u.registrado ? `Cuenta creada · último ingreso ${f(u.ultimo)} · ${u.proyectos} proyectos · ${u.avances} avances` : 'Autorizado · aún no crea su cuenta'}</small></div>${u.email === SYNC.email ? '<span class="adm-tag">Administrador</span>' : `<button type="button" class="btn sec small" data-quitar="${esc(u.email)}">Quitar</button>`}</div>`).join('');
+  } catch (e) { box.innerHTML = ''; m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar la gestión de usuarios en la base de datos.' : e.message; }
+}
+$('admAgregar').addEventListener('click', async () => {
+  const email = $('admEmail').value.trim().toLowerCase(), nombre = $('admNombre').value.trim(), m = $('admMsg');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { m.className = 'msg err'; m.textContent = 'Escribe un correo válido.'; return; }
+  m.className = 'msg'; m.textContent = 'Agregando…';
+  try { await rest.rpc('bhl_admin_agregar', { p_email: email, p_nombre: nombre }); $('admEmail').value = $('admNombre').value = ''; m.className = 'msg ok'; m.textContent = `${email} ya puede crear su cuenta con «Crear cuenta (primera vez)».`; cargarUsuarios(); }
+  catch (e) { m.className = 'msg err'; m.textContent = e.message; }
+});
+$('admLista').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-quitar]'); if (!b) return;
+  if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Quitar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Quitar'; b.classList.remove('danger'); } }, 4000); return; }
+  const m = $('admMsg');
+  try { await rest.rpc('bhl_admin_quitar', { p_email: b.dataset.quitar }); m.className = 'msg ok'; m.textContent = `${b.dataset.quitar} ya no puede entrar. Sus datos quedan guardados por si lo vuelves a agregar.`; cargarUsuarios(); }
+  catch (err) { m.className = 'msg err'; m.textContent = err.message; }
 });
 $('dlgSync').addEventListener('click', e => { if (e.target === $('dlgSync')) $('dlgSync').hidden = true; });
 
