@@ -447,7 +447,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v16</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v17</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -530,8 +530,13 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
         <label class="f">Nombre del archivo<input type="text" id="outName" value="Avance_14A_614-007"></label>
         <button class="btn sec" id="btnZip" disabled>Descargar DXF (.zip)</button>
         <button class="btn sec" id="btnCsv" disabled>Descargar CSV unido</button>
+        <div class="grid2">
+          <label class="f">Hoja<select id="pdfHoja"><option value="A4">A4</option><option value="A3" selected>A3</option><option value="A2">A2</option><option value="A1">A1</option></select></label>
+          <label class="f">Escala<select id="pdfEsc"><option value="0" selected>Ajustar a la hoja</option><option value="250">1:250</option><option value="500">1:500</option><option value="750">1:750</option><option value="1000">1:1000</option><option value="2000">1:2000</option></select></label>
+        </div>
+        <button class="btn sec" id="btnPdf" disabled>Descargar PDF para imprimir</button>
         <p class="msg" id="dlMsg"></p>
-        <p class="note">El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
+        <p class="note">El PDF lleva el mismo dibujo del DXF a escala, con cuadrícula UTM, leyenda y cuadro de título, listo para imprimir. El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
       </div>
     </div>
 
@@ -1644,6 +1649,153 @@ async function makeXlsx(sheets) {
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { crc32, makeZip, readZip, readXlsx, makeXlsx };
 
+// ===== Plano en PDF para imprimir (vectorial, a escala, con cuadro de título) =====
+// Usa los mismos elementos que el DXF: líneas y textos con su capa y color.
+const PDF_PAPER = { A4: [841.89, 595.28], A3: [1190.55, 841.89], A2: [1683.78, 1190.55], A1: [2383.94, 1683.78] }; // apaisado, en puntos
+const PDF_SCALES = [100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 5000, 10000];
+const PT_PER_M_1 = 72 / 0.0254; // 1 m a escala 1:1, en puntos
+// Colores de AutoCAD (ACI) adaptados a papel blanco: el blanco se imprime negro
+const PRINT_ACI = { 1: [0.84, 0, 0], 2: [0.7, 0.55, 0], 3: [0, 0.58, 0.16], 4: [0, 0.52, 0.62], 5: [0.05, 0.25, 0.85], 6: [0.76, 0, 0.76], 7: [0, 0, 0], 8: [0.5, 0.5, 0.5], 30: [0.9, 0.45, 0] };
+const HELV_W = (() => { const w = {}; for (let c = 32; c < 256; c++) w[c] = 556; ' .,:;!|il'.split('').forEach(ch => { w[ch.charCodeAt(0)] = 278; }); '-()'.split('').forEach(ch => { w[ch.charCodeAt(0)] = 333; }); 'ABCDEFGHKNPRSUVXY'.split('').forEach(ch => { w[ch.charCodeAt(0)] = 667; }); 'MW%'.split('').forEach(ch => { w[ch.charCodeAt(0)] = 889; }); 'mw'.split('').forEach(ch => { w[ch.charCodeAt(0)] = 833; }); w[47] = 278; return w; })();
+function pdfTextWidth(s, size, bold) { let t = 0; for (const ch of String(s)) t += HELV_W[ch.charCodeAt(0)] || 556; return t * size / 1000 * (bold ? 1.06 : 1); }
+function pdfStr(s) {
+  // WinAnsi: los caracteres latinos (á, ñ, °…) caben en un byte; lo demás se reemplaza
+  let o = '';
+  const CP = { '\u2013': 0x96, '\u2014': 0x97, '\u2018': 0x91, '\u2019': 0x92, '\u201c': 0x93, '\u201d': 0x94, '\u2022': 0x95, '\u2026': 0x85, '\u20ac': 0x80 };
+  for (const ch of String(s)) { const c = CP[ch] || ch.charCodeAt(0); o += c < 256 ? (ch === '(' || ch === ')' || ch === '\\' ? '\\' + ch : String.fromCharCode(c)) : '?'; }
+  return '(' + o + ')';
+}
+function niceStep(range, target) {
+  const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * p) return m * p;
+  return 10 * p;
+}
+
+async function buildPlotPDF(P, o) {
+  o = o || {};
+  const b = bounds(P);
+  const dw = Math.max(1, b.x1 - b.x0), dh = Math.max(1, b.y1 - b.y0);
+  let [W, H] = PDF_PAPER[o.paper] || PDF_PAPER.A3;
+  if (dh > dw * 1.15) [W, H] = [H, W]; // dibujo alto: hoja vertical
+  const M = 24, STRIP = 74;
+  const ax = M + 6, ay = M + STRIP + 6, aw = W - 2 * M - 12, ah = H - 2 * M - STRIP - 12;
+  const pad = 4; // m de aire alrededor
+  const fit = Math.min(aw / (dw + 2 * pad), ah / (dh + 2 * pad));
+  let scale = parseInt(o.scale, 10) || 0, note = '';
+  if (scale && PT_PER_M_1 / scale > fit) { note = `El dibujo no entra en ${o.paper || 'A3'} a 1:${scale}; se usó una escala menor.`; scale = 0; }
+  if (!scale) scale = PDF_SCALES.find(s => PT_PER_M_1 / s <= fit) || Math.ceil(PT_PER_M_1 / fit);
+  const k = PT_PER_M_1 / scale; // puntos por metro
+  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  const X = x => ax + aw / 2 + (x - cx) * k, Y = y => ay + ah / 2 + (y - cy) * k;
+  const n = v => (Math.round(v * 100) / 100).toString();
+  const c = [];
+  const rgb = (a, stroke) => `${a.map(v => v.toFixed(3)).join(' ')} ${stroke ? 'RG' : 'rg'}`;
+  const text = (s, x, y, size, opt) => {
+    opt = opt || {};
+    let tx = x; const w = pdfTextWidth(s, size, opt.bold);
+    if (opt.align === 'center') tx -= w / 2; else if (opt.align === 'right') tx -= w;
+    c.push(`BT /${opt.bold ? 'F2' : 'F1'} ${n(size)} Tf ${rgb(opt.color || [0, 0, 0], false)} ${n(tx)} ${n(y)} Td ${pdfStr(s)} Tj ET`);
+  };
+  const layerColor = {}; LAYERS.forEach(L => { layerColor[L.name] = L.color; });
+
+  // --- marco y área de dibujo
+  c.push('0 0 0 RG 1.2 w', `${n(M)} ${n(M)} ${n(W - 2 * M)} ${n(H - 2 * M)} re S`, '0.6 w', `${n(M)} ${n(M + STRIP)} m ${n(W - M)} ${n(M + STRIP)} l S`);
+  // --- cuadrícula de coordenadas (UTM)
+  const wx0 = cx - aw / 2 / k, wx1 = cx + aw / 2 / k, wy0 = cy - ah / 2 / k, wy1 = cy + ah / 2 / k;
+  const step = niceStep(Math.max(wx1 - wx0, wy1 - wy0), 7);
+  c.push('q', `${n(ax)} ${n(ay)} ${n(aw)} ${n(ah)} re W n`, '0.82 0.85 0.88 RG 0.3 w');
+  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) c.push(`${n(X(gx))} ${n(ay)} m ${n(X(gx))} ${n(ay + ah)} l S`);
+  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) c.push(`${n(ax)} ${n(Y(gy))} m ${n(ax + aw)} ${n(Y(gy))} l S`);
+  c.push('Q');
+  const grey = [0.45, 0.48, 0.5];
+  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) if (X(gx) > ax + 30 && X(gx) < ax + aw - 30) { text('E ' + Math.round(gx).toLocaleString('en-US').replace(/,/g, ' '), X(gx), ay + ah + 2, 5.5, { align: 'center', color: grey }); }
+  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) if (Y(gy) > ay + 10 && Y(gy) < ay + ah - 10) { text('N ' + Math.round(gy).toLocaleString('en-US').replace(/,/g, ' '), ax + 2, Y(gy) + 2, 5.5, { color: grey }); }
+
+  // --- dibujo (líneas y textos del DXF), recortado al área
+  c.push('q', `${n(ax)} ${n(ay)} ${n(aw)} ${n(ah)} re W n`, '1 J 1 j');
+  let curCol = '', curW = '';
+  P.forEach(p => {
+    if (p.t !== 'line') return;
+    const col = rgb(PRINT_ACI[p.color || layerColor[p.layer]] || PRINT_ACI[7], true), wd = p.layer === 'BLASTHOLE' ? '0.55 w' : p.layer === 'LINEA_GUIA' ? '0.3 w' : '0.4 w';
+    if (col !== curCol) { c.push(col); curCol = col; }
+    if (wd !== curW) { c.push(wd); curW = wd; }
+    c.push(`${n(X(p.x1))} ${n(Y(p.y1))} m ${n(X(p.x2))} ${n(Y(p.y2))} l S`);
+  });
+  P.forEach(p => {
+    if (p.t === 'line') return;
+    const size = Math.max(1.6, p.h * k);
+    const col = PRINT_ACI[p.color || layerColor[p.layer]] || PRINT_ACI[7];
+    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', color: col });
+    else text(p.s, X(p.x), Y(p.y), size, { color: col });
+  });
+  c.push('Q');
+
+  // --- cuadro de título
+  const ty = M + STRIP;
+  text('BlastHole Leyes', M + 10, ty - 15, 8, { color: grey });
+  text(o.title || 'Plano de taladros y leyes', M + 10, ty - 33, 15, { bold: true });
+  text(o.subtitle || '', M + 10, ty - 48, 8, { color: [0.25, 0.27, 0.3] });
+  text(`Fecha: ${o.fecha || ''}   ·   Coordenadas UTM (m)   ·   Cuadrícula cada ${step} m`, M + 10, ty - 62, 7, { color: grey });
+  // leyenda
+  const lx = W * 0.47;
+  text('LEYENDA', lx, ty - 15, 7, { bold: true, color: grey });
+  const item = (i, colr, label, kind) => {
+    const col2 = Math.floor(i / 3), row = i % 3, x = lx + col2 * 118, y = ty - 30 - row * 15;
+    if (kind === 'x') { c.push(rgb(colr, true), '0.8 w', `${n(x)} ${n(y - 3)} m ${n(x + 7)} ${n(y + 4)} l S ${n(x)} ${n(y + 4)} m ${n(x + 7)} ${n(y - 3)} l S`); }
+    else c.push(rgb(colr, false), `${n(x)} ${n(y - 3)} 7 7 re f`);
+    text(label, x + 12, y - 2, 7.5);
+  };
+  item(0, PRINT_ACI[6], 'Fe > 50'); item(1, PRINT_ACI[30], 'Fe 40 – 50'); item(2, PRINT_ACI[3], 'Fe 30 – 40');
+  item(3, PRINT_ACI[7], 'Fe < 30'); item(4, PRINT_ACI[3], 'S_100'); item(5, PRINT_ACI[1], 'S/FeS');
+  item(6, PRINT_ACI[7], 'Taladro', 'x');
+  // escala gráfica y norte
+  const rx = W - M - 12;
+  text(`Escala 1:${scale}`, rx, ty - 18, 11, { bold: true, align: 'right' });
+  text(`Hoja ${o.paper || 'A3'}${note ? ' · ajustada' : ''}`, rx, ty - 30, 7, { align: 'right', color: grey });
+  let bar = niceStep(150 / k, 1); if (bar * k > 170) bar /= 2;
+  const bx1 = rx, bx0 = rx - bar * k, by = ty - 50;
+  c.push('0 0 0 RG 0.6 w', `${n(bx0)} ${n(by)} ${n(bar * k)} 4 re S`, '0 0 0 rg', `${n(bx0)} ${n(by)} ${n(bar * k / 2)} 4 re f`);
+  text('0', bx0, by - 9, 6.5, { align: 'center' }); text(`${bar / 2}`, bx0 + bar * k / 2, by - 9, 6.5, { align: 'center' }); text(`${bar} m`, bx1, by - 9, 6.5, { align: 'center' });
+  const nx = ax + aw - 22, ny = ay + ah - 46; // norte en la esquina superior derecha del plano
+  c.push('1 1 1 rg', `${n(nx - 14)} ${n(ny - 14)} 28 46 re f`);
+  c.push('0 0 0 rg', `${n(nx)} ${n(ny + 26)} m ${n(nx - 6)} ${n(ny + 6)} l ${n(nx)} ${n(ny + 11)} l ${n(nx + 6)} ${n(ny + 6)} l h f`);
+  text('N', nx, ny - 4, 9, { bold: true, align: 'center' });
+  if (note) text(note, M + 10, M - 12 > 0 ? M - 12 : 6, 7, { color: [0.75, 0.2, 0.1] });
+
+  // --- armar el PDF (contenido comprimido si el navegador puede)
+  const content = c.join('\n');
+  let streamBytes = latin1Bytes(content), filter = '';
+  try {
+    if (typeof CompressionStream !== 'undefined') {
+      const cs = new Blob([streamBytes]).stream().pipeThrough(new CompressionStream('deflate'));
+      streamBytes = new Uint8Array(await new Response(cs).arrayBuffer()); filter = ' /Filter /FlateDecode';
+    }
+  } catch (e) { streamBytes = latin1Bytes(content); filter = ''; }
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(W)} ${n(H)}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>`,
+    null,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+    `<< /Title ${pdfStr(o.title || 'Plano')} /Producer (BlastHole Leyes) >>`,
+  ];
+  const parts = [latin1Bytes('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')];
+  let off = parts[0].length; const xref = [];
+  objs.forEach((ob, i) => {
+    xref.push(off);
+    let chunk;
+    if (i === 3) chunk = [latin1Bytes(`4 0 obj\n<< /Length ${streamBytes.length}${filter} >>\nstream\n`), streamBytes, latin1Bytes('\nendstream\nendobj\n')];
+    else chunk = [latin1Bytes(`${i + 1} 0 obj\n${ob}\nendobj\n`)];
+    chunk.forEach(u => { parts.push(u); off += u.length; });
+  });
+  let tail = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + xref.map(x => String(x).padStart(10, '0') + ' 00000 n \n').join('');
+  tail += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Info 7 0 R >>\nstartxref\n${off}\n%%EOF\n`;
+  parts.push(latin1Bytes(tail));
+  return { blob: new Blob(parts, { type: 'application/pdf' }), scale, note, paper: o.paper || 'A3' };
+}
+function latin1Bytes(s) { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
+
 </script>
 <script>
 const SAMPLE_BH = null;
@@ -1856,7 +2008,7 @@ function renderBase() {
 
 function updateButtons() {
   const blocked = state.pc && state.pc.level === 'bad' && !state.confirmed;
-  $('btnZip').disabled = !state.holes.length || blocked; $('btnCsv').disabled = !state.holes.length || blocked;
+  $('btnZip').disabled = !state.holes.length || blocked; $('btnCsv').disabled = !state.holes.length || blocked; $('btnPdf').disabled = !state.holes.length || blocked;
   const msg = $('dlMsg');
   if (blocked) { msg.className = 'msg err'; msg.textContent = 'Descarga bloqueada: las leyes parecen de otro proyecto. Revisa el aviso rojo de arriba.'; }
   else if (msg.textContent.startsWith('Descarga bloqueada')) { msg.className = 'msg'; msg.textContent = ''; }
@@ -2059,7 +2211,7 @@ async function save(filename, data, msgEl) {
   if (window.showSaveFilePicker && !(window.claude && window.claude.use)) {
     try {
       const ext = (filename.match(/\.([a-z0-9]+)$/i) || [, 'dat'])[1].toLowerCase();
-      const mime = { zip: 'application/zip', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', csv: 'text/csv', json: 'application/json', dxf: 'application/dxf' }[ext] || 'application/octet-stream';
+      const mime = { zip: 'application/zip', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', csv: 'text/csv', json: 'application/json', dxf: 'application/dxf', pdf: 'application/pdf' }[ext] || 'application/octet-stream';
       const h = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: ext.toUpperCase(), accept: { [mime]: ['.' + ext] } }] });
       const w = await h.createWritable(); await w.write(blob); await w.close();
       msg.className = 'msg ok'; msg.textContent = `Guardado: ${h.name}`; return;
@@ -2078,6 +2230,17 @@ async function save(filename, data, msgEl) {
   msg.className = 'msg ok'; msg.textContent = `Listo: ${filename}`;
 }
 const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace(/[\\/:*?"<>|]+/g, '_');
+$('btnPdf').onclick = async () => {
+  const name = baseName();
+  const proj = ((parseProjectCode(state.bhName) || {}).text) || (state.found && state.found.p && state.found.p.label) || '';
+  const conLey = state.m && state.m.matched ? state.m.matched.length : 0;
+  const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
+  try {
+    const r = await buildPlotPDF(state.P, { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || name, subtitle: `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}`, fecha });
+    await save(name + '.pdf', r.blob);
+    if (r.note) { const m = $('dlMsg'); m.className = 'msg warn'; m.textContent = r.note + ` Quedó a 1:${r.scale}.`; }
+  } catch (e) { const m = $('dlMsg'); m.className = 'msg err'; m.textContent = 'No se pudo generar el PDF: ' + (e && e.message || e); }
+};
 $('btnZip').onclick = async () => {
   const name = baseName();
   const blob = await makeZip([{ name: name + '.dxf', data: buildDXF(state.P) }, { name: name + '_unido.csv', data: buildMergedCSV(state.holes, state.m.matched) }]);
