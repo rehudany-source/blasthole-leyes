@@ -341,7 +341,7 @@ td.e { color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v11</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v12</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -517,10 +517,12 @@ td.e { color: var(--muted); }
             <label class="f">Fecha<input type="date" id="avFecha"></label>
             <label class="f">Nombre (opcional)<input type="text" id="avNombre" placeholder="ej. turno día" autocomplete="off"></label>
           </div>
-          <div class="grid2">
+          <div class="grid3">
             <label class="f">Burden (m)<input type="number" id="avB" step="0.1" min="0" placeholder="opcional"></label>
             <label class="f">Espaciamiento (m)<input type="number" id="avE" step="0.1" min="0" placeholder="opcional"></label>
+            <label class="f">Profundidad (m)<input type="number" id="avH" step="0.1" min="0" placeholder="opcional"></label>
           </div>
+          <p class="note">Todos los taladros se calculan con la misma profundidad. El promedio no depende de ella; con burden, espaciamiento y profundidad se muestra además el tonelaje.</p>
           <div class="grid3">
             <label class="f">Tipo<input type="text" id="avTipo" placeholder="ej. Resp" autocomplete="off"></label>
             <label class="f">Tipo material<input type="text" id="avMat" placeholder="ej. M4" autocomplete="off"></label>
@@ -2542,7 +2544,11 @@ $('btnPick').addEventListener('click', () => startDraw('pick'));
 $('ipDraw').addEventListener('click', () => startDraw('pen'));
 $('ipPick').addEventListener('click', () => startDraw('pick'));
 $('btnClearAv').addEventListener('click', clearAvance);
-['avB', 'avE'].forEach(id => $(id).addEventListener('input', () => computeT2()));
+// Burden, espaciamiento y profundidad (la misma para todos los taladros) se recuerdan en este equipo
+['avB', 'avE', 'avH'].forEach(id => {
+  try { const v = localStorage.getItem('bhl-' + id); if (v) $(id).value = v; } catch (e) {}
+  $(id).addEventListener('input', () => { try { localStorage.setItem('bhl-' + id, $(id).value); } catch (e) {} computeT2(); });
+});
 $('avExcl').addEventListener('change', () => { selectFromShapes(); computeT2(); pv.draw(); });
 document.addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, select, textarea')) return;
@@ -2574,8 +2580,11 @@ function computeT2() {
     if (t2.prevKey.has(k)) repeated.push(k);
     if (!l) noLey.push(k); else if (l.hasData === false) pending.push(k); else items.push({ hole: h, ley: l });
   });
-  const B = num('avB'), E = num('avE');
-  const opts = { B, E, medDepth: median(t2.holes.map(h => h.depth)), medDensity: median([...t2.leyBy.values()].map(l => l.density)) };
+  // Misma profundidad para todos los taladros: el peso de cada uno es su densidad (× B × E × H para el tonelaje)
+  const H = num('avH'), B = H ? num('avB') : null, E = H ? num('avE') : null;
+  const uni = arr => arr.map(i => ({ hole: Object.assign({}, i.hole, { depth: H || 1 }), ley: i.ley }));
+  items.splice(0, items.length, ...uni(items));
+  const opts = { B, E, medDepth: H || 1, medDensity: median([...t2.leyBy.values()].map(l => l.density)) };
   const w = weightedAverage(items, opts);
   const fields = Object.fromEntries(AVG_FIELDS.map(f => [f.k, Object.assign({}, w.res[f.k])]));
   // Por polígono: cada uno con su promedio; si alguno tiene peso (%), el promedio del avance combina los polígonos con esos pesos
@@ -2605,7 +2614,7 @@ function computeT2() {
     groups.forEach(g => { g.pct = tot && g.n ? 100 * (g.wEff || 0) / tot : 0; });
   }
   const pids = [...new Set(items.map(i => i.hole.pid))];
-  t2.result = { n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => ({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w })) };
+  t2.result = { n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => ({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w })) };
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
@@ -2614,10 +2623,10 @@ function computeT2() {
   if (pending.length) notes.push(`${pending.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pending)}.`);
   if (noLey.length) notes.push(`${noLey.length} taladro(s) sin muestra en la base (no entran).`);
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
-  if (w.depthDef) notes.push(`${w.depthDef} taladro(s) sin profundidad: se usó ${w.medDepth.toFixed(2)} m.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
-  setMsg('t2Msg', pending.length || repeated.length || w.depthDef || w.densDef || wNote ? 'warn' : '', notes.join(' '));
-  t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: items.length && w.depthDef === items.length };
+  if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
+  setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote ? 'warn' : '', notes.join(' '));
+  t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: !H };
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
   paintPanel();
@@ -2627,7 +2636,7 @@ function sortIds(ids) { return ids.slice().sort(sortNum); }
 function renderTiles(r, title) {
   const f = (v, d) => fmt(v, d, '—');
   $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
-    `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? 't · prof × dens × B × E' : 'prof × dens (pon B y E para t)'}</span></div>` +
+    `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? 't · dens × B × E × prof' : 'densidad · misma prof. para todos'}</span></div>` +
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
 
@@ -3003,7 +3012,7 @@ function paintPanel() {
   else if (!R) box.innerHTML = `<p class="fs-empty">${t2.shapes.length ? 'Los polígonos no tienen taladros con resultados de los proyectos marcados.' : 'Dibuja el contorno del avance con el <b>Lápiz</b> o toca límites con <b>Límites</b>. Puedes dibujar varios polígonos y darle un peso a cada uno.'}</p>`;
   else box.innerHTML = `<div class="big"><div><span>Taladros</span><b>${R.n}</b></div><div><span>${R.tonnage ? 'Tonelaje (t)' : R.sinProf ? 'Peso (densidad)' : 'Peso (prof × dens)'}</span><b>${Math.round(R.tonnage || R.wsum || 0).toLocaleString('es-PE')}</b></div></div>` +
     `<div class="an">${AVG_FIELDS.filter(F => (R.fields[F.k] || {}).mean != null).map(F => `<div><span>${F.label}</span><b>${fmt(R.fields[F.k].mean, F.dec, '—')}</b></div>`).join('')}</div>` +
-    `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : R.sinProf ? 'Promedio ponderado por densidad (los archivos de taladros no traen profundidad).' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
+    `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : R.profUnica ? `Promedio ponderado por densidad: todos los taladros con la misma profundidad${R.H ? ` (${R.H} m)` : ''}.` : R.sinProf ? 'Promedio ponderado por densidad (los archivos de taladros no traen profundidad).' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
   const m = $('fsMsg'), src = $('t2Msg');
   m.className = 'fs-msg' + (src.classList.contains('ok') ? ' ok' : ''); m.textContent = a ? '' : src.textContent;
   $('fsSave').disabled = !!a || !t2.result || !t2.result.n;
