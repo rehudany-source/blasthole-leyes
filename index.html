@@ -447,7 +447,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v15</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v16</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2410,7 +2410,7 @@ $('pList').addEventListener('change', e => {
   t2.fitted = false; refreshT2();
 });
 // El filtro de mina / nivel también decide qué se ve en el plano: solo esa mina (y ese nivel)
-function filtroCambio() { try { localStorage.setItem('bhl-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} t2.fitted = false; refreshT2(); if (enFull) requestAnimationFrame(() => { fitFull(); pv.draw(); }); }
+function filtroCambio() { try { renderLimList(); } catch (e) {} try { localStorage.setItem('bhl-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} t2.fitted = false; refreshT2(); if (enFull) requestAnimationFrame(() => { fitFull(); pv.draw(); }); }
 $('fMina').addEventListener('change', () => { $('fNivel').value = ''; fillFilters(); filtroCambio(); });
 $('fNivel').addEventListener('change', filtroCambio);
 $('pAll').addEventListener('click', () => { visibleProjects().forEach(p => t2.selIds.add(p.id)); t2.fitted = false; refreshT2(); });
@@ -2638,7 +2638,7 @@ pv.onDraw = (fase, x, y) => {
 };
 pv.onTap = (x, y) => {
   if (t2.tool === 'pick') {
-    const hits = t2.lims.filter(L => L.closed && !t2.limOff.has(L.layer) && pointInPoly(x, y, L.pts)).sort((a, b) => a.area - b.area);
+    const hits = t2.lims.filter(L => L.closed && !t2.limOff.has(L.layer) && limVisible(L) && pointInPoly(x, y, L.pts)).sort((a, b) => a.area - b.area);
     if (!hits.length) { flashHint('Ahí no hay un polígono cerrado. Toca dentro de un límite o subdivisión.'); return; }
     const L = hits[0], i = t2.shapes.findIndex(s => s.lim === L.id);
     if (i >= 0) { t2.shapes.splice(i, 1); selectFromShapes(); computeT2(); pv.draw(); } else addShape(L.pts.map(q => ({ x: q.x, y: q.y })), { lim: L.id, pid: projForLim(L) });
@@ -2950,11 +2950,31 @@ function limColor(layer) {
   const layers = [...new Set(t2.lims.map(l => l.layer))].filter(x => !/rotura|limite|límite/i.test(x));
   return LIM_COLORS[1 + (layers.indexOf(layer) % (LIM_COLORS.length - 1))];
 }
+// Mina y nivel de un límite, leídos del nombre de la capa o del archivo (S26-14A-638-013_C, limites_9-569…)
+function limMinaNivel(L) {
+  if (L._mn !== undefined) return L._mn;
+  let r = null;
+  for (const s of [L.layer, L.file]) {
+    const c = parseProjectCode(s || '');
+    if (c) { r = { mina: c.mina, nivel: String(parseInt(c.nivel, 10)) }; break; }
+    const m = String(s || '').replace(/^[0-9a-f]{8}-/i, '').replace(/(^|[^A-Za-z0-9])S\d{2}(?=[-_ ])/i, '$1').match(/(?:^|[^0-9A-Za-z])(\d{1,2}[A-Za-z]?)[-_ ](\d{3,4})(?![0-9])/);
+    if (m) { r = { mina: m[1].toUpperCase(), nivel: String(parseInt(m[2], 10)) }; break; }
+  }
+  Object.defineProperty(L, '_mn', { value: r, enumerable: false, writable: true });
+  return r;
+}
+// Un límite se ve si coincide con la mina y el nivel elegidos (los que no traen código se ven siempre)
+function limVisible(L) {
+  const fm = $('fMina').value, fn = $('fNivel').value;
+  if (!fm && !fn) return true;
+  const c = limMinaNivel(L); if (!c) return true;
+  return (!fm || c.mina === fm) && (!fn || c.nivel === fn);
+}
 function drawLimits(ctx, v) {
   const isMain = L => /rotura|limite|límite/i.test(L.layer);
   // subdivisiones primero; el límite de rotura encima
   t2.lims.slice().sort((a, b) => isMain(a) - isMain(b)).forEach(L => {
-    if (t2.limOff.has(L.layer)) return;
+    if (t2.limOff.has(L.layer) || !limVisible(L)) return;
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = main ? 2 : 1.3; ctx.setLineDash(main ? [] : [7, 4]);
@@ -2972,8 +2992,10 @@ async function loadLimits() {
 function renderLimList() {
   const box = $('limList');
   if (!t2.lims.length) { box.innerHTML = ''; return; }
-  const files = [...new Set(t2.lims.map(l => l.file))];
-  box.innerHTML = files.map(f => {
+  const todos = [...new Set(t2.lims.map(l => l.file))];
+  const files = todos.filter(f => t2.lims.some(l => l.file === f && limVisible(l)));
+  const ocultos = todos.length - files.length;
+  box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
     return `<div class="limf"><div class="limh"><span class="pn">${esc(f)}</span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button></div>` +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
