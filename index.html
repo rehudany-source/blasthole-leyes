@@ -447,7 +447,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v14</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v15</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3228,7 +3228,9 @@ const ES_APP = (() => {
   try {
     const forz = localStorage.getItem('bhl-app'); if (forz === '1') return true; if (forz === '0') return false;
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    return ios || matchMedia('(display-mode: standalone)').matches || (matchMedia('(pointer: coarse)').matches && innerWidth < 1100);
+    // iPad / iPhone siempre; otras pantallas táctiles si son chicas o están instaladas. Una Mac o PC con mouse usa la vista de escritorio aunque esté instalada.
+    const tactil = matchMedia('(pointer: coarse)').matches;
+    return ios || (tactil && (matchMedia('(display-mode: standalone)').matches || innerWidth < 1100));
   } catch (e) { return false; }
 })();
 const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', ajustes: 'Ajustes' };
