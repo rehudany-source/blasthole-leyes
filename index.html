@@ -382,7 +382,7 @@ body.app #histWrap { display: none; }
 .hc .h1 b { font: 700 1.05rem var(--f-display); letter-spacing: .02em; }
 .hc .h1 span { color: var(--muted); font-size: .8rem; white-space: nowrap; }
 .hc .pj { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
-.hc .lv { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.hc .lv { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 4px; }
 .hc .lv div { background: var(--panel); border-radius: 8px; padding: 5px 6px; text-align: center; }
 .hc .lv span { display: block; font-size: .64rem; color: var(--muted); }
 .hc .lv b { font: 600 .92rem var(--f-mono); font-variant-numeric: tabular-nums; }
@@ -441,13 +441,21 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   .cadwrap.full .fs-rail #fsZin, .cadwrap.full .fs-rail #fsZout, .cadwrap.full .fs-rail .sep { display: none; }
 }
 .cadwrap.full.sheet .fs-hint { display: none !important; }
+.btnrow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#printArea { display: none; }
+@media print {
+  body.printing > *:not(#printArea) { display: none !important; }
+  body.printing { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+  body.printing #printArea { display: block; }
+  body.printing #printArea svg { display: block; width: 100%; height: auto; }
+}
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v17</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v18</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -534,9 +542,12 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
           <label class="f">Hoja<select id="pdfHoja"><option value="A4">A4</option><option value="A3" selected>A3</option><option value="A2">A2</option><option value="A1">A1</option></select></label>
           <label class="f">Escala<select id="pdfEsc"><option value="0" selected>Ajustar a la hoja</option><option value="250">1:250</option><option value="500">1:500</option><option value="750">1:750</option><option value="1000">1:1000</option><option value="2000">1:2000</option></select></label>
         </div>
-        <button class="btn sec" id="btnPdf" disabled>Descargar PDF para imprimir</button>
+        <div class="btnrow2">
+          <button class="btn" id="btnPrint" disabled>🖨 Imprimir plano</button>
+          <button class="btn sec" id="btnPdf" disabled>Descargar PDF</button>
+        </div>
         <p class="msg" id="dlMsg"></p>
-        <p class="note">El PDF lleva el mismo dibujo del DXF a escala, con cuadrícula UTM, leyenda y cuadro de título, listo para imprimir. El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
+        <p class="note">«Imprimir plano» y el PDF llevan el mismo dibujo del DXF a escala, con cuadrícula UTM, leyenda y cuadro de título, listo para imprimir. El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
       </div>
     </div>
 
@@ -1309,6 +1320,11 @@ const BASE_FIELDS = [
   { k: 'zn', re: [/^zn_pct$/, /^zn$/, /^zn_?cab$/] },
   { k: 'insol', re: [/^insol$/, /^insol_pct$/] },
   { k: 'rec', re: [/^ccrp_pct$/, /^rec/] },
+  { k: 'cfe', re: [/^cfe_pct$/, /^cfe$/] },
+  { k: 'cs', re: [/^cs$/, /^cs_pct$/] },
+  { k: 'ccins', re: [/^ccins_pct$/, /^ccins$/] },
+  { k: 'ph', re: [/^ph$/] },
+  { k: 'ph4', re: [/^ph4$/] },
 ];
 
 function buildBase(csv) {
@@ -1401,6 +1417,8 @@ const AVG_FIELDS = [
   { k: 'fe', label: 'Fe', dec: 'c3' }, { k: 'feo', label: 'FeO', dec: 'c3' }, { k: 's', label: 'S', dec: 'c3' },
   { k: 's100', label: 'S_100', dec: 'c3' }, { k: 'sfe', label: 'S/FeS', dec: 'c3' }, { k: 'cu', label: 'Cu', dec: 2 }, { k: 'zn', label: 'Zn', dec: 2 },
   { k: 'insol', label: 'Insol', dec: 'c3' }, { k: 'rec', label: '%Rec (-100)', dec: 2 },
+  { k: 'cfe', label: 'CFe', dec: 'c3' }, { k: 'cs', label: 'CS', dec: 2 }, { k: 'ccins', label: 'CC Insol', dec: 'c3' },
+  { k: 'ph', label: 'pH', dec: 1 }, { k: 'ph4', label: 'pH4', dec: 2 },
 ];
 // Promedio simple por ley, ignorando celdas vacías
 function averageLeyes(leyes) {
@@ -1671,7 +1689,8 @@ function niceStep(range, target) {
   return 10 * p;
 }
 
-async function buildPlotPDF(P, o) {
+// Arma el plano como lista de elementos en puntos de la hoja (origen abajo a la izquierda)
+function layoutPlot(P, o) {
   o = o || {};
   const b = bounds(P);
   const dw = Math.max(1, b.x1 - b.x0), dh = Math.max(1, b.y1 - b.y0);
@@ -1679,90 +1698,105 @@ async function buildPlotPDF(P, o) {
   if (dh > dw * 1.15) [W, H] = [H, W]; // dibujo alto: hoja vertical
   const M = 24, STRIP = 74;
   const ax = M + 6, ay = M + STRIP + 6, aw = W - 2 * M - 12, ah = H - 2 * M - STRIP - 12;
-  const pad = 4; // m de aire alrededor
+  const pad = 4;
   const fit = Math.min(aw / (dw + 2 * pad), ah / (dh + 2 * pad));
   let scale = parseInt(o.scale, 10) || 0, note = '';
   if (scale && PT_PER_M_1 / scale > fit) { note = `El dibujo no entra en ${o.paper || 'A3'} a 1:${scale}; se usó una escala menor.`; scale = 0; }
   if (!scale) scale = PDF_SCALES.find(s => PT_PER_M_1 / s <= fit) || Math.ceil(PT_PER_M_1 / fit);
-  const k = PT_PER_M_1 / scale; // puntos por metro
+  const k = PT_PER_M_1 / scale;
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   const X = x => ax + aw / 2 + (x - cx) * k, Y = y => ay + ah / 2 + (y - cy) * k;
-  const n = v => (Math.round(v * 100) / 100).toString();
-  const c = [];
-  const rgb = (a, stroke) => `${a.map(v => v.toFixed(3)).join(' ')} ${stroke ? 'RG' : 'rg'}`;
-  const text = (s, x, y, size, opt) => {
-    opt = opt || {};
-    let tx = x; const w = pdfTextWidth(s, size, opt.bold);
-    if (opt.align === 'center') tx -= w / 2; else if (opt.align === 'right') tx -= w;
-    c.push(`BT /${opt.bold ? 'F2' : 'F1'} ${n(size)} Tf ${rgb(opt.color || [0, 0, 0], false)} ${n(tx)} ${n(y)} Td ${pdfStr(s)} Tj ET`);
-  };
+  const D = [];
+  const BLACK = [0, 0, 0], grey = [0.45, 0.48, 0.5];
+  const line = (x1, y1, x2, y2, col, w) => D.push({ t: 'line', x1, y1, x2, y2, col: col || BLACK, w: w || 0.5 });
+  const rect = (x, y, w, h, opt) => D.push(Object.assign({ t: 'rect', x, y, w, h }, opt));
+  const text = (s, x, y, size, opt) => D.push(Object.assign({ t: 'text', s: String(s), x, y, size, col: BLACK, align: 'left', bold: false }, opt));
   const layerColor = {}; LAYERS.forEach(L => { layerColor[L.name] = L.color; });
 
-  // --- marco y área de dibujo
-  c.push('0 0 0 RG 1.2 w', `${n(M)} ${n(M)} ${n(W - 2 * M)} ${n(H - 2 * M)} re S`, '0.6 w', `${n(M)} ${n(M + STRIP)} m ${n(W - M)} ${n(M + STRIP)} l S`);
-  // --- cuadrícula de coordenadas (UTM)
+  rect(M, M, W - 2 * M, H - 2 * M, { stroke: BLACK, lw: 1.2 });
+  line(M, M + STRIP, W - M, M + STRIP, BLACK, 0.6);
+  // cuadrícula UTM
   const wx0 = cx - aw / 2 / k, wx1 = cx + aw / 2 / k, wy0 = cy - ah / 2 / k, wy1 = cy + ah / 2 / k;
   const step = niceStep(Math.max(wx1 - wx0, wy1 - wy0), 7);
-  c.push('q', `${n(ax)} ${n(ay)} ${n(aw)} ${n(ah)} re W n`, '0.82 0.85 0.88 RG 0.3 w');
-  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) c.push(`${n(X(gx))} ${n(ay)} m ${n(X(gx))} ${n(ay + ah)} l S`);
-  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) c.push(`${n(ax)} ${n(Y(gy))} m ${n(ax + aw)} ${n(Y(gy))} l S`);
-  c.push('Q');
-  const grey = [0.45, 0.48, 0.5];
-  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) if (X(gx) > ax + 30 && X(gx) < ax + aw - 30) { text('E ' + Math.round(gx).toLocaleString('en-US').replace(/,/g, ' '), X(gx), ay + ah + 2, 5.5, { align: 'center', color: grey }); }
-  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) if (Y(gy) > ay + 10 && Y(gy) < ay + ah - 10) { text('N ' + Math.round(gy).toLocaleString('en-US').replace(/,/g, ' '), ax + 2, Y(gy) + 2, 5.5, { color: grey }); }
-
-  // --- dibujo (líneas y textos del DXF), recortado al área
-  c.push('q', `${n(ax)} ${n(ay)} ${n(aw)} ${n(ah)} re W n`, '1 J 1 j');
-  let curCol = '', curW = '';
+  const GR = [0.82, 0.85, 0.88];
+  D.push({ t: 'clip', x: ax, y: ay, w: aw, h: ah });
+  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) line(X(gx), ay, X(gx), ay + ah, GR, 0.3);
+  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) line(ax, Y(gy), ax + aw, Y(gy), GR, 0.3);
+  D.push({ t: 'unclip' });
+  const fmtC = v => Math.round(v).toLocaleString('en-US').replace(/,/g, ' ');
+  for (let gx = Math.ceil(wx0 / step) * step; gx <= wx1; gx += step) if (X(gx) > ax + 30 && X(gx) < ax + aw - 30) text('E ' + fmtC(gx), X(gx), ay + ah + 2, 5.5, { align: 'center', col: grey });
+  for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) if (Y(gy) > ay + 10 && Y(gy) < ay + ah - 10) text('N ' + fmtC(gy), ax + 2, Y(gy) + 2, 5.5, { col: grey });
+  // dibujo del DXF
+  D.push({ t: 'clip', x: ax, y: ay, w: aw, h: ah });
   P.forEach(p => {
     if (p.t !== 'line') return;
-    const col = rgb(PRINT_ACI[p.color || layerColor[p.layer]] || PRINT_ACI[7], true), wd = p.layer === 'BLASTHOLE' ? '0.55 w' : p.layer === 'LINEA_GUIA' ? '0.3 w' : '0.4 w';
-    if (col !== curCol) { c.push(col); curCol = col; }
-    if (wd !== curW) { c.push(wd); curW = wd; }
-    c.push(`${n(X(p.x1))} ${n(Y(p.y1))} m ${n(X(p.x2))} ${n(Y(p.y2))} l S`);
+    line(X(p.x1), Y(p.y1), X(p.x2), Y(p.y2), PRINT_ACI[p.color || layerColor[p.layer]] || BLACK, p.layer === 'BLASTHOLE' ? 0.55 : p.layer === 'LINEA_GUIA' ? 0.3 : 0.4);
   });
   P.forEach(p => {
     if (p.t === 'line') return;
-    const size = Math.max(1.6, p.h * k);
-    const col = PRINT_ACI[p.color || layerColor[p.layer]] || PRINT_ACI[7];
-    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', color: col });
-    else text(p.s, X(p.x), Y(p.y), size, { color: col });
+    const size = Math.max(1.6, p.h * k), col = PRINT_ACI[p.color || layerColor[p.layer]] || BLACK;
+    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col });
+    else text(p.s, X(p.x), Y(p.y), size, { col });
   });
-  c.push('Q');
-
-  // --- cuadro de título
+  // norte en la esquina superior derecha del plano
+  const nx = ax + aw - 22, ny = ay + ah - 46;
+  rect(nx - 14, ny - 14, 28, 46, { fill: [1, 1, 1] });
+  D.push({ t: 'poly', pts: [[nx, ny + 26], [nx - 6, ny + 6], [nx, ny + 11], [nx + 6, ny + 6]], fill: BLACK });
+  text('N', nx, ny - 4, 9, { bold: true, align: 'center' });
+  D.push({ t: 'unclip' });
+  // cuadro de título
   const ty = M + STRIP;
-  text('BlastHole Leyes', M + 10, ty - 15, 8, { color: grey });
+  text('BlastHole Leyes', M + 10, ty - 15, 8, { col: grey });
   text(o.title || 'Plano de taladros y leyes', M + 10, ty - 33, 15, { bold: true });
-  text(o.subtitle || '', M + 10, ty - 48, 8, { color: [0.25, 0.27, 0.3] });
-  text(`Fecha: ${o.fecha || ''}   ·   Coordenadas UTM (m)   ·   Cuadrícula cada ${step} m`, M + 10, ty - 62, 7, { color: grey });
-  // leyenda
+  text(o.subtitle || '', M + 10, ty - 48, 8, { col: [0.25, 0.27, 0.3] });
+  text(`Fecha: ${o.fecha || ''}   ·   Coordenadas UTM (m)   ·   Cuadrícula cada ${step} m`, M + 10, ty - 62, 7, { col: grey });
   const lx = W * 0.47;
-  text('LEYENDA', lx, ty - 15, 7, { bold: true, color: grey });
+  text('LEYENDA', lx, ty - 15, 7, { bold: true, col: grey });
   const item = (i, colr, label, kind) => {
-    const col2 = Math.floor(i / 3), row = i % 3, x = lx + col2 * 118, y = ty - 30 - row * 15;
-    if (kind === 'x') { c.push(rgb(colr, true), '0.8 w', `${n(x)} ${n(y - 3)} m ${n(x + 7)} ${n(y + 4)} l S ${n(x)} ${n(y + 4)} m ${n(x + 7)} ${n(y - 3)} l S`); }
-    else c.push(rgb(colr, false), `${n(x)} ${n(y - 3)} 7 7 re f`);
+    const x = lx + Math.floor(i / 3) * 118, y = ty - 30 - (i % 3) * 15;
+    if (kind === 'x') { line(x, y - 3, x + 7, y + 4, colr, 0.8); line(x, y + 4, x + 7, y - 3, colr, 0.8); }
+    else rect(x, y - 3, 7, 7, { fill: colr });
     text(label, x + 12, y - 2, 7.5);
   };
   item(0, PRINT_ACI[6], 'Fe > 50'); item(1, PRINT_ACI[30], 'Fe 40 – 50'); item(2, PRINT_ACI[3], 'Fe 30 – 40');
   item(3, PRINT_ACI[7], 'Fe < 30'); item(4, PRINT_ACI[3], 'S_100'); item(5, PRINT_ACI[1], 'S/FeS');
   item(6, PRINT_ACI[7], 'Taladro', 'x');
-  // escala gráfica y norte
   const rx = W - M - 12;
   text(`Escala 1:${scale}`, rx, ty - 18, 11, { bold: true, align: 'right' });
-  text(`Hoja ${o.paper || 'A3'}${note ? ' · ajustada' : ''}`, rx, ty - 30, 7, { align: 'right', color: grey });
+  text(`Hoja ${o.paper || 'A3'}${note ? ' · ajustada' : ''}`, rx, ty - 30, 7, { align: 'right', col: grey });
   let bar = niceStep(150 / k, 1); if (bar * k > 170) bar /= 2;
-  const bx1 = rx, bx0 = rx - bar * k, by = ty - 50;
-  c.push('0 0 0 RG 0.6 w', `${n(bx0)} ${n(by)} ${n(bar * k)} 4 re S`, '0 0 0 rg', `${n(bx0)} ${n(by)} ${n(bar * k / 2)} 4 re f`);
-  text('0', bx0, by - 9, 6.5, { align: 'center' }); text(`${bar / 2}`, bx0 + bar * k / 2, by - 9, 6.5, { align: 'center' }); text(`${bar} m`, bx1, by - 9, 6.5, { align: 'center' });
-  const nx = ax + aw - 22, ny = ay + ah - 46; // norte en la esquina superior derecha del plano
-  c.push('1 1 1 rg', `${n(nx - 14)} ${n(ny - 14)} 28 46 re f`);
-  c.push('0 0 0 rg', `${n(nx)} ${n(ny + 26)} m ${n(nx - 6)} ${n(ny + 6)} l ${n(nx)} ${n(ny + 11)} l ${n(nx + 6)} ${n(ny + 6)} l h f`);
-  text('N', nx, ny - 4, 9, { bold: true, align: 'center' });
-  if (note) text(note, M + 10, M - 12 > 0 ? M - 12 : 6, 7, { color: [0.75, 0.2, 0.1] });
+  const bx0 = rx - bar * k, by = ty - 50;
+  rect(bx0, by, bar * k, 4, { stroke: BLACK, lw: 0.6 }); rect(bx0, by, bar * k / 2, 4, { fill: BLACK });
+  text('0', bx0, by - 9, 6.5, { align: 'center' }); text(`${bar / 2}`, bx0 + bar * k / 2, by - 9, 6.5, { align: 'center' }); text(`${bar} m`, rx, by - 9, 6.5, { align: 'center' });
+  if (note) text(note, M + 10, 10, 7, { col: [0.75, 0.2, 0.1] });
+  return { D, W, H, scale, note, paper: o.paper || 'A3', title: o.title || 'Plano' };
+}
 
-  // --- armar el PDF (contenido comprimido si el navegador puede)
+const nP = v => (Math.round(v * 100) / 100).toString();
+const rgbP = (a, stroke) => `${a.map(v => v.toFixed(3)).join(' ')} ${stroke ? 'RG' : 'rg'}`;
+async function buildPlotPDF(P, o) {
+  const L = layoutPlot(P, o), n = nP, c = ['1 J 1 j'];
+  let curS = '', curW = '';
+  L.D.forEach(d => {
+    if (d.t === 'clip') { c.push('q', `${n(d.x)} ${n(d.y)} ${n(d.w)} ${n(d.h)} re W n`); curS = curW = ''; return; }
+    if (d.t === 'unclip') { c.push('Q'); curS = curW = ''; return; }
+    if (d.t === 'line') {
+      const s = rgbP(d.col, true), w = `${d.w} w`;
+      if (s !== curS) { c.push(s); curS = s; } if (w !== curW) { c.push(w); curW = w; }
+      c.push(`${n(d.x1)} ${n(d.y1)} m ${n(d.x2)} ${n(d.y2)} l S`); return;
+    }
+    if (d.t === 'rect') {
+      if (d.fill) c.push(rgbP(d.fill, false), `${n(d.x)} ${n(d.y)} ${n(d.w)} ${n(d.h)} re f`);
+      if (d.stroke) { c.push(rgbP(d.stroke, true), `${d.lw || 0.5} w`, `${n(d.x)} ${n(d.y)} ${n(d.w)} ${n(d.h)} re S`); curS = curW = ''; }
+      return;
+    }
+    if (d.t === 'poly') { c.push(rgbP(d.fill, false), d.pts.map((p, i) => `${n(p[0])} ${n(p[1])} ${i ? 'l' : 'm'}`).join(' ') + ' h f'); return; }
+    if (d.t === 'text') {
+      let tx = d.x; const w = pdfTextWidth(d.s, d.size, d.bold);
+      if (d.align === 'center') tx -= w / 2; else if (d.align === 'right') tx -= w;
+      c.push(`BT /${d.bold ? 'F2' : 'F1'} ${n(d.size)} Tf ${rgbP(d.col, false)} ${n(tx)} ${n(d.y)} Td ${pdfStr(d.s)} Tj ET`);
+    }
+  });
   const content = c.join('\n');
   let streamBytes = latin1Bytes(content), filter = '';
   try {
@@ -1774,27 +1808,58 @@ async function buildPlotPDF(P, o) {
   const objs = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(W)} ${n(H)}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(L.W)} ${n(L.H)}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>`,
     null,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
-    `<< /Title ${pdfStr(o.title || 'Plano')} /Producer (BlastHole Leyes) >>`,
+    `<< /Title ${pdfStr(L.title)} /Producer (BlastHole Leyes) >>`,
   ];
   const parts = [latin1Bytes('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')];
   let off = parts[0].length; const xref = [];
   objs.forEach((ob, i) => {
     xref.push(off);
-    let chunk;
-    if (i === 3) chunk = [latin1Bytes(`4 0 obj\n<< /Length ${streamBytes.length}${filter} >>\nstream\n`), streamBytes, latin1Bytes('\nendstream\nendobj\n')];
-    else chunk = [latin1Bytes(`${i + 1} 0 obj\n${ob}\nendobj\n`)];
+    const chunk = i === 3 ? [latin1Bytes(`4 0 obj\n<< /Length ${streamBytes.length}${filter} >>\nstream\n`), streamBytes, latin1Bytes('\nendstream\nendobj\n')] : [latin1Bytes(`${i + 1} 0 obj\n${ob}\nendobj\n`)];
     chunk.forEach(u => { parts.push(u); off += u.length; });
   });
   let tail = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + xref.map(x => String(x).padStart(10, '0') + ' 00000 n \n').join('');
   tail += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Info 7 0 R >>\nstartxref\n${off}\n%%EOF\n`;
   parts.push(latin1Bytes(tail));
-  return { blob: new Blob(parts, { type: 'application/pdf' }), scale, note, paper: o.paper || 'A3' };
+  return { blob: new Blob(parts, { type: 'application/pdf' }), scale: L.scale, note: L.note, paper: L.paper };
 }
 function latin1Bytes(s) { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
+
+// El mismo plano como SVG, para mandarlo directo a la impresora
+function buildPlotSVG(P, o) {
+  const L = layoutPlot(P, o), n = nP, H = L.H;
+  const col = a => `rgb(${a.map(v => Math.round(v * 255)).join(',')})`;
+  const esc2 = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n(L.W)} ${n(H)}" width="${n(L.W)}pt" height="${n(H)}pt" font-family="Helvetica, Arial, sans-serif"><rect width="100%" height="100%" fill="#fff"/>`];
+  let clipN = 0, open = 0;
+  L.D.forEach(d => {
+    if (d.t === 'clip') { clipN++; out.push(`<clipPath id="pc${clipN}"><rect x="${n(d.x)}" y="${n(H - d.y - d.h)}" width="${n(d.w)}" height="${n(d.h)}"/></clipPath><g clip-path="url(#pc${clipN})">`); open++; return; }
+    if (d.t === 'unclip') { if (open) { out.push('</g>'); open--; } return; }
+    if (d.t === 'line') { out.push(`<line x1="${n(d.x1)}" y1="${n(H - d.y1)}" x2="${n(d.x2)}" y2="${n(H - d.y2)}" stroke="${col(d.col)}" stroke-width="${d.w}" stroke-linecap="round"/>`); return; }
+    if (d.t === 'rect') { out.push(`<rect x="${n(d.x)}" y="${n(H - d.y - d.h)}" width="${n(d.w)}" height="${n(d.h)}" fill="${d.fill ? col(d.fill) : 'none'}"${d.stroke ? ` stroke="${col(d.stroke)}" stroke-width="${d.lw || 0.5}"` : ''}/>`); return; }
+    if (d.t === 'poly') { out.push(`<polygon points="${d.pts.map(p => `${n(p[0])},${n(H - p[1])}`).join(' ')}" fill="${col(d.fill)}"/>`); return; }
+    if (d.t === 'text') out.push(`<text x="${n(d.x)}" y="${n(H - d.y)}" font-size="${n(d.size)}"${d.bold ? ' font-weight="700"' : ''}${d.align !== 'left' ? ` text-anchor="${d.align === 'center' ? 'middle' : 'end'}"` : ''} fill="${col(d.col)}">${esc2(d.s)}</text>`);
+  });
+  while (open--) out.push('</g>');
+  out.push('</svg>');
+  return { svg: out.join(''), W: L.W, H: L.H, scale: L.scale, note: L.note, paper: L.paper };
+}
+// Imprime el SVG en una hoja del tamaño elegido (sin márgenes del navegador)
+function printPlotSVG(r) {
+  let area = document.getElementById('printArea');
+  if (!area) { area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
+  let st = document.getElementById('printPage');
+  if (!st) { st = document.createElement('style'); st.id = 'printPage'; document.head.appendChild(st); }
+  st.textContent = `@page { size: ${(r.W / 72 * 25.4).toFixed(1)}mm ${(r.H / 72 * 25.4).toFixed(1)}mm; margin: 0; }`;
+  area.innerHTML = r.svg;
+  document.body.classList.add('printing');
+  const fin = () => { document.body.classList.remove('printing'); area.innerHTML = ''; window.removeEventListener('afterprint', fin); };
+  window.addEventListener('afterprint', fin);
+  setTimeout(() => { window.print(); setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60);
+}
 
 </script>
 <script>
@@ -2008,7 +2073,7 @@ function renderBase() {
 
 function updateButtons() {
   const blocked = state.pc && state.pc.level === 'bad' && !state.confirmed;
-  $('btnZip').disabled = !state.holes.length || blocked; $('btnCsv').disabled = !state.holes.length || blocked; $('btnPdf').disabled = !state.holes.length || blocked;
+  $('btnZip').disabled = !state.holes.length || blocked; $('btnCsv').disabled = !state.holes.length || blocked; $('btnPdf').disabled = !state.holes.length || blocked; $('btnPrint').disabled = !state.holes.length || blocked;
   const msg = $('dlMsg');
   if (blocked) { msg.className = 'msg err'; msg.textContent = 'Descarga bloqueada: las leyes parecen de otro proyecto. Revisa el aviso rojo de arriba.'; }
   else if (msg.textContent.startsWith('Descarga bloqueada')) { msg.className = 'msg'; msg.textContent = ''; }
@@ -2230,14 +2295,27 @@ async function save(filename, data, msgEl) {
   msg.className = 'msg ok'; msg.textContent = `Listo: ${filename}`;
 }
 const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace(/[\\/:*?"<>|]+/g, '_');
-$('btnPdf').onclick = async () => {
-  const name = baseName();
+function planoOpts() {
   const proj = ((parseProjectCode(state.bhName) || {}).text) || (state.found && state.found.p && state.found.p.label) || '';
   const conLey = state.m && state.m.matched ? state.m.matched.length : 0;
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
+  return { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha,
+    subtitle: `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
+}
+// En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
+if (window.claude && window.claude.use) { $('btnPrint').hidden = true; $('btnPdf').textContent = 'Descargar PDF para imprimir'; }
+$('btnPrint').onclick = () => {
+  const m = $('dlMsg');
   try {
-    const r = await buildPlotPDF(state.P, { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || name, subtitle: `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}`, fecha });
-    await save(name + '.pdf', r.blob);
+    const r = buildPlotSVG(state.P, planoOpts());
+    m.className = 'msg' + (r.note ? ' warn' : ' ok'); m.textContent = (r.note ? r.note + ' ' : '') + `Imprimiendo en ${r.paper} a 1:${r.scale}. En el diálogo elige la impresora y el mismo tamaño de hoja.`;
+    printPlotSVG(r);
+  } catch (e) { m.className = 'msg err'; m.textContent = 'No se pudo preparar la impresión: ' + (e && e.message || e); }
+};
+$('btnPdf').onclick = async () => {
+  try {
+    const r = await buildPlotPDF(state.P, planoOpts());
+    await save(baseName() + '.pdf', r.blob);
     if (r.note) { const m = $('dlMsg'); m.className = 'msg warn'; m.textContent = r.note + ` Quedó a 1:${r.scale}.`; }
   } catch (e) { const m = $('dlMsg'); m.className = 'msg err'; m.textContent = 'No se pudo generar el PDF: ' + (e && e.message || e); }
 };
@@ -3335,7 +3413,7 @@ function paintPanel() {
   if (R && !R.n) box.innerHTML = `<p class="fs-empty">Ningún taladro dentro de los polígonos tiene resultados de laboratorio todavía.</p>`;
   else if (!R) box.innerHTML = `<p class="fs-empty">${t2.shapes.length ? 'Los polígonos no tienen taladros con resultados de los proyectos marcados.' : 'Dibuja el contorno del avance con el <b>Lápiz</b> o toca límites con <b>Límites</b>. Puedes dibujar varios polígonos y darle un peso a cada uno.'}</p>`;
   else box.innerHTML = `<div class="big"><div><span>Taladros</span><b>${R.n}</b></div><div><span>${R.tonnage ? 'Tonelaje (t)' : R.sinProf ? 'Peso (densidad)' : 'Peso (prof × dens)'}</span><b>${Math.round(R.tonnage || R.wsum || 0).toLocaleString('es-PE')}</b></div></div>` +
-    `<div class="an">${AVG_FIELDS.filter(F => (R.fields[F.k] || {}).mean != null).map(F => `<div><span>${F.label}</span><b>${fmt(R.fields[F.k].mean, F.dec, '—')}</b></div>`).join('')}</div>` +
+    `<div class="an">${AVG_FIELDS.map(F => `<div><span>${F.label}</span><b>${fmt((R.fields[F.k] || {}).mean, F.dec, '—')}</b></div>`).join('')}</div>` +
     `<p class="cap">${R.weighted ? 'Promedio combinado con el peso de cada polígono.' : R.profUnica ? `Promedio ponderado por densidad: todos los taladros con la misma profundidad${R.H ? ` (${R.H} m)` : ''}.` : R.sinProf ? 'Promedio ponderado por densidad (los archivos de taladros no traen profundidad).' : 'Promedio ponderado por tonelaje (profundidad × densidad).'}</p>`;
   const m = $('fsMsg'), src = $('t2Msg');
   m.className = 'fs-msg' + (src.classList.contains('ok') ? ' ok' : ''); m.textContent = a ? '' : src.textContent;
@@ -3399,7 +3477,7 @@ function renderHistCards() {
   if (!t2.projs.length) { box.innerHTML = '<p class="note">Marca proyectos en la pestaña «Avance» para ver sus avances.</p>'; return; }
   if (!t2.avs.length) { box.innerHTML = '<p class="note">Los proyectos marcados aún no tienen avances guardados.</p>'; return; }
   const f = (v, d) => fmt(v, d, '—');
-  const KS = ['fe', 'feo', 's', 's100', 'sfe'];
+  const KS = AVG_FIELDS.map(F => F.k); // todas las leyes
   const lv = r => '<div class="lv">' + KS.map(k => { const F = AVG_FIELDS.find(F => F.k === k); return `<div><span>${F.label}</span><b>${f((r.fields[k] || {}).mean, F.dec)}</b></div>`; }).join('') + '</div>';
   const c = cumulative();
   box.innerHTML = t2.avs.slice().reverse().map(a => `<div class="hc${t2.viewing === a.id ? ' cur' : ''}"><div class="h1"><b>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''}</b><span>${a.result.n} tal.${a.result.tonnage ? ' · ' + Math.round(a.result.tonnage).toLocaleString('es-PE') + ' t' : ''}</span></div>` +
