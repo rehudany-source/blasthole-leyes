@@ -491,6 +491,15 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.titbox { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: grid; gap: 8px; }
+.titbox > summary { cursor: pointer; font: 600 .86rem var(--f-body); }
+.titlogo { display: flex; gap: 10px; align-items: center; }
+.titlogo .lp { width: 120px; height: 56px; border: 1px dashed var(--line); border-radius: 5px; display: grid; place-items: center; font-size: .75rem; color: var(--muted); background: #fff; overflow: hidden; }
+.titlogo .lp img { max-width: 100%; max-height: 100%; }
+.titlogo .lb { display: grid; gap: 6px; }
+.avnuevas { border: 1px solid #ffb020; background: rgba(255,176,32,.08); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; margin-bottom: 10px; font-size: .86rem; }
+.avnuevas .an { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.avnuevas b.t { font-size: .9rem; }
 .idw { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; display: grid; gap: 8px; }
 .idw > summary { list-style: none; cursor: pointer; }
 .idw > summary::-webkit-details-marker { display: none; }
@@ -531,7 +540,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v30</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v31</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -641,6 +650,14 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
           <button class="btn sec" id="btnPdf" disabled>Descargar PDF</button>
         </div>
         <p class="msg" id="dlMsg"></p>
+        <details class="titbox" id="titBox">
+          <summary>🏷 Cuadro de título de la hoja (empresa y logo)</summary>
+          <label class="f">Empresa<input type="text" id="titEmpresa" placeholder="ej. Nombre de tu empresa" autocomplete="off"></label>
+          <label class="f">Área / unidad<input type="text" id="titArea" placeholder="ej. Geología · Control de leyes" autocomplete="off"></label>
+          <label class="f">Elaborado por<input type="text" id="titAutor" placeholder="ej. tu nombre" autocomplete="off"></label>
+          <div class="titlogo"><div class="lp" id="titLogoPrev">Sin logo</div><div class="lb"><label class="btn sec small">Cargar logo<input type="file" id="titLogo" accept="image/png,image/jpeg,image/webp" hidden></label><button class="btn sec small" type="button" id="titLogoQuitar">Quitar</button></div></div>
+          <p class="note">Sale en el cuadro de título de «Imprimir plano» y del PDF. Se guarda en este equipo.</p>
+        </details>
         <p class="note">«Imprimir plano» y el PDF llevan el mismo dibujo del DXF a escala, con cuadrícula UTM, leyenda y cuadro de título, listo para imprimir. El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
       </div>
     </div>
@@ -886,6 +903,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
         </div>
       </div>
       <p class="msg" id="histMsg"></p>
+      <div class="avnuevas" id="avNuevas" hidden></div>
       <div class="tablewrap" id="histWrap"><table id="histTbl"></table></div>
       <div class="hcards" id="histCards"></div>
     </div>
@@ -1572,6 +1590,42 @@ const AVG_FIELDS = [
   { k: 'cfe', label: 'CFe', dec: 'c3' }, { k: 'cs', label: 'CS', dec: 2 }, { k: 'ccins', label: 'CC Insol', dec: 'c3' },
   { k: 'ph', label: 'pH', dec: 1 }, { k: 'ph4', label: 'pH4', dec: 2 },
 ];
+// ===== Control de calidad de leyes =====
+// 'bad' = físicamente imposible (seguro un error de digitación): ese valor no se usa en el promedio.
+// 'warn' = poco común (fuera del 99.9 % de tu base): se usa, pero conviene revisarlo.
+const QC_RULES = [
+  { k: 'fe', bad: v => v < 0 || v > 72.4, warn: v => v > 68, why: 'Fe máximo posible 72.4 % (magnetita pura)' },
+  { k: 'feo', bad: v => v < 0 || v > 31.1, warn: v => v > 29, why: 'FeO máximo posible 31 % (magnetita pura)' },
+  { k: 's', bad: v => v < 0 || v > 53.5, warn: v => v > 12, why: 'S máximo posible 53.5 % (pirita pura)' },
+  { k: 's100', bad: v => v < 0 || v > 53.5, warn: v => v > 11.5 },
+  { k: 'sfe', bad: v => v < 0 || v > 53.5, warn: v => v > 8 },
+  { k: 'cu', bad: v => v < 0 || v > 35, warn: v => v > 2 },
+  { k: 'zn', bad: v => v < 0 || v > 67, warn: v => v > 3 },
+  { k: 'insol', bad: v => v < 0 || v > 100, warn: v => v > 65 },
+  { k: 'cfe', bad: v => v < 0 || v > 72.4 },
+  { k: 'ccins', bad: v => v < 0 || v > 100 },
+  { k: 'rec', bad: v => v < 0 || v > 100 },
+  { k: 'ph', bad: v => v < 0 || v > 14 },
+  { k: 'ph4', bad: v => v < 0 || v > 14 },
+  { k: 'density', bad: v => v < 1.5 || v > 5.5, warn: v => v < 2.7 || v > 4.8, why: 'densidad fuera de 1.5 – 5.5' },
+];
+function qcLey(l) {
+  if (!l || l.hasData === false || l.est) return [];
+  const out = [];
+  QC_RULES.forEach(R => {
+    const v = l[R.k]; if (v == null || isNaN(v)) return;
+    if (R.bad(v)) out.push({ k: R.k, v, lvl: 'bad', why: R.why || 'valor imposible' });
+    else if (R.warn && R.warn(v)) out.push({ k: R.k, v, lvl: 'warn', why: 'valor poco común' });
+  });
+  // el Fe del FeO no puede ser mayor que el Fe total (FeO tiene 77.7 % de Fe)
+  if (l.fe != null && l.feo != null && l.feo * 0.777 > l.fe + 0.5 && !out.some(o => o.k === 'feo' && o.lvl === 'bad')) out.push({ k: 'feo', v: l.feo, lvl: 'bad', why: `FeO ${l.feo} tiene más hierro que el Fe total ${l.fe}` });
+  return out;
+}
+const QC_LABEL = { fe: 'Fe', feo: 'FeO', s: 'S', s100: 'S_100', sfe: 'S/FeS', cu: 'Cu', zn: 'Zn', insol: 'Insol', cfe: 'CFe', ccins: 'CC Insol', rec: '%Rec', ph: 'pH', ph4: 'pH4', density: 'Densidad' };
+const qcTxt = q => `${QC_LABEL[q.k] || q.k} ${q.v}`;
+// Copia de la ley sin los valores imposibles (para el promedio)
+function qcLimpia(l, qs) { const bad = qs.filter(q => q.lvl === 'bad'); if (!bad.length) return l; const c = Object.assign({}, l); bad.forEach(q => { c[q.k] = null; }); return c; }
+
 // Promedio simple por ley, ignorando celdas vacías
 function averageLeyes(leyes) {
   const res = {};
@@ -1901,10 +1955,18 @@ function layoutPlot(P, o) {
   D.push({ t: 'unclip' });
   // cuadro de título
   const ty = M + STRIP;
-  text('BlastHole Leyes', M + 10, ty - 15, 8, { col: grey });
-  text(o.title || 'Plano de taladros y leyes', M + 10, ty - 33, 15, { bold: true });
-  text(o.subtitle || '', M + 10, ty - 48, 8, { col: [0.25, 0.27, 0.3] });
-  text(`Fecha: ${o.fecha || ''}   ·   Coordenadas UTM (m)   ·   Cuadrícula cada ${step} m`, M + 10, ty - 62, 7, { col: grey });
+  // logo de la empresa (si se cargó) y textos del cuadro de título
+  let tx0 = M + 10;
+  if (o.logo && o.logo.src && o.logo.w && o.logo.h) {
+    const lh = STRIP - 18, lw = Math.min(130, lh * o.logo.w / o.logo.h), lh2 = lw * o.logo.h / o.logo.w;
+    D.push({ t: 'img', x: M + 9, y: M + (STRIP - lh2) / 2, w: lw, h: lh2, logo: o.logo });
+    line(M + 9 + lw + 8, M + 8, M + 9 + lw + 8, ty - 8, [0.75, 0.77, 0.8], 0.5);
+    tx0 = M + 9 + lw + 16;
+  }
+  text([o.empresa || 'BlastHole Leyes', o.area].filter(Boolean).join('  ·  '), tx0, ty - 15, 8, { col: o.empresa ? [0.15, 0.17, 0.2] : grey, bold: !!o.empresa });
+  text(o.title || 'Plano de taladros y leyes', tx0, ty - 33, 15, { bold: true });
+  text(o.subtitle || '', tx0, ty - 48, 8, { col: [0.25, 0.27, 0.3] });
+  text(`Fecha: ${o.fecha || ''}${o.autor ? `   ·   Elaborado por: ${o.autor}` : ''}   ·   Coordenadas UTM (m)   ·   Cuadrícula cada ${step} m`, tx0, ty - 62, 7, { col: grey });
   const lx = W * 0.47;
   text('LEYENDA', lx, ty - 15, 7, { bold: true, col: grey });
   const item = (i, colr, label, kind) => {
@@ -1931,7 +1993,7 @@ const nP = v => (Math.round(v * 100) / 100).toString();
 const rgbP = (a, stroke) => `${a.map(v => v.toFixed(3)).join(' ')} ${stroke ? 'RG' : 'rg'}`;
 async function buildPlotPDF(P, o) {
   const L = layoutPlot(P, o), n = nP, c = ['1 J 1 j'];
-  let curS = '', curW = '';
+  let curS = '', curW = '', img = null;
   L.D.forEach(d => {
     if (d.t === 'clip') { c.push('q', `${n(d.x)} ${n(d.y)} ${n(d.w)} ${n(d.h)} re W n`); curS = curW = ''; return; }
     if (d.t === 'unclip') { c.push('Q'); curS = curW = ''; return; }
@@ -1946,6 +2008,7 @@ async function buildPlotPDF(P, o) {
       return;
     }
     if (d.t === 'poly') { c.push(rgbP(d.fill, false), d.pts.map((p, i) => `${n(p[0])} ${n(p[1])} ${i ? 'l' : 'm'}`).join(' ') + ' h f'); return; }
+    if (d.t === 'img') { img = d.logo; c.push(`q ${n(d.w)} 0 0 ${n(d.h)} ${n(d.x)} ${n(d.y)} cm /Im1 Do Q`); return; }
     if (d.t === 'text') {
       let tx = d.x; const w = pdfTextWidth(d.s, d.size, d.bold);
       if (d.align === 'center') tx -= w / 2; else if (d.align === 'right') tx -= w;
@@ -1963,17 +2026,21 @@ async function buildPlotPDF(P, o) {
   const objs = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(L.W)} ${n(L.H)}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(L.W)} ${n(L.H)}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >>${img ? ' /XObject << /Im1 8 0 R >>' : ''} >> >>`,
     null,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
     `<< /Title ${pdfStr(L.title)} /Producer (BlastHole Leyes) >>`,
   ];
+  let imgBytes = null;
+  if (img) { const b64 = atob(String(img.src).split(',')[1] || ''); imgBytes = latin1Bytes(b64); objs.push(null); }
   const parts = [latin1Bytes('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')];
   let off = parts[0].length; const xref = [];
   objs.forEach((ob, i) => {
     xref.push(off);
-    const chunk = i === 3 ? [latin1Bytes(`4 0 obj\n<< /Length ${streamBytes.length}${filter} >>\nstream\n`), streamBytes, latin1Bytes('\nendstream\nendobj\n')] : [latin1Bytes(`${i + 1} 0 obj\n${ob}\nendobj\n`)];
+    const chunk = i === 3 ? [latin1Bytes(`4 0 obj\n<< /Length ${streamBytes.length}${filter} >>\nstream\n`), streamBytes, latin1Bytes('\nendstream\nendobj\n')]
+      : i === 7 && imgBytes ? [latin1Bytes(`8 0 obj\n<< /Type /XObject /Subtype /Image /Width ${img.w} /Height ${img.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\n`), imgBytes, latin1Bytes('\nendstream\nendobj\n')]
+      : [latin1Bytes(`${i + 1} 0 obj\n${ob}\nendobj\n`)];
     chunk.forEach(u => { parts.push(u); off += u.length; });
   });
   let tail = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + xref.map(x => String(x).padStart(10, '0') + ' 00000 n \n').join('');
@@ -1995,6 +2062,7 @@ function buildPlotSVG(P, o) {
     if (d.t === 'unclip') { if (open) { out.push('</g>'); open--; } return; }
     if (d.t === 'line') { out.push(`<line x1="${n(d.x1)}" y1="${n(H - d.y1)}" x2="${n(d.x2)}" y2="${n(H - d.y2)}" stroke="${col(d.col)}" stroke-width="${d.w}" stroke-linecap="round"/>`); return; }
     if (d.t === 'rect') { out.push(`<rect x="${n(d.x)}" y="${n(H - d.y - d.h)}" width="${n(d.w)}" height="${n(d.h)}" fill="${d.fill ? col(d.fill) : 'none'}"${d.stroke ? ` stroke="${col(d.stroke)}" stroke-width="${d.lw || 0.5}"` : ''}/>`); return; }
+    if (d.t === 'img') { out.push(`<image x="${n(d.x)}" y="${n(H - d.y - d.h)}" width="${n(d.w)}" height="${n(d.h)}" href="${d.logo.src}" preserveAspectRatio="xMidYMid meet"/>`); return; }
     if (d.t === 'poly') { out.push(`<polygon points="${d.pts.map(p => `${n(p[0])},${n(H - p[1])}`).join(' ')}" fill="${col(d.fill)}"/>`); return; }
     if (d.t === 'text') out.push(`<text x="${n(d.x)}" y="${n(H - d.y)}" font-size="${n(d.size)}"${d.bold ? ' font-weight="700"' : ''}${d.align !== 'left' ? ` text-anchor="${d.align === 'center' ? 'middle' : 'end'}"` : ''} fill="${col(d.col)}">${esc2(d.s)}</text>`);
   });
@@ -2298,7 +2366,15 @@ function renderReport(rb, badLEY) {
   if (badLEY.length) it('warn', 'Omitido', `Filas del CSV de leyes sin N° de grupo: ${badLEY.join(', ')}`);
   if (opts().avoid && state.P.moved) it(state.P.conflicts ? 'warn' : 'ok', 'Reubicado', `${state.P.moved} bloques de leyes se movieron para no chocar con otros; cada uno lleva una línea guía a su taladro (capa LINEA_GUIA).` + (state.P.conflicts ? ` Quedan ${state.P.conflicts} con algo de superposición por falta de espacio: revísalos en AutoCAD.` : ' Ningún texto queda superpuesto.'));
   if (state.bh && state.ley && !m.orphans.length) it('ok', 'Cruce OK', `Todos los grupos de leyes encontraron su taladro. ${m.noLey.length} taladros no tienen muestra y se dibujan solo con su ID.`);
+  qcReporte(it);
+  if (state.bl && state.bl.dups) it('warn', 'Repetido', `${state.bl.dups} grupo(s) aparecen más de una vez en la base para este proyecto: se usó la fila más reciente con resultados.`);
   $('report').innerHTML = out.join('');
+}
+function qcReporte(it) {
+  const bad = [], warn = [];
+  (state.holes || []).forEach(h => { const l = state.m && state.m.matched.get(h.key); qcLey(l).forEach(q => (q.lvl === 'bad' ? bad : warn).push(`<code>${esc(h.id)}</code> ${esc(qcTxt(q))}${q.why && q.lvl === 'bad' ? ` <small>(${esc(q.why)})</small>` : ''}`)); });
+  if (bad.length) it('bad', 'Error', `Valores imposibles (¿error de digitación?), no se usan en los promedios: ${bad.join(' · ')}. Corrígelos en la base y vuelve a cargarla.`);
+  if (warn.length) it('warn', 'Revisar', `Valores poco comunes (fuera del 99.9 % de tu base), se usan pero revísalos: ${warn.join(' · ')}.`);
 }
 
 function feChip(v) {
@@ -2363,6 +2439,7 @@ function draw() {
       else { ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.s, x, y); }
     }
   }
+  if (state.m && view.s > 2) (state.holes || []).forEach(h => { const qs = qcLey(state.m.matched.get(h.key)); if (qs.length) { const x = sx(h.x), y = sy(h.y); if (x > -20 && x < W + 20 && y > -20 && y < H + 20) qcMarca(ctx, x, y, Math.max(3, view.s * 0.2), qs); } });
   if (sel) {
     ctx.strokeStyle = CAD.poly; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx(sel.x), sy(sel.y), Math.max(8, view.s * 0.6), 0, Math.PI * 2); ctx.stroke();
   }
@@ -2487,7 +2564,8 @@ function planoOpts() {
   const mt = state.m && state.m.matched; const conLey = mt ? (mt.size != null ? mt.size : mt.length) : 0;
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
   const lv = state.libView ? lib.projects.filter(p => state.libView.ids.includes(p.id)).map(p => p.name) : null;
-  return { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, polys: state.libView ? vlPrintPolys() : null, marks: state.libView ? vlPrintMarks() : null,
+  const T = window.TITULO || {};
+  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, polys: state.libView ? vlPrintPolys() : null, marks: state.libView ? vlPrintMarks() : null,
     subtitle: lv ? `Proyecto${lv.length > 1 ? 's' : ''} ${lv.join(', ')} · ${state.holes.length} taladros · ${conLey} con leyes` : `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
 }
 // En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
@@ -3043,6 +3121,8 @@ function renderPlan2(ctx, v) {
     if (TODAS) return;
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
     if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? SUP_COLOR : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
+    const qs = has ? qcLey(l) : null;
+    if (qs && qs.length) qcMarca(ctx, x, y, r, qs);
     if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
   });
   if (t2.sup) drawSup(ctx, v, F, br);
@@ -3213,6 +3293,9 @@ function computeT2() {
     if (t2.prevKey.has(k)) repeated.push(k);
     if (!l) noLey.push(k); else if (l.hasData === false) pending.push(k); else items.push({ hole: h, ley: l });
   });
+  // Control de calidad: los valores imposibles no entran; los raros se avisan
+  const qcBad = [], qcWarn = [];
+  items.forEach(i => { const qs = qcLey(i.ley); if (!qs.length) return; const id = i.hole.id; qs.forEach(q => (q.lvl === 'bad' ? qcBad : qcWarn).push(`${id}: ${qcTxt(q)}`)); i.ley = qcLimpia(i.ley, qs); });
   // Taladros sin ley: estimación por inverso a la distancia (si está activada)
   const est = idwEstimar(noLey.concat(pending));
   t2.estBy = est.by;
@@ -3253,12 +3336,14 @@ function computeT2() {
   }
   const pids = [...new Set(items.map(i => i.hole.pid))];
   const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
-  t2.result = { nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  t2.result = { qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
+  if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
+  if (qcWarn.length) notes.push(`Revisar (poco común): ${qcWarn.slice(0, 6).join(' · ')}${qcWarn.length > 6 ? ` y ${qcWarn.length - 6} más` : ''}.`);
   if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado).`);
   const pendR = pending.filter(k => noEst.includes(k)), noLeyR = noLey.filter(k => noEst.includes(k));
   if (pendR.length) notes.push(`${pendR.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pendR)}.`);
@@ -3267,7 +3352,7 @@ function computeT2() {
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
-  setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote ? 'warn' : '', notes.join(' '));
+  setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
   t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: !H };
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
@@ -3330,7 +3415,7 @@ function matSFe(v) {
 const matAuto = res => matSFe(res && res.fields && res.fields.sfe ? res.fields.sfe.mean : null);
 const matDe = a => matAuto(a.result); // siempre automático, no se edita
 function renderHistory() {
-  renderHistCards();
+  renderHistCards(); try { renderNuevas(); } catch (e) {}
   const tb = $('histTbl');
   if (!t2.projs.length) { tb.innerHTML = ''; return; }
   if (!t2.avs.length) { tb.innerHTML = '<tbody><tr><td class="empty">Los proyectos marcados aún no tienen avances guardados.</td></tr></tbody>'; return; }
@@ -3889,6 +3974,7 @@ function recomputeLib(refit) {
     (state.vlErrs.length ? `<ul>${state.vlErrs.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : '');
   renderStats(); renderTable();
   const out = [`<div class="issue info"><span class="pill">Vista</span><div>${holes.length} taladros de ${projs.length} proyecto${projs.length === 1 ? '' : 's'}${clip ? ' dentro del polígono elegido' : ''}. Puedes imprimir o descargar el PDF y el DXF de esta vista.</div></div>`];
+  qcReporte((cls, pill, html) => out.push(`<div class="issue ${cls}"><span class="pill">${pill}</span><div>${html}</div></div>`));
   if (opts().avoid && state.P.moved) out.push(`<div class="issue ${state.P.conflicts ? 'warn' : 'ok'}"><span class="pill">Reubicado</span><div>${state.P.moved} bloques de leyes se movieron para no chocar.</div></div>`);
   $('report').innerHTML = out.join('');
   $('outName').value = (projs.length === 1 ? projs[0].name : projs.map(p => p.name).join('_')).replace(/[^\w.-]+/g, '_').slice(0, 80) + (V.clip ? '_recorte' : '');
@@ -4118,8 +4204,8 @@ function idwCfg() {
 }
 function idwFuentes(c) {
   const pts = [];
-  if (c.src !== 'sup') t2.holes.forEach(h => { const l = t2.leyBy.get(h.ck); if (l && l.hasData !== false) pts.push({ x: h.x, y: h.y, l, sup: false }); });
-  if (c.src !== 'nivel') { if (!t2.supData) supCalc(); (t2.supData.holes || []).forEach(h => { if (h.l) pts.push({ x: h.x, y: h.y, l: h.l, sup: true }); }); }
+  if (c.src !== 'sup') t2.holes.forEach(h => { const l = t2.leyBy.get(h.ck); if (l && l.hasData !== false) pts.push({ x: h.x, y: h.y, l: qcLimpia(l, qcLey(l)), sup: false }); });
+  if (c.src !== 'nivel') { if (!t2.supData) supCalc(); (t2.supData.holes || []).forEach(h => { if (h.l) pts.push({ x: h.x, y: h.y, l: qcLimpia(h.l, qcLey(h.l)), sup: true }); }); }
   return pts;
 }
 function idwEstimar(keys) {
@@ -4145,6 +4231,91 @@ function idwEstimar(keys) {
   ids.forEach(id => $(id).addEventListener('change', upd));
   $('idwPsup').textContent = $('idwP').value;
 })();
+
+// Marca ⚠ junto al taladro: rojo = valor imposible, ámbar = poco común
+function qcMarca(ctx, x, y, r, qs) {
+  const bad = qs.some(q => q.lvl === 'bad'), s = Math.max(6, r * 1.3), cx = x + r + s * 0.6, cy = y - r - s * 0.4;
+  ctx.beginPath(); ctx.moveTo(cx, cy - s); ctx.lineTo(cx + s * 0.9, cy + s * 0.6); ctx.lineTo(cx - s * 0.9, cy + s * 0.6); ctx.closePath();
+  ctx.fillStyle = bad ? '#ff3b30' : '#ffb020'; ctx.fill();
+  ctx.fillStyle = '#000'; ctx.font = `700 ${Math.round(s * 0.95)}px Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', cx, cy + s * 0.12);
+}
+
+// ===== Avances guardados que ya tienen leyes nuevas =====
+// Taladros dentro de los polígonos de un avance que al guardarlo no tenían resultado (o eran estimados) y ahora sí.
+function leyesNuevas(a) {
+  const shapes = avShapes(a); if (!shapes.length) return { n: 0, est: 0 };
+  const own = new Set(a.keys), otros = new Set(); lib.avances.forEach(x => { if (x.id !== a.id) x.keys.forEach(k => otros.add(k)); });
+  const estK = new Set((a.result.rows || []).filter(r => r.est).map(r => r.ck));
+  let n = 0, est = 0;
+  t2.holes.forEach(h => {
+    if (!a.projectIds.includes(h.pid) || otros.has(h.ck)) return;
+    const l = t2.leyBy.get(h.ck); if (!l || l.hasData === false) return;
+    if (estK.has(h.ck)) { est++; return; }
+    if (own.has(h.ck)) return;
+    if (shapes.some(P => pointInPoly(h.x, h.y, P))) n++;
+  });
+  return { n, est };
+}
+function renderNuevas() {
+  const box = $('avNuevas'); if (!box) return;
+  const L = t2.avs.map(a => ({ a, r: leyesNuevas(a) })).filter(x => x.r.n || x.r.est);
+  if (!L.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = `<b class="t">🔔 Hay leyes nuevas para ${L.length} avance${L.length > 1 ? 's' : ''} guardado${L.length > 1 ? 's' : ''}</b>` + L.map(({ a, r }) => `<div class="an"><span>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''} · ${esc(a.projectNames.join(' + '))}: ${[r.n ? `${r.n} taladro${r.n > 1 ? 's' : ''} ya tiene${r.n > 1 ? 'n' : ''} resultado` : '', r.est ? `${r.est} que eran estimado${r.est > 1 ? 's' : ''} ya tiene${r.est > 1 ? 'n' : ''} ley real` : ''].filter(Boolean).join(' y ')}</span><button class="btn small" type="button" data-upd="${esc(a.id)}">Actualizar promedio</button></div>`).join('');
+}
+async function actualizarAvance(id) {
+  const a = lib.avances.find(x => x.id === id); if (!a) return;
+  const ids = ['avH', 'avB', 'avE'];
+  const bak = { selIds: new Set(t2.selIds), shapes: t2.shapes, draft: t2.draft, manOn: t2.manOn, manOff: t2.manOff, viewing: t2.viewing, vals: ids.map(i => $(i).value), idw: $('idwOn').checked };
+  const all = lib.avances; let res = null;
+  lib.avances = all.filter(x => x !== a); // que sus propios taladros no cuenten como «ya promediados»
+  try {
+    a.projectIds.forEach(pid => t2.selIds.add(pid));
+    t2.viewing = null; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set();
+    t2.shapes = (a.shapes && a.shapes.length ? a.shapes : avShapes(a).map(pts => ({ pts }))).map((s, i) => ({ id: 'U' + i, pts: s.pts, pid: s.pid || '', w: s.w != null ? s.w : null, lim: s.lim || null }));
+    $('avH').value = a.result.H || ''; $('avB').value = a.result.B || ''; $('avE').value = a.result.E || '';
+    $('idwOn').checked = !!a.result.idw;
+    refreshT2();
+    res = t2.result;
+  } finally {
+    lib.avances = all;
+    t2.selIds = bak.selIds; t2.shapes = bak.shapes; t2.draft = bak.draft; t2.manOn = bak.manOn; t2.manOff = bak.manOff; t2.viewing = bak.viewing;
+    ids.forEach((i, k) => { $(i).value = bak.vals[k]; }); $('idwOn').checked = bak.idw;
+  }
+  if (!res || !res.n) { setMsg('histMsg', 'err', 'No se pudo recalcular ese avance.'); refreshT2(); return; }
+  const antes = a.result;
+  a.result = res; a.keys = res.keys; a.tipoMat = matAuto(res); a.recalculado = new Date().toISOString();
+  const ok = await dbSave('avances', a);
+  await loadLibrary();
+  const f = v => v == null ? '—' : fmt(v, 'c3', '—');
+  setMsg('histMsg', ok ? 'ok' : 'err', ok ? `Avance del ${fmtDate(a.fecha)} actualizado: ${antes.n} → ${res.n} taladros · Fe ${f(antes.fields.fe.mean)} → ${f(res.fields.fe.mean)} · S/FeS ${f(antes.fields.sfe.mean)} → ${f(res.fields.sfe.mean)} · ${matAuto(res)}.` : 'No se pudo guardar el avance actualizado.');
+}
+$('avNuevas').addEventListener('click', e => { const b = e.target.closest('button[data-upd]'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; actualizarAvance(b.dataset.upd); } });
+
+// ===== Cuadro de título: empresa, área, autor y logo (se guarda en este equipo) =====
+window.TITULO = {};
+function titPintar() {
+  const T = window.TITULO;
+  $('titEmpresa').value = T.empresa || ''; $('titArea').value = T.area || ''; $('titAutor').value = T.autor || '';
+  $('titLogoPrev').innerHTML = T.logo ? `<img src="${T.logo.src}" alt="Logo">` : 'Sin logo';
+}
+async function titGuardar() { await idbSet('bhl-titulo', window.TITULO); }
+idbGet('bhl-titulo').then(v => { if (v) window.TITULO = v; titPintar(); });
+['titEmpresa', 'titArea', 'titAutor'].forEach(id => $(id).addEventListener('change', () => { const k = { titEmpresa: 'empresa', titArea: 'area', titAutor: 'autor' }[id]; window.TITULO[k] = $(id).value.trim(); titGuardar(); }));
+$('titLogo').addEventListener('change', async () => {
+  const f = $('titLogo').files[0]; $('titLogo').value = ''; if (!f) return;
+  const url = URL.createObjectURL(f);
+  try {
+    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, 600 / im.width, 300 / im.height), w = Math.max(1, Math.round(im.width * k)), h = Math.max(1, Math.round(im.height * k));
+    const cv2 = document.createElement('canvas'); cv2.width = w; cv2.height = h; const g = cv2.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h);
+    window.TITULO.logo = { src: cv2.toDataURL('image/jpeg', 0.9), w, h };
+    await titGuardar(); titPintar(); setMsg('dlMsg', 'ok', 'Logo guardado: saldrá en el cuadro de título al imprimir.');
+  } catch (e) { setMsg('dlMsg', 'err', 'No se pudo leer esa imagen. Usa un PNG o JPG.'); }
+  URL.revokeObjectURL(url);
+});
+$('titLogoQuitar').addEventListener('click', async () => { delete window.TITULO.logo; await titGuardar(); titPintar(); });
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
