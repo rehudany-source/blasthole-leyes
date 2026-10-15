@@ -540,7 +540,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v31</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v32</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -773,7 +773,8 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
             <label class="f">Espaciamiento (m)<input type="number" id="avE" step="0.1" min="0" placeholder="opcional"></label>
             <label class="f">Profundidad (m)<input type="number" id="avH" step="0.1" min="0" placeholder="opcional"></label>
           </div>
-          <p class="note">Todos los taladros se calculan con la misma profundidad. El promedio no depende de ella; con burden, espaciamiento y profundidad se muestra además el tonelaje.</p>
+          <label class="f">Altura de banco para el tonelaje (m)<input type="number" id="avBanco" step="0.5" min="1" value="12"></label>
+          <p class="note">Todos los taladros se calculan con la misma profundidad. El promedio no depende de ella. <b>Tonelaje</b> = área del polígono × altura de banco × densidad promedio; si llenas burden, espaciamiento y profundidad, se usa B × E × prof × densidad de cada taladro.</p>
           <div class="grid3">
             <label class="f">Tipo<input type="text" id="avTipo" placeholder="ej. Resp" autocomplete="off"></label>
             <label class="f">Tipo material<input type="text" id="avMat" placeholder="automático por S/FeS" autocomplete="off" readonly tabindex="-1" title="Se llena solo según S/FeS (M1 ≤0.30 · M2 ≤0.60 · M3 ≤0.90 · M4 ≤1.50 · M5 &gt;1.50). Escribe aquí solo si quieres otro."></label>
@@ -3334,9 +3335,19 @@ function computeT2() {
     const tot = live.reduce((s, g) => s + (g.wEff || 0), 0);
     groups.forEach(g => { g.pct = tot && g.n ? 100 * (g.wEff || 0) / tot : 0; });
   }
+  // Tonelaje por área: polígonos × altura de banco × densidad promedio (si no hay burden/espaciamiento)
+  const banco = num('avBanco') || 12;
+  const densProm = w.rows.length ? w.rows.reduce((s, r) => s + r.density, 0) / w.rows.length : null;
+  const area = t2.shapes.reduce((s, sh) => s + polyArea(sh.pts), 0);
+  const tonArea = area && densProm ? area * banco * densProm : null;
+  const tonMetodo = w.tonnage ? 'malla' : tonArea ? 'area' : null;
+  if (!w.tonnage && tonArea) {
+    w.tonnage = tonArea;
+    if (groups) groups.forEach(g => { const sh = t2.shapes[g.idx]; const it = (gs.find(x => x.i === g.idx) || { keys: [] }).keys.map(k => w.rows.find(r => r.hole.ck === k)).filter(Boolean); const dg = it.length ? it.reduce((s, r) => s + r.density, 0) / it.length : densProm; g.tonnage = sh ? polyArea(sh.pts) * banco * dg : null; });
+  }
   const pids = [...new Set(items.map(i => i.hole.pid))];
   const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
-  t2.result = { qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  t2.result = { tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
@@ -3364,7 +3375,7 @@ function sortIds(ids) { return ids.slice().sort(sortNum); }
 function renderTiles(r, title) {
   const f = (v, d) => fmt(v, d, '—');
   $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
-    `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? 't · dens × B × E × prof' : 'densidad · misma prof. para todos'}</span></div>` +
+    `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? (r.tonMetodo === 'area' ? `t · ${Math.round(r.area).toLocaleString('es-PE')} m² × ${r.banco} m × ${r.densProm.toFixed(2)}` : 't · dens × B × E × prof') : 'densidad · misma prof. para todos'}</span></div>` +
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
 
@@ -3398,11 +3409,11 @@ $('btnCopyAv').addEventListener('click', () => {
 // Combina los resultados guardados de varios avances (respeta los pesos por polígono de cada uno)
 function combineAvances(avs) {
   if (!avs.length) return null;
-  const allT = avs.every(a => a.result.tonnage);
-  const mass = a => (allT ? a.result.tonnage : a.result.wsum || a.result.tonnage || a.result.n || 0);
+  const allT = avs.every(a => tonAv(a));
+  const mass = a => (allT ? tonAv(a) : a.result.wsum || a.result.n || 0);
   const fields = {};
   AVG_FIELDS.forEach(F => { let sw = 0, sv = 0, n = 0; avs.forEach(a => { const x = a.result.fields[F.k] || {}; if (x.mean != null && mass(a) > 0) { sw += mass(a); sv += mass(a) * x.mean; n += x.n || 0; } }); fields[F.k] = { mean: sw ? sv / sw : null, n }; });
-  const ton = avs.reduce((s, a) => s + (a.result.tonnage || 0), 0);
+  const ton = avs.reduce((s, a) => s + (tonAv(a) || 0), 0);
   return { n: avs.reduce((s, a) => s + a.result.n, 0), tonnage: ton || null, wsum: avs.reduce((s, a) => s + (a.result.wsum || 0), 0), fields };
 }
 function cumulative() { return combineAvances(t2.avs); }
@@ -3420,11 +3431,11 @@ function renderHistory() {
   if (!t2.projs.length) { tb.innerHTML = ''; return; }
   if (!t2.avs.length) { tb.innerHTML = '<tbody><tr><td class="empty">Los proyectos marcados aún no tienen avances guardados.</td></tr></tbody>'; return; }
   const f = (v, d) => fmt(v, d, '—');
-  const row = a => `<td>${a.n}${a.nEst ? ` <small class="est">(${a.nEst} est.)</small>` : ''}</td><td>${a.tonnage ? Math.round(a.tonnage).toLocaleString('es-PE') : '—'}</td>` + AVG_FIELDS.map(F => `<td>${f((a.fields[F.k] || {}).mean, F.dec)}</td>`).join('');
+  const row = (a, av) => { const tn = av ? tonAv(av) : a.tonnage; return `<td>${a.n}${a.nEst ? ` <small class="est">(${a.nEst} est.)</small>` : ''}</td><td>${tn ? Math.round(tn).toLocaleString('es-PE') : '—'}</td>` + AVG_FIELDS.map(F => `<td>${f((a.fields[F.k] || {}).mean, F.dec)}</td>`).join(''); };
   const c = cumulative();
   const inp = (a, k, ph, w) => `<input class="hin" data-id="${a.id}" data-k="${k}" value="${esc(a[k] || '')}" placeholder="${ph}" style="width:${w}" aria-label="${ph}">`;
   tb.innerHTML = '<thead><tr><th>Fecha</th><th>Proyectos</th><th>Avance</th><th>Taladros</th><th>Tonelaje (t)</th>' + AVG_FIELDS.map(F => `<th>${F.label}</th>`).join('') + '<th>Tipo</th><th>Material</th><th>Obs.</th><th></th></tr></thead><tbody>' +
-    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td><span class="matb" title="Automático por S/FeS">${esc(matDe(a)) || '—'}</span></td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
+    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result, a)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td><span class="matb" title="Automático por S/FeS">${esc(matDe(a)) || '—'}</span></td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
     (c ? `<tr class="tot"><td><b>Acumulado</b></td><td></td><td>${t2.avs.length} avances</td>${row(c)}<td></td><td><b>${matAuto(c)}</b></td><td colspan="2"></td></tr>` : '') + '</tbody>';
 }
 $('histTbl').addEventListener('change', async e => {
@@ -3460,7 +3471,7 @@ const histHead = ['Fecha', 'Proyectos', 'Avance', 'Taladros', 'Tonelaje (t)'].co
 $('btnHistXlsx').addEventListener('click', async () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const numCell = (v, dec) => (v == null ? '' : dec === 'c3' ? { v: Number(fmt(v, 'c3', '')), t: 'n', dec: fmt(v, 'c3', '').split('.')[1]?.length || 0 } : { v: Number(v.toFixed(dec)), t: 'n', dec });
-  const sh1 = [histHead.map(h => ({ v: h, bold: true }))].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', { v: r.n, t: 'n', dec: 0 }, r.tonnage ? { v: Math.round(r.tonnage), t: 'n', dec: 0 } : '']
+  const sh1 = [histHead.map(h => ({ v: h, bold: true }))].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', { v: r.n, t: 'n', dec: 0 }, tonAv(a) ? { v: Math.round(tonAv(a)), t: 'n', dec: 0 } : '']
     .concat(AVG_FIELDS.map(F => numCell((r.fields[F.k] || {}).mean, F.dec))).concat([matDe(a), r.nEst ? { v: Number(r.estPct.toFixed(1)), t: 'n', dec: 1 } : '', labelsFor(a.keys).join(', ')]); }));
   const c = cumulative();
   if (c) sh1.push([{ v: 'Acumulado', bold: true }, '', `${t2.avs.length} avances`, { v: c.n, t: 'n', dec: 0 }, c.tonnage ? { v: Math.round(c.tonnage), t: 'n', dec: 0 } : ''].concat(AVG_FIELDS.map(F => numCell(c.fields[F.k].mean, F.dec))).concat([matAuto(c)]));
@@ -3507,13 +3518,13 @@ $('btnReporte').addEventListener('click', async () => {
   avs.forEach(a => {
     const r = a.result, cs = codes(a);
     rows.push([Object.assign({ v: fmtDate(a.fecha) }, box), Object.assign({ v: uniq(cs.map(c => c.mina)) }, box), Object.assign({ v: uniq(cs.map(c => c.nivel)) }, box), Object.assign({ v: a.projectNames.join(' + ') }, box), Object.assign({ v: a.nombre || '' }, box),
-      Object.assign({ v: r.n, t: 'n', dec: 0 }, box), r.tonnage ? Object.assign({ v: Math.round(r.tonnage), t: 'n', fmt: '#,##0' }, box) : Object.assign({ v: '-' }, box)]
+      Object.assign({ v: r.n, t: 'n', dec: 0 }, box), tonAv(a) ? Object.assign({ v: Math.round(tonAv(a)), t: 'n', fmt: '#,##0' }, box) : Object.assign({ v: '-' }, box)]
       .concat(cols.slice(7, 17).map(c => (c[2] ? numC((r.fields[c[2]] || {}).mean, c[3]) : Object.assign({ v: '-' }, box))))
       .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: matDe(a) }, box), { v: [a.obs || '', a.result.nEst ? `${a.result.estPct.toFixed(0)}% estimado (IDW)` : ''].filter(Boolean).join(' · '), border: true }]));
   });
   if (avs.length > 1) {
     const cb = combineAvances(avs);
-    const ton = avs.reduce((s, a) => s + (a.result.tonnage || 0), 0);
+    const ton = avs.reduce((s, a) => s + (tonAv(a) || 0), 0);
     const tot = Object.assign({ bold: true, fill: 'D9E1F2' }, box);
     rows.push([Object.assign({ v: 'TOTAL' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: `${avs.length} avances` }, tot), Object.assign({ v: cb.n, t: 'n', dec: 0 }, tot), ton ? Object.assign({ v: Math.round(ton), t: 'n', fmt: '#,##0' }, tot) : Object.assign({ v: '-' }, tot)]
       .concat(cols.slice(7, 17).map(c => { const cell = c[2] ? numC(cb.fields[c[2]].mean, c[3]) : Object.assign({ v: '-' }, box); return Object.assign(cell, { bold: true, fill: 'D9E1F2' }); }))
@@ -3521,7 +3532,7 @@ $('btnReporte').addEventListener('click', async () => {
   }
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true, fill: AZ, border: true, align: 'center' }))];
   avs.forEach(a => (a.result.rows || []).forEach(x => {
-    const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id)); const l = t2.leyBy.get(ck) || {};
+    const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id)); const l = x.est ? x.ley : (t2.leyBy.get(ck) || {});
     det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id, { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }]
       .concat(AVG_FIELDS.map(F => (l[F.k] == null ? '' : F.dec === 'c3' ? { v: Number(fmt(l[F.k], 'c3', '')), t: 'n', dec: (fmt(l[F.k], 'c3', '').split('.')[1] || '').length } : { v: Number(l[F.k].toFixed(F.dec)), t: 'n', dec: F.dec }))));
   }));
@@ -3534,7 +3545,7 @@ $('btnReporte').addEventListener('click', async () => {
 $('btnHistCsv').addEventListener('click', () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const q = s => (/[",\n]/.test(String(s)) ? `"${String(s).replace(/"/g, '""')}"` : s);
-  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, r.tonnage ? Math.round(r.tonnage) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([matDe(a), r.nEst ? r.estPct.toFixed(1) : '', labelsFor(a.keys).join(' ')]).map(q).join(','); }));
+  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, tonAv(a) ? Math.round(tonAv(a)) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([matDe(a), r.nEst ? r.estPct.toFixed(1) : '', labelsFor(a.keys).join(' ')]).map(q).join(','); }));
   save(`Avances_${exportName()}.csv`, lines.join('\r\n') + '\r\n', $('histMsg'));
 });
 
@@ -3839,7 +3850,7 @@ function renderHistCards() {
   const KS = AVG_FIELDS.map(F => F.k); // todas las leyes
   const lv = r => '<div class="lv">' + KS.map(k => { const F = AVG_FIELDS.find(F => F.k === k); return `<div><span>${F.label}</span><b>${f((r.fields[k] || {}).mean, F.dec)}</b></div>`; }).join('') + '</div>';
   const c = cumulative();
-  box.innerHTML = t2.avs.slice().reverse().map(a => `<div class="hc${t2.viewing === a.id ? ' cur' : ''}"><div class="h1"><b>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''}</b><span>${a.result.n} tal.${a.result.tonnage ? ' · ' + Math.round(a.result.tonnage).toLocaleString('es-PE') + ' t' : ''}</span></div>` +
+  box.innerHTML = t2.avs.slice().reverse().map(a => `<div class="hc${t2.viewing === a.id ? ' cur' : ''}"><div class="h1"><b>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''}</b><span>${a.result.n} tal.${tonAv(a) ? ' · ' + Math.round(tonAv(a)).toLocaleString('es-PE') + ' t' : ''}</span></div>` +
     `<div class="pj">${esc(a.projectNames.join(' + '))}${(a.result.groups || []).length > 1 ? ` · ${a.result.groups.length} polígonos` : ''}${matDe(a) ? ` · <b class="mat">${esc(matDe(a))}</b>` : ''}</div>${lv(a.result)}` +
     `<div class="ac"><button class="btn sec small" data-act="view" data-id="${a.id}">${t2.viewing === a.id ? 'Dejar de ver' : 'Ver en el plano'}</button><button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></div></div>`).join('') +
     (c ? `<div class="hc tot"><div class="h1"><b>Acumulado</b><span>${t2.avs.length} avances · ${c.n} tal.${matAuto(c) ? ' · ' + matAuto(c) : ''}</span></div>${lv(c)}</div>` : '');
@@ -4316,6 +4327,18 @@ $('titLogo').addEventListener('change', async () => {
   URL.revokeObjectURL(url);
 });
 $('titLogoQuitar').addEventListener('click', async () => { delete window.TITULO.logo; await titGuardar(); titPintar(); });
+
+// Tonelaje de un avance guardado: el que se guardó; si no tenía, área de sus polígonos × altura de banco × densidad promedio
+function tonAv(a) {
+  const r = a.result; if (!r) return null;
+  if (r.tonnage) return r.tonnage;
+  const P = avShapes(a); if (!P.length || !(r.rows || []).length) return null;
+  const dens = r.rows.reduce((s, x) => s + (x.density || 0), 0) / r.rows.length;
+  const banco = parseFloat($('avBanco') && $('avBanco').value) || 12;
+  return P.reduce((s, q) => s + polyArea(q), 0) * banco * dens || null;
+}
+$('avBanco').addEventListener('input', () => { try { localStorage.setItem('bhl-banco', $('avBanco').value); } catch (e) {} computeT2(); renderHistory(); });
+try { const b = localStorage.getItem('bhl-banco'); if (b) $('avBanco').value = b; } catch (e) {}
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
