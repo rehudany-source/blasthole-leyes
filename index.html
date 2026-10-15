@@ -498,6 +498,20 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.avopts { display: grid; gap: 10px; }
+.fs-opts { border: 1px solid #3a424a; border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
+.fs-opts > summary { cursor: pointer; font: 700 .9rem var(--f-body); color: #e8ecef; padding: 4px 0; }
+.fs-opts > summary small { font-weight: 500; color: #9aa4ae; font-size: .76rem; margin-left: 4px; }
+.fs-opts[open] > summary { margin-bottom: 8px; }
+.fs-opts .avopts { color: #e8ecef; }
+.fs-opts .f { color: #c9d1d9; font-size: .8rem; }
+.fs-opts input, .fs-opts select { background: #2a3138 !important; color: #e8ecef !important; border-color: #3a424a !important; color-scheme: dark; }
+.fs-opts #avMat[readonly] { color: #ffb36b !important; }
+.fs-opts .note { color: #9aa4ae; font-size: .76rem; }
+.fs-opts .avopts > .note { display: none; }
+.fs-opts .grid3, .fs-opts .grid2 { grid-template-columns: 1fr 1fr; }
+.fs-opts .idw { border-color: #3a424a; }
+.fs-opts .chk { color: #e8ecef; }
 .titbox { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: grid; gap: 8px; }
 .titbox > summary { cursor: pointer; font: 600 .86rem var(--f-body); }
 .titlogo { display: flex; gap: 10px; align-items: center; }
@@ -547,7 +561,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v34</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v35</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -775,6 +789,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
             <label class="f">Fecha<input type="date" id="avFecha"></label>
             <label class="f">Nombre (opcional)<input type="text" id="avNombre" placeholder="ej. turno día" autocomplete="off"></label>
           </div>
+          <div class="avopts" id="avOpts">
           <div class="grid3">
             <label class="f">Burden (m)<input type="number" id="avB" step="0.1" min="0" placeholder="opcional"></label>
             <label class="f">Espaciamiento (m)<input type="number" id="avE" step="0.1" min="0" placeholder="opcional"></label>
@@ -799,6 +814,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
             </div>
             <p class="note">Peso = 1 / distancia<sup id="idwPsup">2</sup>, medida en planta. Tu malla es de ~4 m: 10 m ≈ 2 filas. Fuera del radio no cuenta; con menos vecinos que el mínimo el taladro queda sin ley. Los estimados se ven en morado y el reporte dice qué % del promedio es estimado.</p>
           </details>
+          </div><div id="avOptsHome"></div>
           <label class="chk"><input type="checkbox" id="avLibre"> Dibujar a mano alzada con el dedo o el mouse</label>
           <div class="shlist" id="avShapes"></div>
           <div class="btnrow">
@@ -858,6 +874,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
                 <label>Fecha<input type="date" id="fsFecha"></label>
                 <label>Nombre<input type="text" id="fsNombre" placeholder="opcional" autocomplete="off"></label>
               </div>
+              <details class="fs-opts" id="fsOptsBox"><summary>⚙ Opciones del avance <small>banco, tipo, material, estimación…</small></summary><div id="fsOptsSlot"></div></details>
               <p class="fs-msg" id="fsMsg"></p>
             </div>
             <div class="fs-foot">
@@ -3733,6 +3750,8 @@ function setFull(on) {
   w.classList.toggle('full', on);
   document.body.classList.toggle('enfull', on);
   if (anl) { if (on) $('fsAnlSlot').appendChild(anl); else w.appendChild(anl); }
+  // las opciones del avance (banco, tipo, material, estimación…) también dentro de la pantalla completa
+  const ao = $('avOpts'); if (ao) { if (on) $('fsOptsSlot').appendChild(ao); else $('avOptsHome').before(ao); }
   if (!on) { t2.tool = 'pan'; t2.draft = []; $('fsSheet').hidden = true; $('cad2wrap').classList.remove('sheet'); }
   $('fsFecha').value = $('avFecha').value; $('fsNombre').value = $('avNombre').value; $('fsLibre').checked = $('avLibre').checked;
   let np = false; try { np = localStorage.getItem('bhl-nopanel') === '1'; } catch (e) {}
