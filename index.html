@@ -498,6 +498,22 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.libres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.libres .lc { background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.libres .lc:hover { border-color: var(--accent); }
+.libres .lc span { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.libres .lc b { font: 700 1.6rem var(--f-body); }
+.libres .lc small { font-size: .76rem; color: var(--muted); }
+.libres .lc.final b { color: #1F6B43; } .libres .lc.avance b { color: #8A5A08; }
+.libdet > summary { cursor: pointer; font: 600 .9rem var(--f-body); padding: 8px 0; color: var(--accent); }
+.libfil { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 6px 0 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: 600 .82rem var(--f-body); padding: 7px 12px; background: transparent; border: 0; color: inherit; cursor: pointer; }
+.seg button[aria-pressed=true] { background: var(--accent); color: #fff; }
+#libBusca { max-width: 220px; }
+@media (max-width: 700px) { .libres { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tbadge { font: 600 .66rem var(--f-body); padding: 1px 6px; border-radius: 99px; vertical-align: middle; text-transform: uppercase; letter-spacing: .03em; }
+.tbadge.t-final { background: #DCEFE3; color: #1F6B43; } .tbadge.t-avance { background: #FCEBCF; color: #8A5A08; } .tbadge.t-malla { background: #E5E8EB; color: #4A5560; }
 .btn.big { min-height: 52px; font-size: 1.02rem; }
 .dstat { display: grid; gap: 6px; }
 .dstat .ds { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--chip); }
@@ -604,7 +620,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v37</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v38</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -768,7 +784,10 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   </div>
 
   <div class="section" id="libSec">
-    <div class="row"><h2>Proyectos guardados</h2><span class="note" id="libCount"></span></div>
+    <div class="row"><h2>Proyectos guardados</h2><span class="note" id="libCount" hidden></span></div>
+    <div class="libres" id="libRes"></div>
+    <details class="libdet" id="libDet"><summary id="libDetSum">Ver la lista de proyectos</summary>
+    <div class="libfil"><div class="seg" id="libSeg" role="group" aria-label="Filtrar por tipo"><button type="button" data-f="" aria-pressed="true">Todos</button><button type="button" data-f="final" aria-pressed="false">Finales</button><button type="button" data-f="avance" aria-pressed="false">Avances</button><button type="button" data-f="malla" aria-pressed="false">Mallas</button></div><input type="search" id="libBusca" placeholder="🔍 Buscar proyecto" aria-label="Buscar proyecto"></div>
     <div class="libbox">
       <div class="tablewrap"><table id="libTbl"></table></div>
       <div class="libside">
@@ -785,17 +804,18 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
         <p class="note">Los proyectos y avances se guardan en esta PC. Saca un respaldo de vez en cuando y guárdalo en otra carpeta.</p>
       </div>
     </div>
+    </details>
   </div>
 
-  <div class="section">
-    <h2>Revisión del cruce</h2>
+  <details class="section libdet" id="repDet">
+    <summary id="repSum">Revisión del cruce</summary>
     <div class="report" id="report"></div>
-  </div>
+  </details>
 
-  <div class="section">
-    <div class="row"><h2>Leyes ubicadas</h2><span class="note" id="tblNote"></span></div>
+  <details class="section libdet">
+    <summary>Tabla de leyes ubicadas <span class="note" id="tblNote"></span></summary>
     <div class="tablewrap"><table id="tbl"></table></div>
-  </div>
+  </details>
   </section>
 
   <section class="tab appset" id="appAjustes" hidden>
@@ -2893,13 +2913,48 @@ function buildProjectRecord(csv, fileName, holes, code, found, leyesSnapshot) {
     leyes: leyesSnapshot || null,
   };
 }
+// Tipo de archivo de la contrata (igual que BlastHole Control):
+// S26-5-742-87 = CSV final de perforación · …_AVANCE = final de avance (parcial) · 5-742-87 = malla inicial
+function tipoArchivo(nombre) {
+  const n = String(nombre || '').trim().replace(/^[0-9a-f]{8}-/i, '');
+  const avance = /AVANCE/i.test(n);
+  return avance ? 'avance' : /^S\d{2}[-_ ]/i.test(n) ? 'final' : 'malla';
+}
+const TIPO_TXT = { malla: 'malla inicial', avance: 'avance de perforación', final: 'final' };
+const TIPO_RANGO = { malla: 0, avance: 1, final: 2 };
+// Une el archivo nuevo con el proyecto que ya existe, como en BlastHole Control
+function unirTaladros(prev, rec) {
+  const tipo = rec.tipo, old = new Map(prev.holes.map(h => [h.key, h])), nuevo = new Map(rec.holes.map(h => [h.key, h]));
+  let nuevos = 0, movidos = 0, iguales = 0, maxMov = 0;
+  rec.holes.forEach(h => { const o = old.get(h.key); if (!o) { nuevos++; return; } const d = Math.hypot(h.x - o.x, h.y - o.y); if (d > 0.01) { movidos++; maxMov = Math.max(maxMov, d); } else iguales++; });
+  const faltan = prev.holes.filter(h => !nuevo.has(h.key));
+  let holes;
+  if (tipo === 'malla') {
+    // malla: solo agrega estacas nuevas; lo ya perforado no se toca
+    holes = prev.holes.concat(rec.holes.filter(h => !old.has(h.key)));
+    return { holes, resumen: `${nuevos} taladro(s) nuevo(s) de la malla${prev.tipo && prev.tipo !== 'malla' ? `; el proyecto ya tiene ${TIPO_TXT[prev.tipo]}, sus coordenadas no cambian` : ''}` };
+  }
+  // avance o final: las coordenadas perforadas reemplazan a las de la malla
+  holes = prev.holes.map(h => nuevo.get(h.key) || h).concat(rec.holes.filter(h => !old.has(h.key)));
+  let r = `${movidos} cambian de coordenadas${movidos ? ` (hasta ${maxMov.toFixed(2)} m)` : ''} · ${iguales} iguales · ${nuevos} nuevo(s)`;
+  if (faltan.length) r += tipo === 'avance' ? ` · ${faltan.length} de la malla aún no se perforan (se mantienen)` : ` · ${faltan.length} de la malla no están en el final (no perforados o con otra estaca; se mantienen)`;
+  return { holes, resumen: r };
+}
 async function saveProjectRecord(rec) {
   const prev = lib.projects.find(p => p.id === rec.id);
   if (prev) rec.createdAt = prev.createdAt || prev.savedAt; else rec.createdAt = rec.savedAt;
+  rec.tipo = rec.tipo || tipoArchivo(rec.fileName);
+  rec.archivos = Object.assign({}, prev && prev.archivos, { [rec.tipo]: { nombre: rec.fileName, fecha: rec.savedAt } });
+  let resumen = '';
+  if (prev && prev.holes && prev.holes.length) {
+    const u = unirTaladros(prev, rec); rec.holes = u.holes; resumen = u.resumen;
+    if (TIPO_RANGO[prev.tipo || 'malla'] > TIPO_RANGO[rec.tipo]) rec.tipo = prev.tipo; // no se baja de final a malla
+    if (!rec.leyes && prev.leyes) rec.leyes = prev.leyes;
+  }
   if (!rec.leyes) { const L = leyesDesdeBase(rec); if (L) { rec.leyesBase = snapLeyes(L.leyes); rec.leyesBaseLabel = L.src; rec.leyesBaseFecha = state.baseSaved || new Date().toISOString(); } else if (prev && prev.leyesBase) { rec.leyesBase = prev.leyesBase; rec.leyesBaseLabel = prev.leyesBaseLabel; rec.leyesBaseFecha = prev.leyesBaseFecha; } }
   const ok = await dbSave('projects', rec);
   await loadLibrary();
-  return { ok: !!ok, updated: !!prev };
+  return { ok: !!ok, updated: !!prev, tipo: rec.tipo, resumen };
 }
 $('btnSaveProj').addEventListener('click', async () => {
   const msg = $('saveMsg');
@@ -2911,7 +2966,7 @@ $('btnSaveProj').addEventListener('click', async () => {
   const rec = buildProjectRecord(state.bh, fname, state.holes, code, state.found, snap);
   const r = await saveProjectRecord(rec);
   msg.className = r.ok ? 'msg ok' : 'msg err';
-  msg.textContent = r.ok ? `Proyecto ${rec.name} ${r.updated ? 'actualizado (sus avances se mantienen)' : 'guardado'}. Ya puedes sacar sus promedios en la pestaña 2.` : 'No se pudo guardar en esta PC. Revisa que el navegador permita guardar datos.';
+  msg.textContent = r.ok ? `Proyecto ${rec.name} (${TIPO_TXT[tipoArchivo(fname)]}) ${r.updated ? 'actualizado: ' + r.resumen + '. Sus avances se mantienen' : 'guardado'}. Ya puedes sacar sus promedios en la pestaña 2.` : 'No se pudo guardar en esta PC. Revisa que el navegador permita guardar datos.';
 });
 
 // Guardar varios archivos de taladros de una vez
@@ -2929,7 +2984,7 @@ async function batchSave(files) {
       const found = state.base ? findBaseProject(state.base, code, rb.holes, null) : null;
       if (found && found.how === 'alias') { out.push(`${f.name}: no se guardó; el proyecto en la base no es seguro (${found.p.label}). Ábrelo en la pestaña 1 para confirmarlo.`); continue; }
       const r = await saveProjectRecord(buildProjectRecord(t.csv, f.name, rb.holes, code, found, null));
-      out.push(`${f.name}: ${r.ok ? (r.updated ? 'actualizado' : 'guardado') : 'error al guardar'}${found ? ` · leyes de ${found.p.label}` : state.base ? ' · no está en la base todavía' : ''}`);
+      out.push(`${f.name}: ${r.ok ? `${TIPO_TXT[tipoArchivo(f.name)]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'}` : 'error al guardar'}${found ? ` · leyes de ${found.p.label}` : state.base ? ' · no está en la base todavía' : ''}`);
     } catch (e) { out.push(`${f.name}: ${e.message}`); }
   }
   msg.className = 'msg ok'; msg.textContent = out.join(' · ');
@@ -2982,17 +3037,32 @@ async function refrescarCopias() {
 }
 
 const fmtDate = s => { if (!s) return ''; const [y, m, d] = String(s).slice(0, 10).split('-'); return d ? `${d}/${m}/${y}` : s; };
+let libFiltro = '';
+function renderLibRes() {
+  const box = $('libRes'); if (!box) return;
+  const n = lib.projects.length, c = { final: 0, avance: 0, malla: 0 };
+  lib.projects.forEach(p => { c[p.tipo || tipoArchivo(p.fileName)]++; });
+  const minas = [...new Set(lib.projects.map(p => projCode(p).mina))].sort(sortNum);
+  const card = (cls, f, lab, v, sub) => `<button type="button" class="lc ${cls}" data-f="${f}"><span>${lab}</span><b>${v}</b><small>${sub}</small></button>`;
+  box.innerHTML = card('', '', 'Proyectos', n, minas.length ? 'minas ' + minas.join(', ') : 'aún no hay') + card('final', 'final', 'Finales', c.final, 'perforación completa') + card('avance', 'avance', 'Avances', c.avance, 'perforación parcial') + card('', 'malla', 'Mallas', c.malla, 'solo malla inicial');
+  $('libDetSum').textContent = n ? `Ver la lista de proyectos (${n})` : 'Lista de proyectos';
+}
 function renderLibrary() {
-  const tb = $('libTbl'), n = lib.projects.length;
+  renderLibRes();
+  const tb = $('libTbl');
+  const q = ($('libBusca') && $('libBusca').value || '').trim().toLowerCase().replace(/\s+/g, '');
+  const listaL = lib.projects.filter(p => (!libFiltro || (p.tipo || tipoArchivo(p.fileName)) === libFiltro) && (!q || p.name.toLowerCase().replace(/\s+/g, '').includes(q)));
+  const n = listaL.length;
   $('libCount').textContent = n ? `${n} proyecto${n > 1 ? 's' : ''} en esta PC` : '';
+  if (!n && lib.projects.length) { tb.innerHTML = '<tbody><tr><td class="empty">Ningún proyecto con ese filtro.</td></tr></tbody>'; return; }
   if (!n) { tb.innerHTML = '<tbody><tr><td class="empty">Aún no hay proyectos guardados. Sube un archivo de taladros arriba y pulsa «Guardar proyecto», o suelta varios archivos aquí al lado.</td></tr></tbody>'; return; }
   tb.innerHTML = '<thead><tr><th>Proyecto</th><th>En la base</th><th>Taladros</th><th>Con resultados</th><th>Avances</th><th>Guardado</th><th></th></tr></thead><tbody>' +
-    lib.projects.map(p => {
+    listaL.map(p => {
       const L = leyesForProject(p);
       const keys = new Set(p.holes.map(h => h.key));
       const withRes = L.leyes ? L.leyes.filter(l => keys.has(l.key) && l.hasData !== false).length : null;
       const nAv = lib.avances.filter(a => a.projectIds.includes(p.id)).length;
-      return `<tr><td>${esc(p.name)}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
+      return `<tr><td>${esc(p.name)} ${tipoBadge(p)}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
         `<td class="acts"><button class="btn small" data-act="avg" data-id="${esc(p.id)}">Promediar</button> <button class="btn sec small" data-act="del" data-id="${esc(p.id)}">Borrar</button></td></tr>`;
     }).join('') + '</tbody>';
 }
@@ -3116,7 +3186,7 @@ function renderProjectList() {
   if (!vis.length) { box.innerHTML = '<p class="note">No hay proyectos con ese filtro.</p>'; return; }
   box.innerHTML = vis.map(p => {
     const nAv = lib.avances.filter(a => a.projectIds.includes(p.id)).length;
-    return `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)}</span><span class="pm">${p.holes.length} tal.${nAv ? ` · ${nAv} av.` : ''}</span></label>`;
+    return `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)} ${tipoBadge(p)}</span><span class="pm">${p.holes.length} tal.${nAv ? ` · ${nAv} av.` : ''}</span></label>`;
   }).join('');
 }
 $('pList').addEventListener('change', e => {
@@ -4347,7 +4417,7 @@ function t1BarRender() {
   const V = state.libView;
   let h = `<option value="">📄 Archivo subido (CSV)</option>`;
   if (V && V.ids.length > 1) h += `<option value="*">${V.ids.length} proyectos (varios)</option>`;
-  h += vis.map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${p.holes.length} tal.</option>`).join('');
+  h += vis.map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${TIPO_TXT[p.tipo || tipoArchivo(p.fileName)]} · ${p.holes.length} tal.</option>`).join('');
   if (V && V.ids.length === 1 && !vis.some(p => p.id === V.ids[0])) { const p = lib.projects.find(p => p.id === V.ids[0]); if (p) h += `<option value="${esc(p.id)}">${esc(p.name)}</option>`; }
   $('t1Proj').innerHTML = h;
   $('t1Proj').value = !V ? '' : V.ids.length > 1 ? '*' : V.ids[0];
@@ -4617,6 +4687,21 @@ $('btnCarga2').addEventListener('click', abrirCarga);
   b.addEventListener('click', () => { on = !on; try { localStorage.setItem('bhl-ayuda', on ? '1' : ''); } catch (e) {} pinta(); });
   pinta();
 })();
+
+const tipoBadge = p => { const tp = p.tipo || tipoArchivo(p.fileName); return `<span class="tbadge t-${tp}" title="${TIPO_TXT[tp]}">${tp === 'final' ? 'final' : tp === 'avance' ? 'avance' : 'malla'}</span>`; };
+
+$('libRes').addEventListener('click', e => { const b = e.target.closest('.lc'); if (!b) return; libFiltro = b.dataset.f; document.querySelectorAll('#libSeg button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.f === libFiltro))); $('libDet').open = true; renderLibrary(); $('libDet').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+$('libSeg').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if (!b) return; libFiltro = b.dataset.f; document.querySelectorAll('#libSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderLibrary(); });
+$('libBusca').addEventListener('input', renderLibrary);
+
+// La revisión del cruce se abre sola solo si hay algo que revisar
+function repResumen() {
+  const iss = [...document.querySelectorAll('#report .issue')];
+  const bad = iss.filter(e => e.classList.contains('bad')).length, warn = iss.filter(e => e.classList.contains('warn')).length;
+  $('repSum').textContent = bad ? `⚠ Revisión del cruce · ${bad} error${bad > 1 ? 'es' : ''}${warn ? ` y ${warn} aviso${warn > 1 ? 's' : ''}` : ''}` : warn ? `Revisión del cruce · ${warn} aviso${warn > 1 ? 's' : ''}` : 'Revisión del cruce · todo bien ✓';
+  if (bad) $('repDet').open = true;
+}
+new MutationObserver(repResumen).observe($('report'), { childList: true });
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
