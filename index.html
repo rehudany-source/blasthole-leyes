@@ -265,6 +265,8 @@ body.enfull { overflow: hidden; }
   .fs-title span { display: none; }
 }
 .anl { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 6px; font: 600 .78rem var(--f-body); color: #e8ecef; background: rgba(20,24,28,.85); border: 1px solid #3a424a; border-radius: 4px; padding: 3px 4px 3px 9px; }
+.anl-b { font: 600 .78rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 3px; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+.anl-b[aria-pressed=true] { background: #b65cff; border-color: #b65cff; color: #fff; }
 .anl select { font: 600 .8rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 3px; padding: 3px 6px; width: auto; }
 td.pj { font-family: var(--f-mono); font-size: .78rem; white-space: normal; text-align: left; }
 #tab2 .avgtiles { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 0; background: var(--panel); }
@@ -507,7 +509,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v25</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v26</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -540,6 +542,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
           <select id="vlClip"><option value="">Todo (sin recortar)</option></select>
         </label>
         <label class="chk"><input type="checkbox" id="vlLim" checked> Dibujar límites de rotura y polígonos de avances</label>
+        <label class="chk"><input type="checkbox" id="vlSup"> <span>Proyección del nivel superior (12 m arriba): Fe / S/FeS en morado</span></label>
         <div class="btnrow2">
           <button class="btn" id="vlVer" type="button">Ver en el plano</button>
           <button class="btn sec" id="vlSalir" type="button" hidden>Volver a mis archivos</button>
@@ -819,6 +822,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
               <option value="">Ninguna</option>
             </select>
             <select id="letraSel" title="Tamaño de letra de las leyes" aria-label="Tamaño de letra de las leyes"><option value="0">Aa</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24">24</option></select>
+            <button type="button" class="anl-b" id="supBtn" title="Ver las leyes del nivel superior (banco de 12 m arriba) proyectadas sobre este nivel" aria-pressed="false">↑ Nivel sup.</button>
           </label>
           <div class="coords" id="coords2"></div>
         </div>
@@ -1840,6 +1844,7 @@ function layoutPlot(P, o) {
   // dibujo del DXF
   D.push({ t: 'clip', x: ax, y: ay, w: aw, h: ah });
   (o.polys || []).forEach(q => { const n = q.pts.length; for (let i = 0; i < n; i++) { const a = q.pts[i], b = q.pts[(i + 1) % n]; line(X(a.x), Y(a.y), X(b.x), Y(b.y), q.col || grey, q.w || 0.6); } });
+  (o.marks || []).forEach(m => { const x = X(m.x), y = Y(m.y), r = Math.max(1.2, 0.3 * k); D.push({ t: 'poly', pts: [[x, y + r], [x + r, y], [x, y - r], [x - r, y]], fill: m.col }); if (m.s) text(m.s, x + r + 1, y - 0.2 * k, Math.max(1.6, 0.32 * k), { col: m.col }); });
   P.forEach(p => {
     if (p.t !== 'line') return;
     line(X(p.x1), Y(p.y1), X(p.x2), Y(p.y2), PRINT_ACI[p.color || layerColor[p.layer]] || BLACK, p.layer === 'BLASTHOLE' ? 0.55 : p.layer === 'LINEA_GUIA' ? 0.3 : 0.4);
@@ -2444,7 +2449,7 @@ function planoOpts() {
   const mt = state.m && state.m.matched; const conLey = mt ? (mt.size != null ? mt.size : mt.length) : 0;
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
   const lv = state.libView ? lib.projects.filter(p => state.libView.ids.includes(p.id)).map(p => p.name) : null;
-  return { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, polys: state.libView ? vlPrintPolys() : null,
+  return { paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, polys: state.libView ? vlPrintPolys() : null, marks: state.libView ? vlPrintMarks() : null,
     subtitle: lv ? `Proyecto${lv.length > 1 ? 's' : ''} ${lv.join(', ')} · ${state.holes.length} taladros · ${conLey} con leyes` : `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
 }
 // En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
@@ -2902,6 +2907,7 @@ function refreshT2() {
   if (!t2.fitted && pv.W && t2.holes.length) { pv.fit(t2Bounds()); t2.fitted = true; }
   renderAnLegend(); renderHistory(); computeT2(); pv.draw();
   if ($('vlibBox') && $('vlibBox').open) vlRender();
+  if (t2.sup) { supCalc(); $('supBtn').setAttribute('aria-pressed', 'true'); pv.draw(); }
 }
 
 function t2Bounds() {
@@ -2998,6 +3004,7 @@ function renderPlan2(ctx, v) {
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
     if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = prev ? CAD.prevTxt : anColor(val, br); ctx.font = `600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, ''), x, y - r - 2); }
   });
+  if (t2.sup) drawSup(ctx, v, F, br);
   if (TODAS) drawTodas(ctx, v);
   if (!viewing) {
     // número y peso de cada polígono
@@ -3813,10 +3820,17 @@ function recomputeLib(refit) {
   state.m = { matched, dups: [], orphans: [], noLey: holes.filter(h => !matched.has(h.key)) };
   state.P = layout(holes, matched, opts()); state.pc = null; state.vlErrs = [...new Set(errs)];
   state.vlClipPolys = clip;
+  state.vlSup = null;
+  if (V.sup) {
+    state.vlSup = [];
+    supProyectos(projs).forEach(q => { const L = leyesForProject(q); const lm = new Map((L.leyes || []).map(l => [l.key, l]));
+      q.holes.forEach(h => { if (clip && !clip.some(P => pointInPoly(h.x, h.y, P))) return; const l = lm.get(h.key); state.vlSup.push({ x: h.x, y: h.y, id: h.id, pname: q.name, l: l && l.hasData !== false ? l : null }); }); });
+    state.vlSupProjs = supProyectos(projs).map(q => q.name);
+  }
   $('colmap').hidden = true;
   const clipTxt = V.clip ? ($('vlClip').selectedOptions[0] || {}).textContent || '' : '';
   const box = $('projcheck'); box.hidden = false; box.className = 'projcheck ok';
-  box.innerHTML = `<div class="pc-top"><span class="pc-title">Vista de proyectos guardados</span></div><div class="codes"><span>${projs.map(p => `<span class="code">${esc(p.name)}</span>`).join(' ')}</span>${clipTxt ? `<span>Dentro de: <b>${esc(clipTxt)}</b></span>` : ''}</div>` +
+  box.innerHTML = `<div class="pc-top"><span class="pc-title">Vista de proyectos guardados</span></div><div class="codes"><span>${projs.map(p => `<span class="code">${esc(p.name)}</span>`).join(' ')}</span>${clipTxt ? `<span>Dentro de: <b>${esc(clipTxt)}</b></span>` : ''}${V.sup ? `<span style="color:${SUP_COLOR}">↑ Proyección: ${state.vlSupProjs.length ? esc(state.vlSupProjs.join(', ')) : 'no hay proyecto guardado 12 m arriba'}</span>` : ''}</div>` +
     (state.vlErrs.length ? `<ul>${state.vlErrs.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : '');
   renderStats(); renderTable();
   const out = [`<div class="issue info"><span class="pill">Vista</span><div>${holes.length} taladros de ${projs.length} proyecto${projs.length === 1 ? '' : 's'}${clip ? ' dentro del polígono elegido' : ''}. Puedes imprimir o descargar el PDF y el DXF de esta vista.</div></div>`];
@@ -3836,6 +3850,12 @@ function drawLibOverlay(ctx, v) {
     vlAvances(ids).forEach(a => { ctx.strokeStyle = CAD.ghost; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); avShapes(a).forEach(P => { path(P); ctx.stroke(); }); ctx.setLineDash([]);
       if (v.s > 3) { const P = avShapes(a)[0]; const cx = P.reduce((s, q) => s + q.x, 0) / P.length, cy = P.reduce((s, q) => s + q.y, 0) / P.length; ctx.fillStyle = CAD.ghostTxt; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : ''), v.sx(cx), v.sy(cy)); } });
   }
+  if (state.libView.sup && state.vlSup) state.vlSup.forEach(h => {
+    const x = v.sx(h.x), y = v.sy(h.y); if (x < -40 || x > v.W + 40 || y < -30 || y > v.H + 30) return;
+    const r = Math.max(2.5, Math.min(6, v.s * 0.22)); ctx.strokeStyle = SUP_COLOR; ctx.lineWidth = 1.3; ctx.globalAlpha = h.l ? 0.95 : 0.4;
+    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke(); ctx.globalAlpha = 1;
+    if (h.l && v.s >= 7) { const fs = Math.max(9, Math.min(14, v.s * 0.5)); ctx.font = `italic 600 ${fs}px Arial, sans-serif`; ctx.fillStyle = SUP_COLOR; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(supTxt(h.l), x + r + 3, y); }
+  });
   if (state.vlClipPolys) state.vlClipPolys.forEach(P => { path(P); ctx.globalAlpha = 0.08; ctx.fillStyle = CAD.sel; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = CAD.sel; ctx.lineWidth = 2.4; ctx.stroke(); });
 }
 function vlPintarEstado() {
@@ -3848,7 +3868,7 @@ function vlAplicar() {
   const ids = vlProyectos().filter(p => vl.ids.has(p.id)).map(p => p.id);
   if (!ids.length) { $('vlNote').className = 'msg err'; $('vlNote').textContent = 'Marca al menos un proyecto.'; return; }
   $('vlNote').className = 'note'; $('vlNote').textContent = 'Solo para ver e imprimir: no cambia tus proyectos ni tus avances.';
-  state.libView = { ids, clip: $('vlClip').value, lim: $('vlLim').checked };
+  state.libView = { ids, clip: $('vlClip').value, lim: $('vlLim').checked, sup: $('vlSup').checked };
   vlPintarEstado(); recompute(true);
 }
 $('vlibBox').addEventListener('toggle', () => { if ($('vlibBox').open) vlRender(); });
@@ -3860,6 +3880,7 @@ $('vlNone').addEventListener('click', () => { vl.ids = new Set(); vlGuardar(); v
 $('vlVer').addEventListener('click', vlAplicar);
 $('vlClip').addEventListener('change', () => { if (state.libView) vlAplicar(); });
 $('vlLim').addEventListener('change', () => { if (state.libView) { state.libView.lim = $('vlLim').checked; draw(); } });
+$('vlSup').addEventListener('change', () => { if (state.libView) vlAplicar(); });
 $('vlSalir').addEventListener('click', () => { state.libView = null; state.vlClipPolys = null; vlPintarEstado(); $('btnSaveProj').disabled = false; recompute(true); });
 // Polígonos que van al PDF / impresión de la vista de proyectos guardados
 function vlPrintPolys() {
@@ -3901,6 +3922,72 @@ function drawTodas(ctx, v) {
       else { ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.s, x, y); }
     }
   }
+}
+
+// ===== Proyección del nivel superior (banco de 12 m arriba) =====
+// Para cada proyecto marcado busca los proyectos guardados de la misma mina en el nivel + 12
+// que caen sobre la misma zona y dibuja sus taladros con sus leyes, en morado.
+const SUP_COLOR = '#b65cff', BANCO = 12;
+function supProyectos(projs) {
+  const out = new Map();
+  projs.forEach(p => {
+    const c = projCode(p); const nv = parseInt(c.nivel, 10); if (isNaN(nv)) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    p.holes.forEach(h => { x0 = Math.min(x0, h.x); x1 = Math.max(x1, h.x); y0 = Math.min(y0, h.y); y1 = Math.max(y1, h.y); });
+    const bb = { x0: x0 - 20, y0: y0 - 20, x1: x1 + 20, y1: y1 + 20 };
+    // el banco de arriba: el nivel más cercano por encima (normalmente +12 m; se aceptan 6 a 20 m)
+    const cand = lib.projects.filter(q => { const k = projCode(q), d = parseInt(k.nivel, 10) - nv; return k.mina === c.mina && d >= 6 && d <= 20 && q.holes.some(h => h.x >= bb.x0 && h.x <= bb.x1 && h.y >= bb.y0 && h.y <= bb.y1); });
+    if (!cand.length) return;
+    const dmin = Math.min(...cand.map(q => parseInt(projCode(q).nivel, 10) - nv));
+    cand.filter(q => parseInt(projCode(q).nivel, 10) - nv === dmin).forEach(q => out.set(q.id, q));
+  });
+  return [...out.values()];
+}
+function supCalc() {
+  const ps = supProyectos(t2.projs), holes = [], errs = [];
+  ps.forEach(q => {
+    const L = leyesForProject(q); if (L.err) errs.push(L.err);
+    const lm = new Map((L.leyes || []).map(l => [l.key, l]));
+    q.holes.forEach(h => { const l = lm.get(h.key); holes.push({ x: h.x, y: h.y, id: h.id, pname: q.name, l: l && l.hasData !== false ? l : null }); });
+  });
+  const niveles = ps.length ? [...new Set(ps.map(q => projCode(q).nivel))] : [...new Set(t2.projs.map(p => parseInt(projCode(p).nivel, 10) + BANCO).filter(n => !isNaN(n)))];
+  t2.supData = { projs: ps, holes, errs, niveles };
+}
+function drawSup(ctx, v, F, br) {
+  const S = t2.supData; if (!S || !S.holes.length) return;
+  const r = Math.max(2.5, Math.min(6, v.v.s * 0.22));
+  const Fk = F || AVG_FIELDS.find(f => f.k === 'fe');
+  const showVal = v.v.s >= 7, showId = v.v.s >= 12;
+  const fs = t2.letra || Math.max(9, Math.min(14, v.v.s * 0.55));
+  // nombre del proyecto superior
+  if (v.v.s > 0.8) S.projs.forEach(q => { let x0 = Infinity, x1 = -Infinity, y0 = Infinity; q.holes.forEach(h => { x0 = Math.min(x0, h.x); x1 = Math.max(x1, h.x); y0 = Math.min(y0, h.y); }); ctx.fillStyle = SUP_COLOR; ctx.font = '700 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('↑ ' + q.name + ' (proyección)', v.sx((x0 + x1) / 2), v.sy(y0) + 14); });
+  S.holes.forEach(h => {
+    const x = v.sx(h.x), y = v.sy(h.y);
+    if (x < -30 || x > v.W + 30 || y < -30 || y > v.H + 30) return;
+    ctx.strokeStyle = SUP_COLOR; ctx.lineWidth = 1.3; ctx.globalAlpha = h.l ? 0.95 : 0.45;
+    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke();
+    ctx.globalAlpha = 1;
+    const val = h.l ? h.l[Fk.k] : null;
+    if (showVal && val != null) { ctx.font = `italic 600 ${fs}px Arial, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = SUP_COLOR; ctx.fillText(fmt(val, Fk.dec, ''), x + r + 3, y); }
+    if (showId) { ctx.font = `italic ${Math.max(8, fs - 3)}px Arial, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = SUP_COLOR; ctx.globalAlpha = 0.7; ctx.fillText(h.id, x + r + 3, y + fs * 0.5); ctx.globalAlpha = 1; }
+  });
+}
+function supPintar() {
+  const b = $('supBtn'); b.setAttribute('aria-pressed', String(!!t2.sup));
+  if (!t2.sup) return;
+  const S = t2.supData;
+  if (!t2.projs.length) flashHint('Marca primero un proyecto.');
+  else if (!S.projs.length) flashHint(`No hay proyectos guardados del banco de arriba (nivel ${S.niveles.join(', ')}, 12 m) sobre esta zona. Guarda ese proyecto en la pestaña 1 para ver su proyección.`);
+  else { const con = S.holes.filter(h => h.l).length; flashHint(`Proyección del nivel ${S.niveles.join(', ')}: ${S.projs.map(q => q.name).join(', ')} · ${con} taladros con leyes (rombos morados).` + (S.errs.length ? ' ' + S.errs[0] : ''), !S.errs.length); }
+}
+$('supBtn').addEventListener('click', () => { t2.sup = !t2.sup; try { localStorage.setItem('bhl-sup', t2.sup ? '1' : ''); } catch (e) {} if (t2.sup) supCalc(); supPintar(); pv.draw(); });
+try { t2.sup = localStorage.getItem('bhl-sup') === '1'; } catch (e) {}
+
+// Texto corto de la ley proyectada: Fe / S/FeS
+function supTxt(l) { return [l.fe != null ? fmt(l.fe, 'c3', '') : '', l.sfe != null ? fmt(l.sfe, 'c3', '') : ''].filter(Boolean).join(' / '); }
+function vlPrintMarks() {
+  const V = state.libView; if (!V || !V.sup || !state.vlSup) return [];
+  return state.vlSup.map(h => ({ x: h.x, y: h.y, s: h.l ? supTxt(h.l) : '', col: [0.71, 0.36, 1] }));
 }
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
