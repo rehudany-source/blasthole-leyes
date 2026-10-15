@@ -498,6 +498,23 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.btn.big { min-height: 52px; font-size: 1.02rem; }
+.dstat { display: grid; gap: 6px; }
+.dstat .ds { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--chip); }
+.dstat .ds .i { font-size: 1.1rem; text-align: center; }
+.dstat .ds b { font-size: .88rem; display: block; }
+.dstat .ds small { font-size: .78rem; color: var(--muted); display: block; overflow-wrap: anywhere; }
+.dstat .ds.ok .i { color: #2F7D57; } .dstat .ds.no b { color: var(--muted); }
+details.adv { border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 10px; }
+details.adv > summary { cursor: pointer; font: 600 .84rem var(--f-body); color: var(--muted); list-style: none; }
+details.adv > summary::before { content: "▸ "; } details.adv[open] > summary::before { content: "▾ "; }
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv-box > summary { cursor: pointer; list-style: none; margin: 0; }
+details.adv-box > summary::-webkit-details-marker { display: none; }
+details.adv-box > summary h2::after { content: "  ▸"; color: var(--muted); font-size: .8em; } details.adv-box[open] > summary h2::after { content: "  ▾"; }
+details.adv-box:not([open]) { padding-bottom: 14px; }
+body:not(.ayuda) .side p.note:not([id]), body:not(.ayuda) #avHelp, body:not(.ayuda) .idw > .note { display: none; }
+#btnAyuda[aria-pressed=true] { background: var(--accent); color: #fff; border-color: var(--accent); }
 .cargab { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 .carga { position: fixed; inset: 0; z-index: 60; background: rgba(10,12,14,.55); display: grid; place-items: center; padding: 16px; }
 .carga[hidden] { display: none; }
@@ -587,7 +604,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v36</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v37</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -598,6 +615,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
     </div>
     <button class="btn sec small" id="btnUpd" type="button" hidden>Buscar actualización</button>
     <button class="btn small cargab" id="btnCarga" type="button">📂 Cargar archivos</button>
+    <button class="btn sec small" id="btnAyuda" type="button" aria-pressed="false" title="Mostrar u ocultar las explicaciones">❓ Ayuda</button>
     <button class="btn sec small syncb" id="btnSync" type="button" hidden>☁ Sincronizar</button>
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button role="tab" id="tabBtn1" aria-selected="true" aria-controls="tab1">1 · Proyectos</button>
@@ -627,7 +645,10 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
         <p class="note" id="vlNote">Solo para ver e imprimir: no cambia tus proyectos ni tus avances.</p>
       </details>
       <div class="box">
-        <div class="step"><b>1</b><h2>Archivos CSV o Excel</h2></div>
+        <div class="step"><b>1</b><h2>Datos</h2></div>
+        <div class="dstat" id="dStat"></div>
+        <button class="btn big" type="button" id="btnCarga2">📂 Cargar archivos</button>
+        <details class="adv" id="advCarga"><summary>Carga manual y columnas</summary>
         <div class="drop base" id="dropBASE">
           <input type="file" id="fileBASE" accept=".csv,.txt,.xlsx,.xls,text/csv" aria-label="Base de leyes de todos los proyectos">
           <span class="t">Base de leyes · todos los proyectos <span class="tag">se guarda</span></span>
@@ -657,12 +678,13 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
           <span class="t">Leyes de un solo proyecto <span class="tag">opcional</span></span>
           <span class="fn" id="fnLEY">—</span>
         </div>
-        <p class="note">Sirve con el formato de cualquier contrata: reconoce ID, Este, Norte y Cota por el nombre de la columna (EAST, EASTING, ESTE, X, NORTHING, NORTE, Y, ELEV, COTA, Z…) y lo confirma con los valores, así que no importa el orden. Puedes soltar los dos archivos juntos. Las leyes son opcionales.</p>
+        <p class="note">Reconoce ID, Este, Norte y Cota por el nombre de la columna, en cualquier orden.</p>
+        </details>
         <p class="msg" id="loadMsg"></p>
       </div>
 
-      <div class="box">
-        <div class="step"><b>2</b><h2>Ajustes del dibujo</h2></div>
+      <details class="box adv-box">
+        <summary class="step"><b>⚙</b><h2>Ajustes del dibujo</h2></summary>
         <div class="grid2">
           <label class="f">N° de grupo · ΔX (m)<input type="number" id="dx" step="0.05" value="-0.15"></label>
           <label class="f">N° de grupo · ΔY (m)<input type="number" id="dy" step="0.1" value="1.3"></label>
@@ -678,26 +700,30 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
         <label class="chk"><input type="checkbox" id="leader" checked> Línea guía al taladro si el bloque se movió</label>
         <label class="chk"><input type="checkbox" id="cuzn"> Incluir Cu y Zn (capa Cu-Zn)</label>
         <label class="chk"><input type="checkbox" id="useZ" checked> Dibujar a la cota (ELEV)</label>
-        <p class="note">ΔX/ΔY ubican el N° de grupo respecto al taladro; el resto del bloque de leyes se mueve con él, igual que en insertar_Leyes_12.</p>
-      </div>
+        <p class="note">ΔX/ΔY ubican el N° de grupo respecto al taladro, como en insertar_Leyes_12.</p>
+      </details>
 
       <div class="box">
-        <div class="step"><b>3</b><h2>Guardar y descargar</h2></div>
-        <button class="btn" id="btnSaveProj" type="button">Guardar proyecto</button>
+        <div class="step"><b>2</b><h2>Guardar e imprimir</h2></div>
+        <button class="btn" id="btnSaveProj" type="button">💾 Guardar proyecto</button>
         <p class="msg" id="saveMsg"></p>
+        <div class="btnrow2">
+          <button class="btn" id="btnPrint" disabled>🖨 Imprimir</button>
+          <button class="btn sec" id="btnPdf" disabled>⬇ PDF</button>
+        </div>
+        <div class="btnrow2">
+          <button class="btn sec" id="btnZip" disabled>⬇ DXF</button>
+          <button class="btn sec" id="btnCsv" disabled>⬇ CSV</button>
+        </div>
+        <p class="msg" id="dlMsg"></p>
+        <details class="adv"><summary>Nombre, hoja y escala</summary>
         <label class="f">Nombre del archivo<input type="text" id="outName" value="Avance_14A_614-007"></label>
-        <button class="btn sec" id="btnZip" disabled>Descargar DXF (.zip)</button>
-        <button class="btn sec" id="btnCsv" disabled>Descargar CSV unido</button>
         <div class="grid3">
           <label class="f">Hoja<select id="pdfHoja"><option value="A4">A4</option><option value="A3" selected>A3</option><option value="A2">A2</option><option value="A1">A1</option></select></label>
           <label class="f">Letra de leyes<select id="pdfLetra"><option value="0">Como el DXF</option><option value="8">8 pt</option><option value="9">9 pt</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option><option value="14">14 pt</option><option value="16">16 pt</option><option value="18">18 pt</option><option value="20">20 pt</option><option value="24">24 pt</option></select></label>
           <label class="f">Escala<select id="pdfEsc"><option value="0" selected>Ajustar a la hoja</option><option value="250">1:250</option><option value="500">1:500</option><option value="750">1:750</option><option value="1000">1:1000</option><option value="2000">1:2000</option></select></label>
         </div>
-        <div class="btnrow2">
-          <button class="btn" id="btnPrint" disabled>🖨 Imprimir plano</button>
-          <button class="btn sec" id="btnPdf" disabled>Descargar PDF</button>
-        </div>
-        <p class="msg" id="dlMsg"></p>
+        </details>
         <details class="titbox" id="titBox">
           <summary>🏷 Cuadro de título de la hoja (empresa y logo)</summary>
           <label class="f">Empresa<input type="text" id="titEmpresa" placeholder="ej. Nombre de tu empresa" autocomplete="off"></label>
@@ -706,7 +732,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
           <div class="titlogo"><div class="lp" id="titLogoPrev">Sin logo</div><div class="lb"><label class="btn sec small">Cargar logo<input type="file" id="titLogo" accept="image/png,image/jpeg,image/webp" hidden></label><button class="btn sec small" type="button" id="titLogoQuitar">Quitar</button></div></div>
           <p class="note">Sale en el cuadro de título de «Imprimir plano» y del PDF. Se guarda en este equipo.</p>
         </details>
-        <p class="note">«Imprimir plano» y el PDF llevan el mismo dibujo del DXF a escala, con cuadrícula UTM, leyenda y cuadro de título, listo para imprimir. El ZIP trae el <code>.dxf</code> y el CSV unido. Ábrelo en AutoCAD y guárdalo como DWG con <code>GUARDARCOMO</code>.</p>
+        <p class="note">El DXF se abre en AutoCAD; guárdalo como DWG con GUARDARCOMO.</p>
       </div>
     </div>
 
@@ -805,7 +831,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
           <div class="drop" id="dropLIM">
             <input type="file" id="fileLIM" aria-label="Límites de rotura y subdivisiones">
             <span class="t">Subir límites de rotura <span class="tag">DXF · CSV</span></span>
-            <span class="fn">Polilíneas cerradas de AutoCAD (guárdalas como DXF) o un CSV con polígono, Este y Norte. Cada capa se muestra por separado.</span>
+            <span class="fn">DXF de AutoCAD o CSV</span>
           </div>
           <div class="limlist" id="limList"></div>
           <p class="msg" id="limMsg"></p>
@@ -2385,6 +2411,7 @@ function recompute(refit) {
   renderProject();
   renderStats(); renderReport(rb, rl.bad); renderTable();
   updateButtons();
+  try { datosEstado(); } catch (e) {}
   if (refit) fit(); draw();
 }
 
@@ -4120,7 +4147,7 @@ function recomputeLib(refit) {
   if (opts().avoid && state.P.moved) out.push(`<div class="issue ${state.P.conflicts ? 'warn' : 'ok'}"><span class="pill">Reubicado</span><div>${state.P.moved} bloques de leyes se movieron para no chocar.</div></div>`);
   $('report').innerHTML = out.join('');
   $('outName').value = (projs.length === 1 ? projs[0].name : projs.map(p => p.name).join('_')).replace(/[^\w.-]+/g, '_').slice(0, 80) + (V.clip ? '_recorte' : '');
-  updateButtons(); $('btnSaveProj').disabled = true;
+  updateButtons(); $('btnSaveProj').disabled = true; try { datosEstado(); } catch (e) {}
   if (refit) { fit(); if (clip) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; clip.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); })); const r = cv.getBoundingClientRect(); const s = Math.min(r.width / (x1 - x0 + 8), r.height / (y1 - y0 + 8)); view.s = s; view.ox = (x0 + x1) / 2 - r.width / 2 / s; view.oy = (y0 + y1) / 2 + r.height / 2 / s; } }
   draw();
 }
@@ -4571,6 +4598,25 @@ $('cargaVer').addEventListener('click', () => {
   refreshT2();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dlgCarga').hidden) cerrarCarga(); });
+
+// ===== Panel de datos simple (pestaña 1) y botón de ayuda =====
+function datosEstado() {
+  const box = $('dStat'); if (!box) return;
+  const row = (ok, ic, t, sub) => `<div class="ds ${ok ? 'ok' : 'no'}"><span class="i">${ok ? '✓' : ic}</span><div><b>${t}</b><small>${sub}</small></div></div>`;
+  const d = state.baseSaved ? new Date(state.baseSaved).toLocaleDateString('es-PE') : '';
+  box.innerHTML = row(!!state.base, '○', 'Base de leyes', state.base ? `${esc(state.baseName)} · ${d}` : 'Falta · súbela una vez')
+    + row(!!(state.bh || state.libView), '○', state.libView ? 'Proyecto guardado' : 'Taladros', state.libView ? `${state.holes.length} taladros` : state.bh ? `${esc((state.bhName || '').replace(/ · hoja .*$/, ''))} · ${state.holes.length} taladros` : 'Falta el archivo de taladros')
+    + row(!!(state.m && state.m.matched && state.m.matched.size), '○', 'Leyes', state.m && state.m.matched && state.m.matched.size ? `${state.m.matched.size} grupos ${state.src === 'base' ? 'de la base' : state.ley ? 'del archivo' : ''}` : 'Sin leyes todavía');
+  if (state.rb && state.rb.missing) $('advCarga').open = true;
+}
+$('btnCarga2').addEventListener('click', abrirCarga);
+(() => {
+  const b = $('btnAyuda');
+  let on = false; try { on = localStorage.getItem('bhl-ayuda') === '1'; } catch (e) {}
+  const pinta = () => { document.body.classList.toggle('ayuda', on); b.setAttribute('aria-pressed', String(on)); };
+  b.addEventListener('click', () => { on = !on; try { localStorage.setItem('bhl-ayuda', on ? '1' : ''); } catch (e) {} pinta(); });
+  pinta();
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
