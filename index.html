@@ -498,6 +498,47 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+/* Pestaña 2 · PC: barra arriba + resultado a la derecha */
+body.t2pc #tab2 > .main, body.t2app #tab2 > .main { display: block; }
+.t2bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; font-size: .85rem; }
+.t2bar > label { color: var(--muted); font-weight: 600; }
+.t2bar select { width: auto; min-width: 7em; }
+.t2dd { position: relative; }
+.t2b { font: 600 .86rem var(--f-body); border: 1px solid var(--line); background: var(--bg); color: inherit; border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+.t2b b { font-family: var(--f-mono); font-weight: 600; }
+.t2pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: 360px; max-height: 70vh; overflow-y: auto; background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+.t2pop[hidden] { display: none; }
+.t2row { display: flex; gap: 12px; align-items: stretch; }
+.t2row > .cadwrap { flex: 1 1 auto; min-width: 0; height: calc(100vh - 230px); min-height: 520px; }
+.t2aside { width: 340px; flex: 0 0 340px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 230px); min-height: 520px; overflow-y: auto; }
+.t2aside > * { flex-shrink: 0; }
+.t2aside .t2ah { font: 700 .78rem var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.t2aside .avgtiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.t2aside > .box { margin: 0; }
+/* Pestaña 2 · iPad / iPhone: barra de íconos con cajones */
+.t2arow { display: flex; gap: 10px; align-items: stretch; }
+.t2rail { display: flex; flex-direction: column; gap: 6px; flex: 0 0 74px; }
+.t2rail button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 0; background: var(--panel); color: var(--muted); font: 600 .72rem var(--f-body); box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent); cursor: pointer; }
+.t2rail button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.t2rail button small { font: 500 .62rem var(--f-mono); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t2rail button[aria-pressed=true] { background: var(--ink, #1b2120); color: #fff; }
+.t2drawer { flex: 0 0 330px; max-height: min(70vh, 700px); overflow-y: auto; }
+.t2drawer[hidden] { display: none; }
+.t2drawer .box { margin: 0; }
+.t2plano { flex: 1 1 auto; min-width: 0; }
+.t2mini { position: absolute; right: 10px; top: 64px; z-index: 4; background: var(--panel); border-radius: 14px; padding: 10px 12px; display: grid; gap: 4px; box-shadow: 0 6px 20px rgba(0,0,0,.18); max-width: 260px; }
+.t2mini[hidden] { display: none; }
+.t2mini .mt { font: 700 1.15rem var(--f-mono); } .t2mini .mm { font-weight: 700; color: var(--accent); } .t2mini .ml { font-size: .8rem; color: var(--muted); }
+.cadwrap.full .t2mini { display: none; }
+@media (max-width: 760px) {
+  .t2arow { flex-direction: column; }
+  .t2rail { flex-direction: row; flex: none; }
+  .t2rail button { flex: 1; flex-direction: row; justify-content: center; gap: 6px; padding: 10px 6px; }
+  .t2rail button small { display: none; }
+  .t2drawer { flex: none; max-height: none; }
+  .t2mini { top: auto; bottom: 74px; left: 10px; right: 10px; max-width: none; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 8px 10px; }
+  .t2mini > div:first-child { grid-column: 1; } .t2mini .ml { grid-column: 1; font-size: .74rem; } .t2mini .btn { grid-column: 2; grid-row: 1 / span 2; min-height: 40px; }
+}
 .libres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .libres .lc { background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
 .libres .lc:hover { border-color: var(--accent); }
@@ -529,7 +570,7 @@ details.adv-box > summary { cursor: pointer; list-style: none; margin: 0; }
 details.adv-box > summary::-webkit-details-marker { display: none; }
 details.adv-box > summary h2::after { content: "  ▸"; color: var(--muted); font-size: .8em; } details.adv-box[open] > summary h2::after { content: "  ▾"; }
 details.adv-box:not([open]) { padding-bottom: 14px; }
-body:not(.ayuda) .side p.note:not([id]), body:not(.ayuda) #avHelp, body:not(.ayuda) .idw > .note { display: none; }
+body:not(.ayuda) .side p.note:not([id]), body:not(.ayuda) #tab2 p.note:not([id]), body:not(.ayuda) #avHelp, body:not(.ayuda) .idw > .note { display: none; }
 #btnAyuda[aria-pressed=true] { background: var(--accent); color: #fff; border-color: var(--accent); }
 .cargab { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 .carga { position: fixed; inset: 0; z-index: 60; background: rgba(10,12,14,.55); display: grid; place-items: center; padding: 16px; }
@@ -620,7 +661,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v38</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v39</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3246,6 +3287,7 @@ function refreshT2() {
   renderAnLegend(); renderHistory(); computeT2(); pv.draw();
   if ($('vlibBox') && $('vlibBox').open) vlRender();
   try { t1BarRender(); } catch (e) {}
+  try { t2Resumen(); } catch (e) {}
   if (t2.sup) { supCalc(); $('supBtn').setAttribute('aria-pressed', 'true'); pv.draw(); }
 }
 
@@ -3594,6 +3636,7 @@ function computeT2() {
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
   paintPanel();
+  try { t2Resumen(); } catch (e) {}
   try { const m = matAuto(t2.result); $('avMat').value = m; $('avMat').placeholder = 'automático por S/FeS'; } catch (e) {}
 }
 function sortIds(ids) { return ids.slice().sort(sortNum); }
@@ -4702,6 +4745,85 @@ function repResumen() {
   if (bad) $('repDet').open = true;
 }
 new MutationObserver(repResumen).observe($('report'), { childList: true });
+
+// ===== Pestaña 2 sin tanto panel: PC = barra arriba + resultado a la derecha · iPad/iPhone = barra de íconos con cajones =====
+const T2L = { modo: null };
+function t2Resumen() {
+  const ns = t2.projs.map(p => p.name);
+  const txt = ns.length ? (ns.length <= 2 ? ns.join(', ') : `${ns.slice(0, 2).join(', ')} +${ns.length - 2}`) : 'elegir';
+  const nl = t2.lims.filter(l => { try { return limVisible(l); } catch (e) { return true; } }).length;
+  document.querySelectorAll('[data-t2r=proy]').forEach(e => { e.textContent = txt; });
+  document.querySelectorAll('[data-t2r=lim]').forEach(e => { e.textContent = nl ? String(nl) : 'subir'; });
+  const m = $('t2mini'); if (m) {
+    const r = t2.result;
+    if (!r || !r.n) { m.hidden = true; return; }
+    m.hidden = false;
+    const f = (k, d) => fmt((r.fields[k] || {}).mean, d, '—');
+    m.querySelector('.mt').textContent = r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') + ' t' : r.n + ' tal.';
+    m.querySelector('.mm').textContent = matAuto(r) || '';
+    m.querySelector('.ml').textContent = `Fe ${f('fe', 'c3')} · FeO ${f('feo', 'c3')} · S/FeS ${f('sfe', 'c3')}`;
+  }
+}
+function t2Layout() {
+  const tab = $('tab2'), main = tab.querySelector('.main'), side = main.querySelector('.side'), viewer = main.querySelector('.viewer');
+  const boxes = [...side.querySelectorAll(':scope > .box')]; if (boxes.length < 3) return;
+  const [bProy, bLim, bAv] = boxes, wrap = $('cad2wrap'), tiles = $('t2Tiles'), msg = $('t2Msg'), saveRow = $('btnSaveAv').closest('.btnrow');
+  if (!ES_APP) {
+    T2L.modo = 'pc'; document.body.classList.add('t2pc');
+    const bar = document.createElement('div'); bar.id = 't2bar'; bar.className = 't2bar';
+    bar.innerHTML = `<label>Mina</label><span id="t2sMina"></span><label>Nivel</label><span id="t2sNivel"></span>
+      <div class="t2dd"><button type="button" class="t2b" data-pop="t2popProy">Proyectos: <b data-t2r="proy">elegir</b> ▾</button><div class="t2pop" id="t2popProy" hidden></div></div>
+      <div class="t2dd"><button type="button" class="t2b" data-pop="t2popLim">Límites: <b data-t2r="lim">subir</b> ▾</button><div class="t2pop" id="t2popLim" hidden></div></div>
+      <span style="flex:1"></span><button type="button" class="t2b" id="t2bHist">Historial ↓</button>`;
+    viewer.prepend(bar);
+    $('t2sMina').appendChild($('fMina')); $('t2sNivel').appendChild($('fNivel'));
+    [...bProy.children].forEach(ch => { if (!ch.classList.contains('step') && !ch.classList.contains('grid2')) $('t2popProy').appendChild(ch); });
+    [...bLim.children].forEach(ch => { if (!ch.classList.contains('step')) $('t2popLim').appendChild(ch); });
+    const row = document.createElement('div'); row.className = 't2row'; bar.after(row);
+    row.appendChild(wrap);
+    const aside = document.createElement('aside'); aside.className = 't2aside'; aside.setAttribute('aria-label', 'Resultado y datos del avance');
+    const h = document.createElement('div'); h.className = 't2ah'; h.textContent = 'Resultado del avance';
+    aside.append(h, tiles, msg, saveRow, bAv); row.appendChild(aside);
+    const ao = $('avOpts'), aoh = $('avOptsHome');
+    if (ao && aoh) { const d = document.createElement('details'); d.className = 'adv'; d.innerHTML = '<summary>Opciones del avance (banco, burden, tipo, estimación…)</summary>'; ao.before(d); d.append(ao, aoh); }
+    side.hidden = true;
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('[data-pop]'); if (!b) return; e.stopPropagation();
+      const p = $(b.dataset.pop), abrir = p.hidden; document.querySelectorAll('.t2pop').forEach(x => { x.hidden = true; }); p.hidden = !abrir;
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('.t2dd')) document.querySelectorAll('.t2pop').forEach(x => { x.hidden = true; }); });
+    $('t2bHist').addEventListener('click', () => { const s = tab.querySelector(':scope > .section'); if (s) s.scrollIntoView({ behavior: 'smooth' }); });
+  } else {
+    T2L.modo = 'app'; document.body.classList.add('t2app');
+    const row = document.createElement('div'); row.className = 't2arow';
+    const rail = document.createElement('nav'); rail.className = 't2rail'; rail.setAttribute('aria-label', 'Herramientas del avance');
+    const ic = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+    rail.innerHTML = `<button type="button" data-dw="proy">${ic('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M4 9h16"/>')}<span>Proyectos</span><small data-t2r="proy"></small></button>
+      <button type="button" data-dw="lim">${ic('<path d="M4 7l8-4 8 4v10l-8 4-8-4z"/>')}<span>Límites</span><small data-t2r="lim"></small></button>
+      <button type="button" data-dw="av">${ic('<path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 0 1 3 3L8 18.5z"/>')}<span>Avance</span></button>`;
+    const dw = document.createElement('div'); dw.className = 't2drawer'; dw.hidden = true;
+    const panel = (id, nodes) => { const d = document.createElement('div'); d.className = 't2panel'; d.dataset.p = id; d.hidden = true; nodes.forEach(n => d.appendChild(n)); dw.appendChild(d); return d; };
+    panel('proy', [bProy]); panel('lim', [bLim]); panel('av', [tiles, msg, saveRow, bAv]);
+    const plano = document.createElement('div'); plano.className = 't2plano';
+    viewer.prepend(row); row.append(rail, dw, plano); plano.appendChild(wrap);
+    const mini = document.createElement('div'); mini.id = 't2mini'; mini.className = 't2mini'; mini.hidden = true;
+    mini.innerHTML = `<div><b class="mt"></b> <span class="mm"></span></div><div class="ml"></div><button type="button" class="btn small" id="t2miniSave">Guardar</button>`;
+    wrap.appendChild(mini);
+    $('t2miniSave').addEventListener('click', () => $('btnSaveAv').click());
+    side.hidden = true;
+    rail.addEventListener('click', e => {
+      const b = e.target.closest('[data-dw]'); if (!b) return;
+      const ya = !dw.hidden && dw.dataset.open === b.dataset.dw;
+      dw.querySelectorAll('.t2panel').forEach(p => { p.hidden = p.dataset.p !== b.dataset.dw; });
+      rail.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(!ya && x === b)));
+      dw.hidden = ya; dw.dataset.open = ya ? '' : b.dataset.dw;
+      requestAnimationFrame(() => { pv.resize(); pv.draw(); });
+    });
+  }
+  t2Resumen();
+  requestAnimationFrame(() => { pv.resize(); if (t2.holes.length) { pv.fit(t2Bounds()); } pv.draw(); });
+}
+try { t2Layout(); } catch (e) { console.error('t2Layout', e); }
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
