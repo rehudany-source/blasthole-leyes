@@ -540,7 +540,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v32</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v33</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1591,6 +1591,36 @@ const AVG_FIELDS = [
   { k: 'cfe', label: 'CFe', dec: 'c3' }, { k: 'cs', label: 'CS', dec: 2 }, { k: 'ccins', label: 'CC Insol', dec: 'c3' },
   { k: 'ph', label: 'pH', dec: 1 }, { k: 'ph4', label: 'pH4', dec: 2 },
 ];
+// ===== Densidad =====
+// En tu base la densidad sale de una fórmula con el Fe (R² 0.99): densidad ≈ 2.36 + 0.034 × Fe.
+// El valor 2.74 aparece en ~15 000 filas con Fe alto: es un valor por defecto, no una medición.
+const DENS_DEF = 2.74;
+let DENS_MODEL = { a: 2.3612, b: 0.034, n: 0, fuente: 'fórmula general' };
+function fitDensModel(base) {
+  let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  base.projects.forEach(p => p.rows.forEach(r => {
+    const d = r.density, fe = r.fe;
+    if (d == null || fe == null || fe <= 0 || fe > 72.4 || d < 1.5 || d > 5.5 || densPorDefecto(d, fe)) return;
+    n++; sx += fe; sy += d; sxx += fe * fe; sxy += fe * d;
+  }));
+  if (n < 200) return DENS_MODEL;
+  const b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n;
+  if (!(b > 0.01 && b < 0.08 && a > 1.5 && a < 3.5)) return DENS_MODEL;
+  DENS_MODEL = { a, b, n, fuente: `ajustada con ${n.toLocaleString('es-PE')} muestras de tu base` };
+  return DENS_MODEL;
+}
+// 2.74 con Fe mayor a 15 % no es real (la fórmula daría más de 2.87)
+function densPorDefecto(d, fe) { return Math.abs(d - DENS_DEF) < 0.005 && fe != null && fe > 15; }
+const densFe = fe => DENS_MODEL.a + DENS_MODEL.b * fe;
+// Densidad que se usa para un taladro: la medida si es válida; si falta o es la de defecto, la calculada con su Fe
+function densDe(l) {
+  if (!l) return { d: null, src: 'none' };
+  const d = l.density, fe = l.fe;
+  if (d != null && d >= 1.5 && d <= 5.5 && !densPorDefecto(d, fe)) return { d, src: 'medida' };
+  if (fe != null && fe > 0 && fe <= 72.4) return { d: Math.round(densFe(fe) * 1000) / 1000, src: d != null ? 'defecto' : 'falta' };
+  return { d: null, src: 'none' };
+}
+
 // ===== Control de calidad de leyes =====
 // 'bad' = físicamente imposible (seguro un error de digitación): ese valor no se usa en el promedio.
 // 'warn' = poco común (fuera del 99.9 % de tu base): se usa, pero conviene revisarlo.
@@ -2136,7 +2166,7 @@ async function idbGet(k) { const db = await idb(); if (!db) return null; return 
 async function idbDel(k) { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete(k); } catch (e) {} }
 
 function setBase(csv, name, savedAt) {
-  state.base = buildBase(csv); state.baseName = name; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
+  state.base = buildBase(csv); try { fitDensModel(state.base); } catch (e) {} state.baseName = name; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
   const labels = [...state.base.projects.values()].map(p => p.label).sort();
   $('projList').innerHTML = labels.map(l => `<option value="${esc(l)}"></option>`).join('');
 }
@@ -3297,10 +3327,14 @@ function computeT2() {
   // Control de calidad: los valores imposibles no entran; los raros se avisan
   const qcBad = [], qcWarn = [];
   items.forEach(i => { const qs = qcLey(i.ley); if (!qs.length) return; const id = i.hole.id; qs.forEach(q => (q.lvl === 'bad' ? qcBad : qcWarn).push(`${id}: ${qcTxt(q)}`)); i.ley = qcLimpia(i.ley, qs); });
+  // Densidad: la medida; si falta o es el 2.74 por defecto, se calcula con el Fe
+  const dens = { medida: 0, defecto: 0, falta: 0, none: 0 };
+  const conDens = i => { const r = densDe(i.ley); dens[r.src]++; if (r.src !== 'medida' && r.d != null) i.ley = Object.assign({}, i.ley, { density: r.d, densSrc: r.src }); return i; };
+  items.forEach(conDens);
   // Taladros sin ley: estimación por inverso a la distancia (si está activada)
   const est = idwEstimar(noLey.concat(pending));
   t2.estBy = est.by;
-  est.items.forEach(i => items.push(i));
+  est.items.forEach(i => { if (i.ley.fe != null) i.ley.density = Math.round(densFe(i.ley.fe) * 1000) / 1000; items.push(i); });
   const noEst = noLey.concat(pending).filter(k => !est.by.has(k));
   // Misma profundidad para todos los taladros: el peso de cada uno es su densidad (× B × E × H para el tonelaje)
   const H = num('avH'), B = H ? num('avB') : null, E = H ? num('avE') : null;
@@ -3347,7 +3381,7 @@ function computeT2() {
   }
   const pids = [...new Set(items.map(i => i.hole.pid))];
   const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
-  t2.result = { tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  t2.result = { dens, tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
@@ -3361,6 +3395,7 @@ function computeT2() {
   if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
   if (idwCfg().on && noEst.length && est.items.length + noEst.length) notes.push(`${noEst.length} sin vecinos suficientes dentro de ${idwCfg().r} m: quedan sin ley.`.replace(`${idwCfg().r} m`, `${idwCfg().r} m (${idwCfg().rs} m arriba)`));
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
+  if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · d = ${DENS_MODEL.a.toFixed(2)} + ${DENS_MODEL.b.toFixed(4)} × Fe.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
   setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
@@ -4265,14 +4300,15 @@ function leyesNuevas(a) {
     if (own.has(h.ck)) return;
     if (shapes.some(P => pointInPoly(h.x, h.y, P))) n++;
   });
-  return { n, est };
+  const dens = (a.result.rows || []).filter(x => !x.est && x.density === DENS_DEF && (t2.leyBy.get(x.ck) || {}).fe > 15).length;
+  return { n, est, dens };
 }
 function renderNuevas() {
   const box = $('avNuevas'); if (!box) return;
-  const L = t2.avs.map(a => ({ a, r: leyesNuevas(a) })).filter(x => x.r.n || x.r.est);
+  const L = t2.avs.map(a => ({ a, r: leyesNuevas(a) })).filter(x => x.r.n || x.r.est || x.r.dens);
   if (!L.length) { box.hidden = true; box.innerHTML = ''; return; }
   box.hidden = false;
-  box.innerHTML = `<b class="t">🔔 Hay leyes nuevas para ${L.length} avance${L.length > 1 ? 's' : ''} guardado${L.length > 1 ? 's' : ''}</b>` + L.map(({ a, r }) => `<div class="an"><span>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''} · ${esc(a.projectNames.join(' + '))}: ${[r.n ? `${r.n} taladro${r.n > 1 ? 's' : ''} ya tiene${r.n > 1 ? 'n' : ''} resultado` : '', r.est ? `${r.est} que eran estimado${r.est > 1 ? 's' : ''} ya tiene${r.est > 1 ? 'n' : ''} ley real` : ''].filter(Boolean).join(' y ')}</span><button class="btn small" type="button" data-upd="${esc(a.id)}">Actualizar promedio</button></div>`).join('');
+  box.innerHTML = `<b class="t">🔔 Hay datos nuevos para ${L.length} avance${L.length > 1 ? 's' : ''} guardado${L.length > 1 ? 's' : ''}</b>` + L.map(({ a, r }) => `<div class="an"><span>${fmtDate(a.fecha)}${a.nombre ? ' · ' + esc(a.nombre) : ''} · ${esc(a.projectNames.join(' + '))}: ${[r.n ? `${r.n} taladro${r.n > 1 ? 's' : ''} ya tiene${r.n > 1 ? 'n' : ''} resultado` : '', r.est ? `${r.est} que eran estimado${r.est > 1 ? 's' : ''} ya tiene${r.est > 1 ? 'n' : ''} ley real` : '', r.dens ? `${r.dens} con densidad 2.74 por defecto (se corrige con el Fe)` : ''].filter(Boolean).join(' y ')}</span><button class="btn small" type="button" data-upd="${esc(a.id)}">Actualizar promedio</button></div>`).join('');
 }
 async function actualizarAvance(id) {
   const a = lib.avances.find(x => x.id === id); if (!a) return;
