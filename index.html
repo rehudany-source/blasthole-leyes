@@ -531,7 +531,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v29</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v30</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -768,10 +768,11 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
             <div class="grid2">
               <label class="f">Usar leyes de<select id="idwSrc"><option value="ambos">Mismo nivel + banco de arriba</option><option value="nivel">Solo mismo nivel</option><option value="sup">Solo banco de arriba</option></select></label>
               <label class="f">Potencia<select id="idwP"><option value="2">2 (el cercano pesa mucho más)</option><option value="1">1 (más suave)</option></select></label>
-              <label class="f">Radio máximo (m)<select id="idwR"><option>10</option><option>15</option><option selected>20</option><option>25</option><option>30</option></select></label>
+              <label class="f">Radio mismo nivel (m)<select id="idwR"><option>5</option><option>8</option><option selected>10</option><option>12</option><option>15</option><option>20</option></select></label>
+              <label class="f">Radio banco de arriba (m)<select id="idwRs"><option>10</option><option>12</option><option selected>15</option><option>20</option></select></label>
               <label class="f">Vecinos (mín – máx)<span class="idw2"><select id="idwMin"><option>1</option><option selected>2</option><option>3</option></select><select id="idwMax"><option>4</option><option>6</option><option selected>8</option><option>12</option></select></span></label>
             </div>
-            <p class="note">Peso = 1 / distancia<sup id="idwPsup">2</sup>, medida en planta. Fuera del radio no cuenta; con menos vecinos que el mínimo el taladro queda sin ley. Los estimados se ven en morado y el reporte dice qué % del promedio es estimado.</p>
+            <p class="note">Peso = 1 / distancia<sup id="idwPsup">2</sup>, medida en planta. Tu malla es de ~4 m: 10 m ≈ 2 filas. Fuera del radio no cuenta; con menos vecinos que el mínimo el taladro queda sin ley. Los estimados se ven en morado y el reporte dice qué % del promedio es estimado.</p>
           </details>
           <label class="chk"><input type="checkbox" id="avLibre"> Dibujar a mano alzada con el dedo o el mouse</label>
           <div class="shlist" id="avShapes"></div>
@@ -3262,7 +3263,7 @@ function computeT2() {
   const pendR = pending.filter(k => noEst.includes(k)), noLeyR = noLey.filter(k => noEst.includes(k));
   if (pendR.length) notes.push(`${pendR.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pendR)}.`);
   if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
-  if (idwCfg().on && noEst.length && est.items.length + noEst.length) notes.push(`${noEst.length} sin vecinos suficientes dentro de ${idwCfg().r} m: quedan sin ley.`);
+  if (idwCfg().on && noEst.length && est.items.length + noEst.length) notes.push(`${noEst.length} sin vecinos suficientes dentro de ${idwCfg().r} m: quedan sin ley.`.replace(`${idwCfg().r} m`, `${idwCfg().r} m (${idwCfg().rs} m arriba)`));
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
@@ -4113,7 +4114,7 @@ $('t1Busca').addEventListener('input', () => { t1BarRender(); const o = [...$('t
 // ===== Estimación por inverso a la distancia (taladros sin ley) =====
 function idwCfg() {
   const g = id => $(id) ? $(id).value : '';
-  return { on: !!($('idwOn') && $('idwOn').checked), src: g('idwSrc') || 'ambos', p: parseFloat(g('idwP')) || 2, r: parseFloat(g('idwR')) || 20, min: parseInt(g('idwMin'), 10) || 2, max: parseInt(g('idwMax'), 10) || 8 };
+  return { on: !!($('idwOn') && $('idwOn').checked), src: g('idwSrc') || 'ambos', p: parseFloat(g('idwP')) || 2, r: parseFloat(g('idwR')) || 10, rs: parseFloat(g('idwRs')) || 15, min: parseInt(g('idwMin'), 10) || 2, max: parseInt(g('idwMax'), 10) || 8 };
 }
 function idwFuentes(c) {
   const pts = [];
@@ -4124,11 +4125,11 @@ function idwFuentes(c) {
 function idwEstimar(keys) {
   const c = idwCfg(), by = new Map(), items = [];
   if (!c.on || !keys.length) return { by, items };
-  const pts = idwFuentes(c), R2 = c.r * c.r;
+  const pts = idwFuentes(c), R2 = c.r * c.r, RS2 = c.rs * c.rs;
   keys.forEach(k => {
     const h = t2.holeBy.get(k); if (!h) return;
     const near = [];
-    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 <= R2) near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
+    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 <= (q.sup ? RS2 : R2)) near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
     near.sort((a, b) => a.d - b.d); const use = near.slice(0, c.max);
     if (use.length < c.min) return;
     const l = { key: h.key, grupo: h.id, est: true, estN: use.length, estD: +use[use.length - 1].d.toFixed(1) };
@@ -4138,9 +4139,9 @@ function idwEstimar(keys) {
   return { by, items };
 }
 (() => {
-  const ids = ['idwOn', 'idwSrc', 'idwP', 'idwR', 'idwMin', 'idwMax'];
-  try { const g = JSON.parse(localStorage.getItem('bhl-idw') || 'null'); if (g) ids.forEach(id => { if (g[id] != null) { if (id === 'idwOn') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
-  const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'idwOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-idw', JSON.stringify(o)); } catch (e) {} $('idwPsup').textContent = $('idwP').value; if ($('idwOn').checked) { supCalc(); $('idwBox').open = true; } computeT2(); pv.draw(); };
+  const ids = ['idwOn', 'idwSrc', 'idwP', 'idwR', 'idwRs', 'idwMin', 'idwMax'];
+  try { const g = JSON.parse(localStorage.getItem('bhl-idw2') || 'null'); if (g) ids.forEach(id => { if (g[id] != null) { if (id === 'idwOn') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
+  const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'idwOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-idw2', JSON.stringify(o)); } catch (e) {} $('idwPsup').textContent = $('idwP').value; if ($('idwOn').checked) { supCalc(); $('idwBox').open = true; } computeT2(); pv.draw(); };
   ids.forEach(id => $(id).addEventListener('change', upd));
   $('idwPsup').textContent = $('idwP').value;
 })();
