@@ -491,6 +491,12 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.idw { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; display: grid; gap: 8px; }
+.idw > summary { list-style: none; cursor: pointer; }
+.idw > summary::-webkit-details-marker { display: none; }
+.idw[open] { border-color: #b65cff; }
+.idw2 { display: flex; gap: 6px; } .idw2 select { flex: 1; }
+.est { color: #b65cff; font-style: italic; }
 .t1bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel, var(--bg)); margin-bottom: 10px; font: 600 .82rem var(--f-body); }
 .t1bar label { display: flex; align-items: center; gap: 6px; }
 .t1bar select, .t1bar input { font: 500 .88rem var(--f-mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: inherit; min-height: 34px; width: auto; }
@@ -525,7 +531,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v28</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v29</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -757,6 +763,16 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
+          <details class="idw" id="idwBox">
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn"> Estimar taladros sin ley (inverso a la distancia)</label></summary>
+            <div class="grid2">
+              <label class="f">Usar leyes de<select id="idwSrc"><option value="ambos">Mismo nivel + banco de arriba</option><option value="nivel">Solo mismo nivel</option><option value="sup">Solo banco de arriba</option></select></label>
+              <label class="f">Potencia<select id="idwP"><option value="2">2 (el cercano pesa mucho más)</option><option value="1">1 (más suave)</option></select></label>
+              <label class="f">Radio máximo (m)<select id="idwR"><option>10</option><option>15</option><option selected>20</option><option>25</option><option>30</option></select></label>
+              <label class="f">Vecinos (mín – máx)<span class="idw2"><select id="idwMin"><option>1</option><option selected>2</option><option>3</option></select><select id="idwMax"><option>4</option><option>6</option><option selected>8</option><option>12</option></select></span></label>
+            </div>
+            <p class="note">Peso = 1 / distancia<sup id="idwPsup">2</sup>, medida en planta. Fuera del radio no cuenta; con menos vecinos que el mínimo el taladro queda sin ley. Los estimados se ven en morado y el reporte dice qué % del promedio es estimado.</p>
+          </details>
           <label class="chk"><input type="checkbox" id="avLibre"> Dibujar a mano alzada con el dedo o el mouse</label>
           <div class="shlist" id="avShapes"></div>
           <div class="btnrow">
@@ -2897,7 +2913,7 @@ function refreshT2() {
   t2.projs = lib.projects.filter(p => t2.selIds.has(p.id) && vis.has(p.id));
   t2.ocultos = [...t2.selIds].filter(id => !vis.has(id) && lib.projects.some(p => p.id === id)).length;
   paintFsFiltro();
-  t2.holes = []; t2.holeBy = new Map(); t2.leyBy = new Map();
+  t2.holes = []; t2.holeBy = new Map(); t2.leyBy = new Map(); t2.supData = null;
   const errs = [];
   t2.projs.forEach(p => {
     const L = leyesForProject(p);
@@ -3013,7 +3029,8 @@ function renderPlan2(ctx, v) {
     const has = l && l.hasData !== false;
     const prev = !viewing && t2.prevKey.has(h.ck);
     const inSel = selKeys.has(h.ck);
-    const val = has && F ? l[F.k] : null;
+    const le = !has && t2.estBy && !viewing ? t2.estBy.get(h.ck) : null;
+    const val = has && F ? l[F.k] : le && F ? le[F.k] : null;
     const rc = inSel ? (ringC.get(h.ck) || CAD.sel) : null;
     if (inSel) { ctx.beginPath(); ctx.arc(x, y, r * 2, 0, Math.PI * 2); ctx.globalAlpha = 0.22; ctx.fillStyle = rc; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = rc; ctx.lineWidth = 1.5; ctx.stroke(); }
     // sin texto (alejado): el punto toma el color de la ley
@@ -3024,7 +3041,8 @@ function renderPlan2(ctx, v) {
     ctx.font = `${fs}px Arial, sans-serif`; ctx.textAlign = 'center';
     if (TODAS) return;
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
-    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = prev ? CAD.prevTxt : anColor(val, br); ctx.font = `600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, ''), x, y - r - 2); }
+    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? SUP_COLOR : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
+    if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
   });
   if (t2.sup) drawSup(ctx, v, F, br);
   if (TODAS) drawTodas(ctx, v);
@@ -3194,6 +3212,11 @@ function computeT2() {
     if (t2.prevKey.has(k)) repeated.push(k);
     if (!l) noLey.push(k); else if (l.hasData === false) pending.push(k); else items.push({ hole: h, ley: l });
   });
+  // Taladros sin ley: estimación por inverso a la distancia (si está activada)
+  const est = idwEstimar(noLey.concat(pending));
+  t2.estBy = est.by;
+  est.items.forEach(i => items.push(i));
+  const noEst = noLey.concat(pending).filter(k => !est.by.has(k));
   // Misma profundidad para todos los taladros: el peso de cada uno es su densidad (× B × E × H para el tonelaje)
   const H = num('avH'), B = H ? num('avB') : null, E = H ? num('avE') : null;
   const uni = arr => arr.map(i => ({ hole: Object.assign({}, i.hole, { depth: H || 1 }), ley: i.ley }));
@@ -3228,14 +3251,18 @@ function computeT2() {
     groups.forEach(g => { g.pct = tot && g.n ? 100 * (g.wEff || 0) / tot : 0; });
   }
   const pids = [...new Set(items.map(i => i.hole.pid))];
-  t2.result = { n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => ({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w })) };
+  const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
+  t2.result = { nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
-  if (pending.length) notes.push(`${pending.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pending)}.`);
-  if (noLey.length) notes.push(`${noLey.length} taladro(s) sin muestra en la base (no entran).`);
+  if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado).`);
+  const pendR = pending.filter(k => noEst.includes(k)), noLeyR = noLey.filter(k => noEst.includes(k));
+  if (pendR.length) notes.push(`${pendR.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pendR)}.`);
+  if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
+  if (idwCfg().on && noEst.length && est.items.length + noEst.length) notes.push(`${noEst.length} sin vecinos suficientes dentro de ${idwCfg().r} m: quedan sin ley.`);
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
@@ -3307,7 +3334,7 @@ function renderHistory() {
   if (!t2.projs.length) { tb.innerHTML = ''; return; }
   if (!t2.avs.length) { tb.innerHTML = '<tbody><tr><td class="empty">Los proyectos marcados aún no tienen avances guardados.</td></tr></tbody>'; return; }
   const f = (v, d) => fmt(v, d, '—');
-  const row = a => `<td>${a.n}</td><td>${a.tonnage ? Math.round(a.tonnage).toLocaleString('es-PE') : '—'}</td>` + AVG_FIELDS.map(F => `<td>${f((a.fields[F.k] || {}).mean, F.dec)}</td>`).join('');
+  const row = a => `<td>${a.n}${a.nEst ? ` <small class="est">(${a.nEst} est.)</small>` : ''}</td><td>${a.tonnage ? Math.round(a.tonnage).toLocaleString('es-PE') : '—'}</td>` + AVG_FIELDS.map(F => `<td>${f((a.fields[F.k] || {}).mean, F.dec)}</td>`).join('');
   const c = cumulative();
   const inp = (a, k, ph, w) => `<input class="hin" data-id="${a.id}" data-k="${k}" value="${esc(a[k] || '')}" placeholder="${ph}" style="width:${w}" aria-label="${ph}">`;
   tb.innerHTML = '<thead><tr><th>Fecha</th><th>Proyectos</th><th>Avance</th><th>Taladros</th><th>Tonelaje (t)</th>' + AVG_FIELDS.map(F => `<th>${F.label}</th>`).join('') + '<th>Tipo</th><th>Material</th><th>Obs.</th><th></th></tr></thead><tbody>' +
@@ -3343,19 +3370,19 @@ function exportName() {
   const n = t2.projs.length === 1 ? t2.projs[0].name : `${t2.projs.length}_proyectos`;
   return n.replace(/[^A-Za-z0-9-]+/g, '_');
 }
-const histHead = ['Fecha', 'Proyectos', 'Avance', 'Taladros', 'Tonelaje (t)'].concat(AVG_FIELDS.map(F => F.label)).concat(['Material', 'Taladros incluidos']);
+const histHead = ['Fecha', 'Proyectos', 'Avance', 'Taladros', 'Tonelaje (t)'].concat(AVG_FIELDS.map(F => F.label)).concat(['Material', '% estimado', 'Taladros incluidos']);
 $('btnHistXlsx').addEventListener('click', async () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const numCell = (v, dec) => (v == null ? '' : dec === 'c3' ? { v: Number(fmt(v, 'c3', '')), t: 'n', dec: fmt(v, 'c3', '').split('.')[1]?.length || 0 } : { v: Number(v.toFixed(dec)), t: 'n', dec });
   const sh1 = [histHead.map(h => ({ v: h, bold: true }))].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', { v: r.n, t: 'n', dec: 0 }, r.tonnage ? { v: Math.round(r.tonnage), t: 'n', dec: 0 } : '']
-    .concat(AVG_FIELDS.map(F => numCell((r.fields[F.k] || {}).mean, F.dec))).concat([matDe(a), labelsFor(a.keys).join(', ')]); }));
+    .concat(AVG_FIELDS.map(F => numCell((r.fields[F.k] || {}).mean, F.dec))).concat([matDe(a), r.nEst ? { v: Number(r.estPct.toFixed(1)), t: 'n', dec: 1 } : '', labelsFor(a.keys).join(', ')]); }));
   const c = cumulative();
   if (c) sh1.push([{ v: 'Acumulado', bold: true }, '', `${t2.avs.length} avances`, { v: c.n, t: 'n', dec: 0 }, c.tonnage ? { v: Math.round(c.tonnage), t: 'n', dec: 0 } : ''].concat(AVG_FIELDS.map(F => numCell(c.fields[F.k].mean, F.dec))).concat([matAuto(c)]));
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true }))];
   t2.avs.forEach(a => (a.result.rows || []).forEach(x => {
     const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id));
-    const l = t2.leyBy.get(ck) || {};
-    det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id, { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }].concat(AVG_FIELDS.map(F => numCell(l[F.k], F.dec))));
+    const l = x.est ? x.ley : (t2.leyBy.get(ck) || {});
+    det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id + (x.est ? ' (estimado)' : ''), { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }].concat(AVG_FIELDS.map(F => numCell(l[F.k], F.dec))));
   }));
   const blob = await makeXlsx([{ name: 'Avances', rows: sh1 }, { name: 'Detalle por taladro', rows: det }]);
   save(`Avances_${exportName()}.xlsx`, blob, $('histMsg'));
@@ -3396,7 +3423,7 @@ $('btnReporte').addEventListener('click', async () => {
     rows.push([Object.assign({ v: fmtDate(a.fecha) }, box), Object.assign({ v: uniq(cs.map(c => c.mina)) }, box), Object.assign({ v: uniq(cs.map(c => c.nivel)) }, box), Object.assign({ v: a.projectNames.join(' + ') }, box), Object.assign({ v: a.nombre || '' }, box),
       Object.assign({ v: r.n, t: 'n', dec: 0 }, box), r.tonnage ? Object.assign({ v: Math.round(r.tonnage), t: 'n', fmt: '#,##0' }, box) : Object.assign({ v: '-' }, box)]
       .concat(cols.slice(7, 17).map(c => (c[2] ? numC((r.fields[c[2]] || {}).mean, c[3]) : Object.assign({ v: '-' }, box))))
-      .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: matDe(a) }, box), { v: a.obs || '', border: true }]));
+      .concat([Object.assign({ v: a.tipo || '', color: 'FF0000' }, box), Object.assign({ v: matDe(a) }, box), { v: [a.obs || '', a.result.nEst ? `${a.result.estPct.toFixed(0)}% estimado (IDW)` : ''].filter(Boolean).join(' · '), border: true }]));
   });
   if (avs.length > 1) {
     const cb = combineAvances(avs);
@@ -3421,7 +3448,7 @@ $('btnReporte').addEventListener('click', async () => {
 $('btnHistCsv').addEventListener('click', () => {
   if (!t2.avs.length) { setMsg('histMsg', 'err', 'No hay avances guardados para exportar.'); return; }
   const q = s => (/[",\n]/.test(String(s)) ? `"${String(s).replace(/"/g, '""')}"` : s);
-  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, r.tonnage ? Math.round(r.tonnage) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([matDe(a), labelsFor(a.keys).join(' ')]).map(q).join(','); }));
+  const lines = [histHead.join(',')].concat(t2.avs.map(a => { const r = a.result; return [fmtDate(a.fecha), a.projectNames.join(' + '), a.nombre || '', r.n, r.tonnage ? Math.round(r.tonnage) : ''].concat(AVG_FIELDS.map(F => fmt((r.fields[F.k] || {}).mean, F.dec, ''))).concat([matDe(a), r.nEst ? r.estPct.toFixed(1) : '', labelsFor(a.keys).join(' ')]).map(q).join(','); }));
   save(`Avances_${exportName()}.csv`, lines.join('\r\n') + '\r\n', $('histMsg'));
 });
 
@@ -4082,6 +4109,41 @@ $('t1Proj').addEventListener('change', () => {
 $('t1Mina').addEventListener('change', () => { vl.mina = $('t1Mina').value; vl.nivel = ''; vlGuardar(); t1BarRender(); try { vlRender(); } catch (e) {} });
 $('t1Nivel').addEventListener('change', () => { vl.nivel = $('t1Nivel').value; vlGuardar(); t1BarRender(); try { vlRender(); } catch (e) {} });
 $('t1Busca').addEventListener('input', () => { t1BarRender(); const o = [...$('t1Proj').options].filter(o => o.value && o.value !== '*'); if (o.length === 1 && $('t1Busca').value.trim().length >= 3 && $('t1Proj').value !== o[0].value) { $('t1Proj').value = o[0].value; $('t1Proj').dispatchEvent(new Event('change')); } });
+
+// ===== Estimación por inverso a la distancia (taladros sin ley) =====
+function idwCfg() {
+  const g = id => $(id) ? $(id).value : '';
+  return { on: !!($('idwOn') && $('idwOn').checked), src: g('idwSrc') || 'ambos', p: parseFloat(g('idwP')) || 2, r: parseFloat(g('idwR')) || 20, min: parseInt(g('idwMin'), 10) || 2, max: parseInt(g('idwMax'), 10) || 8 };
+}
+function idwFuentes(c) {
+  const pts = [];
+  if (c.src !== 'sup') t2.holes.forEach(h => { const l = t2.leyBy.get(h.ck); if (l && l.hasData !== false) pts.push({ x: h.x, y: h.y, l, sup: false }); });
+  if (c.src !== 'nivel') { if (!t2.supData) supCalc(); (t2.supData.holes || []).forEach(h => { if (h.l) pts.push({ x: h.x, y: h.y, l: h.l, sup: true }); }); }
+  return pts;
+}
+function idwEstimar(keys) {
+  const c = idwCfg(), by = new Map(), items = [];
+  if (!c.on || !keys.length) return { by, items };
+  const pts = idwFuentes(c), R2 = c.r * c.r;
+  keys.forEach(k => {
+    const h = t2.holeBy.get(k); if (!h) return;
+    const near = [];
+    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 <= R2) near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
+    near.sort((a, b) => a.d - b.d); const use = near.slice(0, c.max);
+    if (use.length < c.min) return;
+    const l = { key: h.key, grupo: h.id, est: true, estN: use.length, estD: +use[use.length - 1].d.toFixed(1) };
+    AVG_FIELDS.concat([{ k: 'density' }]).forEach(F => { let sw = 0, sv = 0; use.forEach(u => { const v = u.q.l[F.k]; if (v == null) return; const w = 1 / Math.pow(u.d, c.p); sw += w; sv += w * v; }); if (sw) l[F.k] = sv / sw; });
+    by.set(k, l); items.push({ hole: h, ley: l });
+  });
+  return { by, items };
+}
+(() => {
+  const ids = ['idwOn', 'idwSrc', 'idwP', 'idwR', 'idwMin', 'idwMax'];
+  try { const g = JSON.parse(localStorage.getItem('bhl-idw') || 'null'); if (g) ids.forEach(id => { if (g[id] != null) { if (id === 'idwOn') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
+  const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'idwOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-idw', JSON.stringify(o)); } catch (e) {} $('idwPsup').textContent = $('idwP').value; if ($('idwOn').checked) { supCalc(); $('idwBox').open = true; } computeT2(); pv.draw(); };
+  ids.forEach(id => $(id).addEventListener('change', upd));
+  $('idwPsup').textContent = $('idwP').value;
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
