@@ -363,7 +363,7 @@ body.app .apptop h1 { flex-shrink: 0; }
 body.app .apptop-r .syncb { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html:has(body.app), body.app { overflow-x: hidden; max-width: 100vw; }
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
-body.app .appbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
 .appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .appbar button[aria-current="page"] { color: var(--accent); }
@@ -770,13 +770,30 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
 .topo-it { display: grid; grid-template-columns: 2.6em 2.6em 1fr auto; justify-items: start; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
 .topo-it small { color: var(--muted); } .topo-it .q { border: 0; background: none; color: var(--muted); cursor: pointer; }
 .topo-it > small:nth-child(-n+2), .topo-it label { justify-self: center; } .topo-it label { display: flex; gap: 3px; align-items: center; font-size: .75rem; }
+#tab3 { padding-top: 10px; }
+.v3d-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 10px; font-size: .85rem; }
+.v3d-bar .chk { display: flex; gap: 5px; align-items: center; }
+.v3d-topo { font-weight: 700; color: var(--accent, #b4532a); }
+.v3d-wrap { position: relative; height: min(74vh, 860px); min-height: 360px; border-radius: 12px; overflow: hidden; background: #171c21; border: 1px solid var(--line); touch-action: none; }
+.v3d-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#v3dTxt { pointer-events: none; }
+.v3d-info { position: absolute; left: 10px; top: 10px; background: rgba(20,24,28,.92); color: #eef0f2; padding: 8px 11px; border-radius: 10px; font-size: .85rem; line-height: 1.4; pointer-events: none; max-width: 75%; }
+body.app #tab3 { padding: 0 12px; }
+body.app .v3d-wrap { height: calc(100vh - 290px); height: calc(100dvh - 290px); }
+body.app .v3d-bar { font-size: .8rem; }
+.v3d-capas > summary { display: none; } .v3d-capas-in { display: contents; } .v3d-capas { display: contents; }
+body.app .v3d-capas { display: block; width: 100%; } body.app .v3d-capas > summary { display: list-item; cursor: pointer; font-weight: 600; }
+body.app .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 6px; }
+body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.small { padding: 6px 10px; font-size: .78rem; }
+body.app #tab3 .note { display: none; }
+body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v49</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v50</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -793,6 +810,7 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button role="tab" id="tabBtn1" aria-selected="true" aria-controls="tab1">1 · Proyectos</button>
       <button role="tab" id="tabBtn2" aria-selected="false" aria-controls="tab2">2 · Promedios por avance</button>
+      <button role="tab" id="tabBtn3" aria-selected="false" aria-controls="tab3">3 · Vista 3D</button>
     </nav>
     </div>
   </header>
@@ -1181,11 +1199,32 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
       <div class="hcards" id="histCards"></div>
     </div>
   </section>
+  <section class="tab" id="tab3" hidden>
+    <div class="v3d-bar">
+      <span class="v3d-topo" id="v3dTopo"></span>
+      <details class="v3d-capas" id="v3dCapas" open><summary>Capas y altura</summary><div class="v3d-capas-in">
+      <label class="chk"><input type="checkbox" id="v3d_tal" checked> Taladros</label>
+      <label class="chk"><input type="checkbox" id="v3d_av" checked> Avances</label>
+      <label class="chk"><input type="checkbox" id="v3d_lim" checked> Límites</label>
+      <label class="chk"><input type="checkbox" id="v3d_dif" checked> Minado entre fechas</label>
+      <label class="chk"><input type="checkbox" id="v3d_gps" checked> GPS</label>
+      <label class="chk"><input type="checkbox" id="v3dFull"> Toda la topografía</label>
+      <label>Altura <select id="v3dEx"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label>
+      </div></details>
+      <button type="button" class="btn sec small" id="v3dArriba">Vista de planta</button>
+      <button type="button" class="btn sec small" id="v3dIrMi">📍 Ir a mi ubicación</button>
+      <button type="button" class="btn sec small" id="v3dReset">Reiniciar vista</button>
+    </div>
+    <div class="v3d-wrap" id="v3dWrap"><canvas id="v3dCv"></canvas><canvas id="v3dTxt"></canvas><div class="v3d-info" id="v3dInfo" hidden></div></div>
+    <p class="msg" id="v3dMsg"></p>
+    <p class="note">Gira arrastrando con un dedo o el mouse · mueve con dos dedos (o clic derecho / Shift + arrastrar) · zoom pellizcando o con la rueda · toca un taladro para ver su ley. Se ven los proyectos marcados en la pestaña 2, coloreados con la ley elegida en «Ver ley», sobre la topografía «Hoy» de ⛰ Topo; lo minado entre «Antes» y «Hoy» sale en naranja después de calcular el avance entre fechas.</p>
+  </section>
 </div>
 
 <nav class="appbar" id="appBar" aria-label="Secciones de la app">
   <button type="button" data-at="avance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span>Avance</span></button>
   <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
+  <button type="button" data-at="3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>3D</span></button>
   <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
@@ -3362,13 +3401,15 @@ function normAvance(a) {
 
 // ===== Pestañas =====
 function showTab(n) {
-  [1, 2].forEach(i => { $('tab' + i).hidden = i !== n; $('tabBtn' + i).setAttribute('aria-selected', String(i === n)); });
+  [1, 2, 3].forEach(i => { if (!$('tab' + i)) return; $('tab' + i).hidden = i !== n; $('tabBtn' + i).setAttribute('aria-selected', String(i === n)); });
   try { localStorage.setItem('bhl-tab', String(n)); } catch (e) {}
   if (n === 1) { resize(); }
+  if (n === 3) { try { v3Mostrar(); } catch (e) {} }
   if (n === 2) { pv.resize(); if (t2.holes.length && !t2.fitted) { pv.fit(t2Bounds()); t2.fitted = true; } pv.draw(); }
 }
 $('tabBtn1').addEventListener('click', () => showTab(1));
 $('tabBtn2').addEventListener('click', () => showTab(2));
+$('tabBtn3').addEventListener('click', () => showTab(3));
 
 // ===== Pestaña 1: guardar proyecto =====
 // V44 (A-01): si ya existe un proyecto propio con el mismo código canónico (14A = 22), se usa SU id
@@ -4823,7 +4864,7 @@ const ES_APP = (() => {
     return ios || (tactil && (matchMedia('(display-mode: standalone)').matches || innerWidth < 1100));
   } catch (e) { return false; }
 })();
-const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', ajustes: 'Ajustes' };
+const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', ajustes: 'Ajustes' };
 function appTab(at) {
   if (!APP_TIT[at]) at = 'avance';
   document.body.dataset.apptab = at;
@@ -4831,8 +4872,8 @@ function appTab(at) {
   document.querySelectorAll('#appBar button').forEach(b => b.setAttribute('aria-current', b.dataset.at === at ? 'page' : 'false'));
   const aj = at === 'ajustes';
   $('appAjustes').hidden = !aj;
-  if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; pintarAjustes(); }
-  else showTab(at === 'proy' ? 1 : 2);
+  if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; pintarAjustes(); }
+  else showTab(at === 'proy' ? 1 : at === '3d' ? 3 : 2);
   try { localStorage.setItem('bhl-apptab', at); } catch (e) {}
   window.scrollTo(0, 0);
 }
@@ -6082,6 +6123,250 @@ function topoInfo(extra) {
     topoInfo(txt); pv.draw();
   };
   topoInit().then(() => { topoPintar(); });
+})();
+
+
+/* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
+const v3 = { gl: null, prog: null, built: '', cam: { yaw: -0.6, pitch: 0.75, dist: 600, tx: 0, ty: 0, tz: 0 }, ex: 1, org: [0, 0, 0], buf: {}, full: false,
+  ver: { tal: true, av: true, lim: true, dif: true, gps: true }, sel: null, labels: [], need: false, dem: null };
+const V3_FE = { m50: [1, 0.25, 1], m40: [1, 0.54, 0.12], m30: [0.19, 0.82, 0.35], bajo: [0.95, 0.95, 0.95], sin: [0.55, 0.57, 0.6] };
+const V3_RAMP = ['#5b8cff', '#40e0f0', '#30d158', '#ffd60a', '#ff6b4a'];
+function v3Hex(h) { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+function v3ColorLey(val) {
+  if (val == null) return V3_FE.sin;
+  if (t2.analito === 'fe' || !anField()) { const r = Math.round(val * 10) / 10; return r > 50 ? V3_FE.m50 : r >= 40 ? V3_FE.m40 : r >= 30 ? V3_FE.m30 : V3_FE.bajo; }
+  const br = anBreaks(); if (!br) return V3_FE.bajo;
+  let i = 0; while (i < br.length && val >= br[i]) i++;
+  return v3Hex(V3_RAMP[Math.round(i * (V3_RAMP.length - 1) / br.length)]);
+}
+// ---- matrices 4x4 (columna mayor) ----
+function m4Persp(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2), r = 1 / (n - f); return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (n + f) * r, -1, 0, 0, 2 * n * f * r, 0]; }
+function m4Look(e, c, u) {
+  let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2]; let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+  let xx = u[1] * zz - u[2] * zy, xy = u[2] * zx - u[0] * zz, xz = u[0] * zy - u[1] * zx; l = Math.hypot(xx, xy, xz) || 1; xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1];
+}
+function m4Mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; uniform float lit; varying vec3 vc;
+void main(){ vec3 q = vec3(p.x, p.y, p.z * ex); gl_Position = M * vec4(q, 1.0); gl_PointSize = ps;
+  vec3 nn = normalize(vec3(n.x, n.y, n.z / max(ex, 0.01))); vec3 L = normalize(vec3(-0.5, 0.6, 0.75));
+  float d = max(dot(nn, L), 0.0); vc = mix(c, c * (0.38 + 0.72 * d), lit); }`;
+const V3_FS = `precision mediump float; varying vec3 vc; uniform float al; uniform float pt;
+void main(){ if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; } gl_FragColor = vec4(vc, al); }`;
+function v3Init() {
+  if (v3.gl) return true;
+  const cv = $('v3dCv'); if (!cv) return false;
+  const gl = cv.getContext('webgl', { antialias: true, preserveDrawingBuffer: true }) || cv.getContext('experimental-webgl');
+  if (!gl) { $('v3dMsg').textContent = 'Este equipo no permite gráficos 3D (WebGL).'; return false; }
+  v3.u32 = !!gl.getExtension('OES_element_index_uint');
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, V3_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, V3_FS)); gl.linkProgram(pr);
+  v3.gl = gl; v3.prog = pr;
+  v3.loc = { p: gl.getAttribLocation(pr, 'p'), c: gl.getAttribLocation(pr, 'c'), n: gl.getAttribLocation(pr, 'n'), M: gl.getUniformLocation(pr, 'M'), ex: gl.getUniformLocation(pr, 'ex'), ps: gl.getUniformLocation(pr, 'ps'), lit: gl.getUniformLocation(pr, 'lit'), al: gl.getUniformLocation(pr, 'al'), pt: gl.getUniformLocation(pr, 'pt') };
+  v3Eventos(cv);
+  return true;
+}
+function v3Malla(arrP, arrC, arrN, idx) {
+  const gl = v3.gl, mk = (d, t) => { const b = gl.createBuffer(); gl.bindBuffer(t || gl.ARRAY_BUFFER, b); gl.bufferData(t || gl.ARRAY_BUFFER, d, gl.STATIC_DRAW); return b; };
+  const o = { p: mk(new Float32Array(arrP)), c: mk(new Float32Array(arrC)), n: arrN ? mk(new Float32Array(arrN)) : null, cnt: arrP.length / 3 };
+  if (idx) { const I = v3.u32 ? new Uint32Array(idx) : new Uint16Array(idx); o.i = mk(I, gl.ELEMENT_ARRAY_BUFFER); o.ni = I.length; o.it = v3.u32 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT; }
+  return o;
+}
+function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
+function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
+function v3Region() {
+  const d = v3.dem; let b = null;
+  if (!v3.full && t2.holes.length) { b = t2Bounds(); b = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
+  if (d) { const D = { x0: d.x0, y0: d.y0, x1: d.x0 + d.W * d.cel, y1: d.y0 + d.H * d.cel }; b = b ? { x0: Math.max(b.x0, D.x0), y0: Math.max(b.y0, D.y0), x1: Math.min(b.x1, D.x1), y1: Math.min(b.y1, D.y1) } : D; if (b.x1 <= b.x0 || b.y1 <= b.y0) b = D; }
+  return b;
+}
+async function v3Construir() {
+  if (!v3Init()) return;
+  v3.dem = topo.act ? await topoDem(topo.act) : null;
+  const firma = [topo.act, v3.full, t2.holes.length, t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
+  const R = v3Region();
+  if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
+  if (firma === v3.built) { v3Dibujar(); return; }
+  v3Borrar(); v3.built = firma;
+  const d = v3.dem, cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
+  let zmin = Infinity, zmax = -Infinity;
+  // ---- terreno ----
+  if (d) {
+    const i0 = Math.max(0, Math.floor((R.x0 - d.x0) / d.cel)), i1 = Math.min(d.W - 1, Math.ceil((R.x1 - d.x0) / d.cel));
+    const j0 = Math.max(0, Math.floor((R.y0 - d.y0) / d.cel)), j1 = Math.min(d.H - 1, Math.ceil((R.y1 - d.y0) / d.cel));
+    const lim = v3.u32 ? 520 : 250, st = Math.max(1, Math.ceil(Math.max(i1 - i0, j1 - j0) / lim));
+    const nx = Math.floor((i1 - i0) / st) + 1, ny = Math.floor((j1 - j0) / st) + 1;
+    for (let j = j0; j <= j1; j += st) for (let i = i0; i <= i1; i += st) { const z = d.Z[j * d.W + i]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
+    v3.org = [cx, cy, zmin];
+    const P = new Float32Array(nx * ny * 3), C = new Float32Array(nx * ny * 3), N = new Float32Array(nx * ny * 3), ok = new Uint8Array(nx * ny);
+    const D = topo.dif && v3.ver.dif ? topo.dif : null;
+    for (let b = 0; b < ny; b++) for (let a = 0; a < nx; a++) {
+      const i = i0 + a * st, j = j0 + b * st, k = b * nx + a, z = d.Z[j * d.W + i];
+      const x = d.x0 + (i + 0.5) * d.cel, y = d.y0 + (j + 0.5) * d.cel;
+      P[k * 3] = x - cx; P[k * 3 + 1] = y - cy; P[k * 3 + 2] = (z === z ? z : zmin) - zmin; ok[k] = z === z ? 1 : 0;
+      const t = z === z ? (z - zmin) / Math.max(1, zmax - zmin) : 0;
+      let r = 0.42 + 0.33 * t, g = 0.40 + 0.25 * t, bl = 0.36 + 0.10 * t;
+      if (D) { const di = Math.floor((x - D.x0) / D.cel), dj = Math.floor((y - D.y0) / D.cel); if (di >= 0 && dj >= 0 && di < D.W && dj < D.H && D.M[dj * D.W + di]) { r = 1; g = 0.5; bl = 0.1; } }
+      C[k * 3] = r; C[k * 3 + 1] = g; C[k * 3 + 2] = bl;
+    }
+    const zz = (a, b) => { a = Math.max(0, Math.min(nx - 1, a)); b = Math.max(0, Math.min(ny - 1, b)); return P[(b * nx + a) * 3 + 2]; };
+    const sc = st * d.cel;
+    for (let b = 0; b < ny; b++) for (let a = 0; a < nx; a++) { const k = b * nx + a, dx = (zz(a + 1, b) - zz(a - 1, b)) / (2 * sc), dy = (zz(a, b + 1) - zz(a, b - 1)) / (2 * sc), l = Math.hypot(dx, dy, 1); N[k * 3] = -dx / l; N[k * 3 + 1] = -dy / l; N[k * 3 + 2] = 1 / l; }
+    const I = [];
+    for (let b = 0; b < ny - 1; b++) for (let a = 0; a < nx - 1; a++) { const k = b * nx + a; if (ok[k] && ok[k + 1] && ok[k + nx] && ok[k + nx + 1]) I.push(k, k + 1, k + nx, k + 1, k + nx + 1, k + nx); }
+    if (!v3.u32 && nx * ny > 65535) I.length = 0;
+    v3.buf.ter = v3Malla(P, C, N, I);
+    v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
+  } else {
+    const zs = t2.holes.map(h => h.z).filter(z => z); zmin = zs.length ? Math.min(...zs) - 20 : 0; zmax = zs.length ? Math.max(...zs) : 100;
+    v3.org = [cx, cy, zmin]; v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
+  }
+  const [ox, oy, oz] = v3.org;
+  // ---- taladros: línea collar→fondo y punto en el collar ----
+  const lp = [], lc = [], pp = [], pc = []; v3.hpts = [];
+  const minados = topo.minados ? topo.minados.set : new Set();
+  t2.holes.forEach(h => {
+    const zt = v3Z(h.x, h.y), zc = h.z || zt; if (zc == null) return;
+    const l = t2.leyBy.get(h.ck), F = anField(), has = l && l.hasData !== false;
+    const val = has && F ? l[F.k] : null; let col = has ? v3ColorLey(F ? val : null) : V3_FE.sin;
+    const min = minados.has(h.ck); if (min) col = col.map(c => c * 0.45 + 0.2);
+    const prof = h.depth || 6, x = h.x - ox, y = h.y - oy;
+    lp.push(x, y, zc - oz, x, y, zc - prof - oz); lc.push(...col, ...col.map(c => c * 0.6));
+    pp.push(x, y, zc - oz); pc.push(...col);
+    v3.hpts.push({ h, x, y, z: zc - oz, val, F, min, zt });
+  });
+  if (lp.length) { v3.buf.hl = v3Malla(lp, lc); v3.buf.hp = v3Malla(pp, pc); }
+  // ---- líneas sobre el terreno: límites, avances guardados y polígonos actuales ----
+  const ln = [], lnc = [];
+  const drapar = (pts, col, cerrado, alto) => {
+    const Q = cerrado ? pts.concat([pts[0]]) : pts;
+    for (let i = 0; i < Q.length - 1; i++) {
+      const a = Q[i], b = Q[i + 1], L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / 3));
+      for (let s = 0; s < n; s++) {
+        const p0 = { x: a.x + (b.x - a.x) * s / n, y: a.y + (b.y - a.y) * s / n }, p1 = { x: a.x + (b.x - a.x) * (s + 1) / n, y: a.y + (b.y - a.y) * (s + 1) / n };
+        const z0 = v3Z(p0.x, p0.y), z1 = v3Z(p1.x, p1.y); if (z0 == null || z1 == null) continue;
+        ln.push(p0.x - ox, p0.y - oy, z0 + alto - oz, p1.x - ox, p1.y - oy, z1 + alto - oz); lnc.push(...col, ...col);
+      }
+    }
+  };
+  if (d) {
+    if (v3.ver.lim) (t2.lims || []).forEach(L => { if (t2.limOff.has(L.layer) || !limVisible(L)) return; const b = L.bb; if (b.x1 < R.x0 || b.x0 > R.x1 || b.y1 < R.y0 || b.y0 > R.y1) return; drapar(L.pts, v3Hex(/^#/.test(limColor(L.layer)) ? limColor(L.layer) : '#9aa0a6'), L.closed, 0.8); });
+    if (v3.ver.av) {
+      t2.avs.forEach(a => avShapes(a).forEach(P => drapar(P, [0.75, 0.78, 0.82], true, 1.2)));
+      t2.shapes.forEach((s, i) => drapar(s.pts, v3Hex(SH_D[i % SH_D.length]), true, 1.6));
+    }
+  }
+  if (ln.length) v3.buf.ln = v3Malla(ln, lnc);
+  // etiquetas de proyectos
+  v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
+  v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
+  if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
+  $('v3dMsg').innerHTML = (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
+  v3Dibujar();
+}
+function v3MVP() {
+  const cv = $('v3dCv'), c = v3.cam, W = cv.clientWidth || 1, H = cv.clientHeight || 1;
+  const e = [c.tx + c.dist * Math.cos(c.pitch) * Math.sin(c.yaw), c.ty - c.dist * Math.cos(c.pitch) * Math.cos(c.yaw), c.tz * v3.ex + c.dist * Math.sin(c.pitch)];
+  const P = m4Persp(45 * Math.PI / 180, W / H, Math.max(0.5, c.dist / 500), c.dist * 20 + v3.span * 4);
+  return { M: m4Mul(P, m4Look(e, [c.tx, c.ty, c.tz * v3.ex], [0, 0, 1])), W, H };
+}
+function v3Proy(M, W, H, x, y, z) { const X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], w = M[3] * x + M[7] * y + M[11] * z + M[15]; if (w <= 0) return null; return [(X / w + 1) / 2 * W, (1 - Y / w) / 2 * H]; }
+function v3Dibujar() { if (v3.need) return; v3.need = true; requestAnimationFrame(() => { v3.need = false; v3Pintar(); }); }
+function v3Pintar() {
+  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || $('tab3').hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0.09, 0.11, 0.13, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.useProgram(v3.prog);
+  const { M } = v3MVP(), L = v3.loc;
+  gl.uniformMatrix4fv(L.M, false, new Float32Array(M)); gl.uniform1f(L.ex, v3.ex); gl.uniform1f(L.al, 1);
+  const usar = (o, lit, pt, ps) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, o.p); gl.enableVertexAttribArray(L.p); gl.vertexAttribPointer(L.p, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, o.c); gl.enableVertexAttribArray(L.c); gl.vertexAttribPointer(L.c, 3, gl.FLOAT, false, 0, 0);
+    if (o.n) { gl.bindBuffer(gl.ARRAY_BUFFER, o.n); gl.enableVertexAttribArray(L.n); gl.vertexAttribPointer(L.n, 3, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(L.n); gl.vertexAttrib3f(L.n, 0, 0, 1); }
+    gl.uniform1f(L.lit, lit); gl.uniform1f(L.pt, pt); gl.uniform1f(L.ps, ps || 1);
+  };
+  const B = v3.buf;
+  if (B.ter && B.ter.ni) { usar(B.ter, 1, 0); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, B.ter.i); gl.drawElements(gl.TRIANGLES, B.ter.ni, B.ter.it, 0); gl.disable(gl.POLYGON_OFFSET_FILL); }
+  if (B.ln) { usar(B.ln, 0, 0); gl.drawArrays(gl.LINES, 0, B.ln.cnt); }
+  if (v3.ver.tal && B.hl) { usar(B.hl, 0, 0); gl.drawArrays(gl.LINES, 0, B.hl.cnt); const ps = Math.max(3, Math.min(8, 2200 / v3.cam.dist)) * Math.min(1.5, window.devicePixelRatio || 1); usar(B.hp, 0, 1, ps); gl.drawArrays(gl.POINTS, 0, B.hp.cnt); }
+  // GPS
+  if (v3.ver.gps && typeof gps !== 'undefined' && gps.on && gps.pos) {
+    const p = gpsXY(); const z = p && v3Z(p.x, p.y);
+    if (p && z != null) { const g = v3Malla([p.x - v3.org[0], p.y - v3.org[1], z + 2 - v3.org[2], p.x - v3.org[0], p.y - v3.org[1], z + 2 - v3.org[2] + 25], [0.04, 0.52, 1, 0.04, 0.52, 1]); usar(g, 0, 0); gl.drawArrays(gl.LINES, 0, 2); usar(g, 0, 1, 16 * Math.min(2, window.devicePixelRatio || 1)); gl.drawArrays(gl.POINTS, 0, 1); gl.deleteBuffer(g.p); gl.deleteBuffer(g.c); }
+  }
+  v3Textos(M, W, H);
+}
+function v3Textos(M, W, H) {
+  const cv = $('v3dTxt'), dpr = Math.min(2, window.devicePixelRatio || 1); if (!cv) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const ex = v3.ex;
+  ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)';
+  v3.labels.forEach(l => { const s = v3Proy(M, W, H, l.x, l.y, l.z * ex); if (!s) return; ctx.fillStyle = '#ffb38a'; ctx.strokeText(l.t, s[0], s[1]); ctx.fillText(l.t, s[0], s[1]); });
+  // IDs de taladros si se está cerca
+  if (v3.ver.tal && v3.hpts && v3.cam.dist < 160) { ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = '#e8eaed'; ctx.lineWidth = 2.5; v3.hpts.forEach(p => { const s = v3Proy(M, W, H, p.x, p.y, p.z * ex); if (!s || s[0] < 0 || s[1] < 0 || s[0] > W || s[1] > H) return; ctx.strokeText(p.h.id, s[0], s[1] - 10); ctx.fillText(p.h.id, s[0], s[1] - 10); }); }
+  if (v3.sel) { const p = v3.sel, s = v3Proy(M, W, H, p.x, p.y, p.z * ex); if (s) { ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(s[0], s[1], 10, 0, Math.PI * 2); ctx.stroke(); } }
+  // flecha del norte
+  const c = v3.cam, a = -c.yaw; ctx.save(); ctx.translate(W - 34, 34); ctx.rotate(a); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(7, 8); ctx.lineTo(0, 3); ctx.lineTo(-7, 8); ctx.closePath(); ctx.fill(); ctx.rotate(-a); ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui'; ctx.fillText('N', Math.sin(a) * 26, -Math.cos(a) * 26); ctx.restore();
+}
+function v3Tocar(px, py) {
+  if (!v3.hpts || !v3.ver.tal) return;
+  const { M, W, H } = v3MVP(); let best = null, bd = 22;
+  v3.hpts.forEach(p => { const s = v3Proy(M, W, H, p.x, p.y, p.z * v3.ex); if (!s) return; const dd = Math.hypot(s[0] - px, s[1] - py); if (dd < bd) { bd = dd; best = p; } });
+  v3.sel = best; const el = $('v3dInfo');
+  if (!best) { el.hidden = true; v3Dibujar(); return; }
+  const h = best.h, F = best.F, fmtv = best.val != null && F ? fmt(best.val, F.dec, '') : '—';
+  el.innerHTML = `<b>${esc(h.id)}</b> · ${esc(h.pname)}<br>${F ? esc(F.label) + ': <b>' + fmtv + '</b>' : ''}<br>Collar ${h.z ? h.z.toFixed(1) : '—'} m · Topo ${best.zt != null ? best.zt.toFixed(1) : '—'} m${best.min ? '<br><span class="errc">Ya minado</span>' : ''}`;
+  el.hidden = false; v3Dibujar();
+}
+function v3Eventos(cv) {
+  const P = new Map(); let mov = 0, last = null;
+  const c = v3.cam;
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
+  cv.addEventListener('pointermove', e => {
+    if (!P.has(e.pointerId)) return; const q = P.get(e.pointerId), dx = e.clientX - q.x, dy = e.clientY - q.y; mov += Math.abs(dx) + Math.abs(dy);
+    if (P.size === 1) {
+      if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
+    } else if (P.size === 2) {
+      const [a, b] = [...P.values()], d0 = Math.hypot(a.x - b.x, a.y - b.y), mx0 = (a.x + b.x) / 2, my0 = (a.y + b.y) / 2;
+      q.x = e.clientX; q.y = e.clientY; const [a2, b2] = [...P.values()], d1 = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+      if (d0 > 0 && d1 > 0) c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * d0 / d1));
+      v3Mover((a2.x + b2.x) / 2 - mx0, (a2.y + b2.y) / 2 - my0); v3Dibujar(); return;
+    }
+    q.x = e.clientX; q.y = e.clientY; v3Dibujar();
+  });
+  const fin = e => { if (!P.has(e.pointerId)) return; const one = P.size === 1; P.delete(e.pointerId); if (one && mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => P.delete(e.pointerId));
+  cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
+  window.addEventListener('resize', () => { if (!$('tab3').hidden) v3Dibujar(); });
+}
+function v3Mover(dx, dy) {
+  const c = v3.cam, k = c.dist / ($('v3dCv').clientHeight || 500) * 0.83;
+  const sx = Math.cos(c.yaw), sy = Math.sin(c.yaw), fx = -Math.sin(c.yaw), fy = Math.cos(c.yaw);
+  c.tx += (-dx * sx + dy * fx) * k; c.ty += (-dx * sy + dy * fy) * k;
+}
+async function v3Mostrar() {
+  $('v3dMsg').textContent = 'Preparando la vista 3D…';
+  try { if (typeof refreshT2 === 'function' && !t2.holes.length && t2.selIds && t2.selIds.size) refreshT2(); } catch (e) {}
+  try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; }
+  const tl = $('v3dTopo'); if (tl) tl.textContent = topo.act ? (() => { const m = topo.lista.find(t => t.id === topo.act); return m ? `⛰ ${fmtDate(m.fecha)} · ${m.nombre}` : ''; })() : 'Sin topografía';
+}
+(() => {
+  if (!$('tab3')) return;
+  try { if (document.body.classList.contains('app') && innerWidth < 700) $('v3dCapas').open = false; } catch (e) {}
+  $('v3dReset').onclick = () => { Object.assign(v3.cam, { yaw: -0.6, pitch: 0.75, dist: v3.span * 1.1, tx: 0, ty: 0 }); v3.sel = null; $('v3dInfo').hidden = true; v3Dibujar(); };
+  $('v3dArriba').onclick = () => { Object.assign(v3.cam, { yaw: 0, pitch: 1.55 }); v3Dibujar(); };
+  $('v3dEx').onchange = e => { v3.ex = +e.target.value; v3Dibujar(); };
+  $('v3dFull').onchange = e => { v3.full = e.target.checked; v3.camOk = false; v3Mostrar(); };
+  ['tal', 'av', 'lim', 'dif', 'gps'].forEach(k => { const el = $('v3d_' + k); if (el) el.onchange = e => { v3.ver[k] = e.target.checked; if (k === 'tal' || k === 'gps') v3Dibujar(); else v3Mostrar(); }; });
+  $('v3dIrMi').onclick = () => {
+    if (typeof gps === 'undefined' || !gps.on || !gps.pos) { flashHint('Prende el GPS (📍) en la pestaña 2 y espera la señal.'); return; }
+    const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
+  };
+  setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
