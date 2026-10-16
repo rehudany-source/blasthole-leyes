@@ -154,6 +154,12 @@ input.hin { font: .8rem var(--f-body); padding: 3px 5px; border: 1px solid var(-
 .limf { border: 1px solid var(--line); border-radius: 5px; padding: 4px; background: var(--bg); display: grid; gap: 2px; }
 .limh { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 4px 4px; font-size: .82rem; }
 .limh .pn { font-family: var(--f-mono); overflow-wrap: anywhere; }
+.limh .pn { flex: 1; min-width: 0; }
+.limde { display: block; font-family: var(--f-body); font-size: .72rem; color: var(--muted); }
+.limshare { white-space: nowrap; }
+.limshare.on { border-color: var(--ok, #2f7d57); color: var(--ok, #2f7d57); }
+.limf.limcomp { border-style: dashed; }
+.limtodos { justify-self: start; }
 .sw { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; border: 1px solid var(--line); }
 .plist { display: grid; gap: 2px; max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 5px; padding: 4px; background: var(--bg); }
 .pitem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 4px; cursor: pointer; font-size: .86rem; }
@@ -498,6 +504,45 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .vl-h { font: 600 .82rem var(--f-body); display: flex; gap: 8px; align-items: center; }
 .vl-h .lnk { font: 600 .8rem var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 2px 4px; }
 .vl-list { max-height: 210px; }
+.tabbox { width: min(1100px, 100%); }
+#btnTablero.alerta { position: relative; } #btnTablero.alerta::after { content: ''; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; border: 2px solid var(--bg); }
+.tab-fil { display: flex; gap: 8px; margin-left: auto; margin-right: 10px; } .tab-fil select { width: auto; }
+.tab-kpi { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.tab-kpi .k { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.tab-kpi .k span { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tab-kpi .k b { font: 700 1.5rem var(--f-mono); }
+.tab-kpi .k small { font-size: .76rem; color: var(--muted); }
+.mbar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; margin-top: 6px; }
+.mbar i { display: block; min-width: 2px; }
+.mlab { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); margin-top: 4px; }
+.tab-g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tab-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; align-content: start; }
+.tab-card h3 { margin: 0; font: 700 .9rem var(--f-body); } .tab-card h3 small { font-weight: 500; color: var(--muted); }
+.tab-card svg { width: 100%; height: auto; display: block; }
+.tab-card svg .b:hover, .tab-card svg .d:hover { opacity: .75; }
+.tult { display: grid; gap: 4px; font-size: .82rem; }
+.tult div { display: grid; grid-template-columns: 46px minmax(0, 1fr) 70px 42px 32px; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.tult div span:nth-child(n+3) { text-align: right; font-family: var(--f-mono); }
+.tab-pend .pe { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tab-pend .pe b { font-family: var(--f-mono); min-width: 2em; text-align: right; }
+.tab-pend .pe.ok { color: var(--muted); }
+@media (max-width: 760px) { .tab-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tab-g2 { grid-template-columns: 1fr; } .tab-fil { margin: 0; order: 3; width: 100%; } .tab-fil select { flex: 1; } .tabbox .carga-top { flex-wrap: wrap; gap: 8px; } }
+.ofc { white-space: nowrap; } .dof { font-size: .72rem; margin-top: 2px; } .dof .dok { color: #1F6B43; font-weight: 600; } .dof .dbad { color: #B3261E; font-weight: 700; }
+.ctrl { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; }
+.ctrl > summary { cursor: pointer; font: 600 .95rem var(--f-body); }
+.ctrl-login, #ctrlLista { display: grid; gap: 10px; }
+#ctrlLista[hidden] { display: none; }
+.note2 { margin: 0; font-size: .82rem; color: var(--muted); }
+.ctrl-top { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: var(--muted); }
+.ctrl-top .lnk, .ctrl .lnk { background: none; border: 0; color: var(--accent); font: 600 .82rem var(--f-body); cursor: pointer; }
+.ctrl-fil { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ctrl-fil input { flex: 1; min-width: 120px; }
+.ctrl-items { display: grid; gap: 3px; max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.ctrl-it { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; font-size: .86rem; cursor: pointer; }
+.ctrl-it:hover { background: var(--chip); }
+.ctrl-it .pn { font-family: var(--f-mono); }
+.ctrl-it small { color: var(--muted); font-size: .74rem; white-space: nowrap; }
+.ctrl-it small.nu { color: #1F6B43; font-weight: 700; } .ctrl-it small.ac { color: #8A5A08; font-weight: 700; }
 /* Pestaña 2 · PC: barra arriba + resultado a la derecha */
 body.t2pc #tab2 > .main, body.t2app #tab2 > .main { display: block; }
 .t2bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; font-size: .85rem; }
@@ -655,13 +700,15 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
 .adm-u span { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
 .adm-u small { font-size: .74rem; color: var(--muted); }
 .adm-tag { font: 600 .72rem var(--f-body); color: var(--accent); white-space: nowrap; }
+.respban { position: fixed; right: 12px; top: 12px; z-index: 60; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: min(420px, calc(100vw - 24px)); padding: 8px 10px; border-radius: 10px; background: var(--panel, #fff); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: .85rem; }
+body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-inset-top)); }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v39</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v40</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -671,6 +718,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
       <button type="button" data-tema="auto" title="Igual que Windows">Auto</button>
     </div>
     <button class="btn sec small" id="btnUpd" type="button" hidden>Buscar actualización</button>
+    <button class="btn sec small" id="btnTablero" type="button">📊 Tablero</button>
     <button class="btn small cargab" id="btnCarga" type="button">📂 Cargar archivos</button>
     <button class="btn sec small" id="btnAyuda" type="button" aria-pressed="false" title="Mostrar u ocultar las explicaciones">❓ Ayuda</button>
     <button class="btn sec small syncb" id="btnSync" type="button" hidden>☁ Sincronizar</button>
@@ -685,21 +733,21 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   <div class="main">
     <div class="side">
       <details class="box vlib" id="vlibBox">
-        <summary><span class="vlib-h">👁 Ver proyectos guardados</span><span class="vlib-s" id="vlSum">elige proyectos y límites para solo verlos</span></summary>
+        <summary><span class="vlib-h">👁 Ver guardados</span><span class="vlib-s" id="vlSum">solo vista e impresión</span></summary>
         <div class="grid2">
           <label class="f">Mina<select id="vlMina"></select></label>
           <label class="f">Nivel<select id="vlNivel"></select></label>
         </div>
         <div class="vl-h">Proyectos <button type="button" class="lnk" id="vlAll">Todos</button> <button type="button" class="lnk" id="vlNone">Ninguno</button></div>
         <div class="plist vl-list" id="vlList"></div>
-        <div class="vl-h">Límites y avances <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
-        <div class="vl-lims" id="vlLims"><p class="note">Elige un proyecto para ver sus límites.</p></div>
-        <label class="chk"><input type="checkbox" id="vlSup"> <span>Proyección del nivel superior (12 m arriba): Fe / S/FeS en morado</span></label>
+        <div class="vl-h">Límites <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
+        <div class="vl-lims" id="vlLims"><p class="note">Marca un proyecto.</p></div>
+        <label class="chk"><input type="checkbox" id="vlSup"> <span>Nivel superior (+12 m) <small class="vlib-s">en morado</small></span></label>
         <div class="btnrow2">
-          <button class="btn" id="vlVer" type="button">Ver en el plano</button>
-          <button class="btn sec" id="vlSalir" type="button" hidden>Volver a mis archivos</button>
+          <button class="btn" id="vlVer" type="button">Ver</button>
+          <button class="btn sec" id="vlSalir" type="button" hidden>Salir</button>
         </div>
-        <p class="note" id="vlNote">Solo para ver e imprimir: no cambia tus proyectos ni tus avances.</p>
+        <p class="note" id="vlNote" hidden></p>
       </details>
       <div class="box">
         <div class="step"><b>1</b><h2>Datos</h2></div>
@@ -1036,6 +1084,7 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
         <div class="btnrow">
           <label class="f inl">Desde<input type="date" id="repDesde"></label>
           <label class="f inl">Hasta<input type="date" id="repHasta"></label>
+          <button class="btn small" id="btnDia" type="button" title="Todos los avances de un día, de todos los proyectos">📅 Reporte del día</button>
           <button class="btn small" id="btnReporte" type="button">Reporte de promedios (Excel)</button>
           <button class="btn sec small" id="btnHistXlsx" type="button">Exportar a Excel</button>
           <button class="btn sec small" id="btnHistCsv" type="button">Exportar CSV</button>
@@ -1056,6 +1105,14 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
 
+<div class="carga tab-dlg" id="dlgTab" hidden role="dialog" aria-modal="true" aria-labelledby="tabTit">
+  <div class="carga-box tabbox">
+    <div class="carga-top"><b id="tabTit">📊 Tablero</b><div class="tab-fil"><select id="tabPer" aria-label="Período"><option value="mes">Este mes</option><option value="mesant">Mes anterior</option><option value="30">Últimos 30 días</option><option value="todo">Todo</option></select><select id="tabMina" aria-label="Mina"></select></div><button type="button" id="tabCerrar" aria-label="Cerrar">✕</button></div>
+    <div class="tab-kpi" id="tabKpi"></div>
+    <div class="tab-g2"><section class="tab-card"><h3>Tonelaje por semana</h3><div id="tabChTon"></div></section><section class="tab-card"><h3>Fe por semana <small>(ponderado)</small></h3><div id="tabChFe"></div></section></div>
+    <div class="tab-g2"><section class="tab-card"><h3>Últimos avances</h3><div id="tabUlt"></div></section><section class="tab-card tab-pend"><h3>Pendientes</h3><div id="tabPend"></div></section></div>
+  </div>
+</div>
 <div class="carga" id="dlgCarga" hidden role="dialog" aria-modal="true" aria-labelledby="cargaTit">
   <div class="carga-box">
     <div class="carga-top"><b id="cargaTit">📂 Cargar archivos</b><button type="button" id="cargaCerrar" aria-label="Cerrar">✕</button></div>
@@ -1067,6 +1124,20 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
       <span class="tipos"><i>📊 Base de leyes</i><i>📍 Taladros (blastholes)</i><i>🧪 Leyes de un proyecto</i><i>📐 Límites DXF</i></span>
       <span class="t3">La app reconoce cada archivo sola y lo pone en su lugar.</span>
     </label>
+    <details class="ctrl" id="ctrlBox"><summary>🔗 Traer proyectos desde <b>BlastHole Control</b></summary>
+      <div id="ctrlLogin" class="ctrl-login">
+        <p class="note2">Usa tu usuario de BlastHole Control. Solo se leen las mallas, avances y finales; en Control no se cambia nada.</p>
+        <div class="grid2"><label class="f">Correo<input type="email" id="ctrlEmail" autocomplete="username"></label><label class="f">Contraseña<input type="password" id="ctrlPw" autocomplete="current-password"></label></div>
+        <button class="btn" type="button" id="ctrlEntrar">Conectar</button>
+      </div>
+      <div id="ctrlLista" hidden>
+        <div class="ctrl-top"><span id="ctrlQuien"></span><button type="button" class="lnk" id="ctrlSalir">Desconectar</button></div>
+        <div class="ctrl-fil"><button type="button" class="btn sec small" id="ctrlNuevos">Marcar nuevos o actualizados</button><input type="search" id="ctrlBusca" placeholder="🔍 Buscar"></div>
+        <div class="ctrl-items" id="ctrlItems"></div>
+        <button class="btn" type="button" id="ctrlTraer">Traer los marcados</button>
+      </div>
+      <p class="msg" id="ctrlMsg"></p>
+    </details>
     <div class="carga-res" id="cargaRes"></div>
     <div class="carga-est" id="cargaEst"></div>
     <div class="carga-foot"><button type="button" class="btn sec" id="cargaListo">Listo</button><button type="button" class="btn" id="cargaVer" hidden>Ver en el plano →</button></div>
@@ -1086,6 +1157,8 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
           <label>Espacio entre bloques <select data-po="pad"><option value="0">Normal</option><option value="0.15">Más</option><option value="0.35">Mucho más</option></select></label>
           <label><input type="checkbox" data-po="cero"> Si se montan, usar una hoja más grande</label>
           <label><input type="checkbox" data-po="leader"> Línea guía al taladro si el bloque se movió</label>
+          <b>Hojas</b>
+          <label>Partir en varias hojas <select data-po="mosaico"><option value="">No (una sola hoja)</option><option value="A3">Hojas A3</option><option value="A4">Hojas A4</option></select></label>
           <b>Qué mostrar</b>
           <label><input type="checkbox" data-po="id"> N° de taladro (ID)</label>
           <label><input type="checkbox" data-po="cuzn"> Cu y Zn</label>
@@ -1767,21 +1840,45 @@ const AVG_FIELDS = [
 const DENS_DEF = 2.74;
 let DENS_MODEL = { a: 2.3612, b: 0.034, n: 0, fuente: 'fórmula general' };
 function fitDensModel(base) {
-  let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  const X = [];
   base.projects.forEach(p => p.rows.forEach(r => {
     const d = r.density, fe = r.fe;
     if (d == null || fe == null || fe <= 0 || fe > 72.4 || d < 1.5 || d > 5.5 || densPorDefecto(d, fe)) return;
-    n++; sx += fe; sy += d; sxx += fe * fe; sxy += fe * d;
+    X.push([fe, d]);
   }));
+  const n = X.length;
   if (n < 200) return DENS_MODEL;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  X.forEach(([x, y]) => { sx += x; sy += y; sxx += x * x; sxy += x * y; });
   const b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n;
   if (!(b > 0.01 && b < 0.08 && a > 1.5 && a < 3.5)) return DENS_MODEL;
-  DENS_MODEL = { a, b, n, fuente: `ajustada con ${n.toLocaleString('es-PE')} muestras de tu base` };
+  let m = { a, b, c: 0, n, fuente: `ajustada con ${n.toLocaleString('es-PE')} muestras de tu base` };
+  // Curva (cuadrática): se usa solo si mejora el error en más de 2 % y sigue subiendo con el Fe
+  const q = fitCuad(X);
+  if (q) {
+    const sse = f => X.reduce((s, [x, y]) => s + (y - f(x)) ** 2, 0);
+    const e1 = sse(x => a + b * x), e2 = sse(x => q.a + q.b * x + q.c * x * x);
+    const sube = q.b > 0 && q.b + 2 * q.c * 72.4 > 0;
+    if (sube && e2 < e1 * 0.98) m = { a: q.a, b: q.b, c: q.c, n, fuente: m.fuente + ' (curva)' };
+  }
+  DENS_MODEL = m;
   return DENS_MODEL;
 }
+// Mínimos cuadrados d = a + b·Fe + c·Fe² (centrado para que sea estable)
+function fitCuad(X) {
+  const mx = X.reduce((s, p) => s + p[0], 0) / X.length;
+  const S = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], v = [0, 0, 0];
+  X.forEach(([x0, y]) => { const x = x0 - mx, r = [1, x, x * x]; for (let i = 0; i < 3; i++) { v[i] += r[i] * y; for (let j = 0; j < 3; j++) S[i][j] += r[i] * r[j]; } });
+  const det = M => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+  const D = det(S); if (!isFinite(D) || Math.abs(D) < 1e-9) return null;
+  const sol = [0, 1, 2].map(k => det(S.map((row, i) => row.map((val, j) => (j === k ? v[i] : val)))) / D);
+  const [A, B, C] = sol; // en x centrado: d = A + B(x-mx) + C(x-mx)²
+  return { a: A - B * mx + C * mx * mx, b: B - 2 * C * mx, c: C };
+}
+function densTxt() { const m = DENS_MODEL; return `d = ${m.a.toFixed(2)} + ${m.b.toFixed(4)} × Fe` + (m.c ? ` ${m.c < 0 ? '−' : '+'} ${Math.abs(m.c).toFixed(6)} × Fe²` : ''); }
 // 2.74 con Fe mayor a 15 % no es real (la fórmula daría más de 2.87)
 function densPorDefecto(d, fe) { return Math.abs(d - DENS_DEF) < 0.005 && fe != null && fe > 15; }
-const densFe = fe => DENS_MODEL.a + DENS_MODEL.b * fe;
+const densFe = fe => DENS_MODEL.a + DENS_MODEL.b * fe + (DENS_MODEL.c || 0) * fe * fe;
 // Densidad que se usa para un taladro: la medida si es válida; si falta o es la de defecto, la calculada con su Fe
 function densDe(l) {
   if (!l) return { d: null, src: 'none' };
@@ -2148,6 +2245,15 @@ function layoutPlot(P, o) {
     if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col });
     else text(p.s, X(p.x), Y(p.y), size, { col });
   });
+  // cuadro de promedio del avance (arriba a la izquierda del plano)
+  if (o.cuadro && o.cuadro.filas && o.cuadro.filas.length) {
+    const C = o.cuadro, n = C.filas.length, kf = Math.max(1, Math.max(W, H) / 1190), lh = 10.5 * kf, cw = 150 * kf, bx = ax + 8;
+    const bh = (22 + 6) * kf + n * lh, by = ay + ah - 8 - bh;
+    rect(bx, by, cw, bh, { fill: [1, 1, 1], stroke: [0.2, 0.2, 0.2], lw: 0.7 });
+    rect(bx, by + bh - 17 * kf, cw, 17 * kf, { fill: [0.12, 0.22, 0.39] });
+    text(C.titulo || 'Promedio del avance', bx + 6 * kf, by + bh - 12 * kf, 8 * kf, { bold: true, col: [1, 1, 1] });
+    C.filas.forEach((f, i) => { const y = by + bh - 27 * kf - i * lh; text(f[0], bx + 6 * kf, y, 7 * kf, { col: [0.3, 0.32, 0.35] }); text(String(f[1]), bx + cw - 6 * kf, y, 7.5 * kf, { bold: true, align: 'right', col: f[2] || [0, 0, 0] }); });
+  }
   // norte en la esquina superior derecha del plano
   const nx = ax + aw - 22, ny = ay + ah - 46;
   rect(nx - 14, ny - 14, 28, 46, { fill: [1, 1, 1] });
@@ -2226,6 +2332,8 @@ async function buildPlotPDF(P, o) {
       streamBytes = new Uint8Array(await new Response(cs).arrayBuffer()); filter = ' /Filter /FlateDecode';
     }
   } catch (e) { streamBytes = latin1Bytes(content); filter = ''; }
+  const MZ = o.mosaico ? mosaicoTiles(L.W, L.H, o.mosaico) : null;
+  if (MZ && MZ.list.length > 1) return pdfMosaico(L, MZ, streamBytes, filter, img);
   const objs = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
@@ -2251,6 +2359,62 @@ async function buildPlotPDF(P, o) {
   parts.push(latin1Bytes(tail));
   return { blob: new Blob(parts, { type: 'application/pdf' }), scale: L.scale, note: L.note, paper: L.paper };
 }
+// ---- Mosaico: partir una hoja grande en varias hojas chicas (A3/A4) con 1 cm de traslape ----
+const MZ_HOJA = { A4: [595.28, 841.89], A3: [841.89, 1190.55] };
+function mosaicoTiles(W, H, hoja) {
+  const base = MZ_HOJA[hoja]; if (!base) return null;
+  const mg = 20, ov = 28.35;
+  let best = null;
+  for (const [pw, ph] of [[base[0], base[1]], [base[1], base[0]]]) {
+    const rw = pw - 2 * mg, rh = ph - 2 * mg;
+    const cols = W <= rw + 0.5 ? 1 : Math.ceil((W - ov) / (rw - ov));
+    const rows = H <= rh + 0.5 ? 1 : Math.ceil((H - ov) / (rh - ov));
+    if (!best || cols * rows < best.cols * best.rows) best = { pw, ph, rw, rh, cols, rows, mg, ov, hoja };
+  }
+  const b = best, list = [];
+  const sx = b.cols > 1 ? (W - b.rw) / (b.cols - 1) : 0, sy = b.rows > 1 ? (H - b.rh) / (b.rows - 1) : 0;
+  for (let r = 0; r < b.rows; r++) for (let c = 0; c < b.cols; c++) {
+    // r = 0 es la fila de arriba
+    list.push({ r, c, x: b.cols > 1 ? c * sx : (W - b.rw) / 2, y: b.rows > 1 ? H - b.rh - r * sy : (H - b.rh) / 2 });
+  }
+  return Object.assign(b, { list });
+}
+function pdfMosaico(L, MZ, streamBytes, filter, img) {
+  const n = v => (Math.round(v * 100) / 100).toString();
+  const N = MZ.list.length, imgN = img ? 7 : 0, first = img ? 8 : 7;
+  const kids = MZ.list.map((_, i) => `${first + 2 * i} 0 R`).join(' ');
+  const res = `/Resources << /Font << /F1 3 0 R /F2 4 0 R >>${img ? ` /XObject << /Im1 ${imgN} 0 R >>` : ''} >>`;
+  const chunks = [];
+  chunks.push(['<< /Type /Catalog /Pages 2 0 R >>']);
+  chunks.push([`<< /Type /Pages /Kids [${kids}] /Count ${N} >>`]);
+  chunks.push(['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>']);
+  chunks.push(['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>']);
+  chunks.push([`<< /Title ${pdfStr(L.title + ' (mosaico)')} /Producer (BlastHole Leyes) >>`]);
+  chunks.push([`<< /Type /XObject /Subtype /Form /BBox [0 0 ${n(L.W)} ${n(L.H)}] ${res} /Length ${streamBytes.length}${filter} >>`, streamBytes]);
+  if (img) { const b64 = atob(String(img.src).split(',')[1] || ''); const ib = latin1Bytes(b64); chunks.push([`<< /Type /XObject /Subtype /Image /Width ${img.w} /Height ${img.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${ib.length} >>`, ib]); }
+  MZ.list.forEach((t, i) => {
+    const m = MZ.mg, rw = MZ.rw, rh = MZ.rh, k = 10;
+    const marks = [[m, m], [m + rw, m], [m, m + rh], [m + rw, m + rh]].map(([x, y]) => `${n(x - k)} ${n(y)} m ${n(x + k)} ${n(y)} l ${n(x)} ${n(y - k)} m ${n(x)} ${n(y + k)} l`).join(' ');
+    const lab = `${L.title} - hoja ${i + 1} de ${N} (fila ${t.r + 1}, columna ${t.c + 1}) - traslape 1 cm - escala 1:${L.scale}`;
+    const cs = [`q ${n(m)} ${n(m)} ${n(rw)} ${n(rh)} re W n 1 0 0 1 ${n(m - t.x)} ${n(m - t.y)} cm /Fm Do Q`,
+      `q 0.6 G 0.4 w ${marks} S Q`,
+      `BT /F1 7 Tf 0.35 g ${n(m)} ${n(m / 2 - 2)} Td ${pdfStr(lab)} Tj ET`].join('\n');
+    const pg = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(MZ.pw)} ${n(MZ.ph)}] /Contents ${first + 2 * i + 1} 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /Fm 6 0 R >> >> >>`;
+    chunks.push([pg]);
+    const cb = latin1Bytes(cs); chunks.push([`<< /Length ${cb.length} >>`, cb]);
+  });
+  const parts = [latin1Bytes('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')];
+  let off = parts[0].length; const xref = [];
+  chunks.forEach(([head, bytes], i) => {
+    xref.push(off);
+    const u = bytes ? [latin1Bytes(`${i + 1} 0 obj\n${head}\nstream\n`), bytes, latin1Bytes('\nendstream\nendobj\n')] : [latin1Bytes(`${i + 1} 0 obj\n${head}\nendobj\n`)];
+    u.forEach(x => { parts.push(x); off += x.length; });
+  });
+  let tail = `xref\n0 ${chunks.length + 1}\n0000000000 65535 f \n` + xref.map(x => String(x).padStart(10, '0') + ' 00000 n \n').join('');
+  tail += `trailer\n<< /Size ${chunks.length + 1} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${off}\n%%EOF\n`;
+  parts.push(latin1Bytes(tail));
+  return { blob: new Blob(parts, { type: 'application/pdf' }), scale: L.scale, note: L.note, paper: L.paper, hojas: N, hojaMz: MZ.hoja };
+}
 function latin1Bytes(s) { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
 
 // El mismo plano como SVG, para mandarlo directo a la impresora
@@ -2270,8 +2434,12 @@ function buildPlotSVG(P, o) {
     if (d.t === 'text') out.push(`<text x="${n(d.x)}" y="${n(H - d.y)}" font-size="${n(d.size)}"${d.bold ? ' font-weight="700"' : ''}${d.align !== 'left' ? ` text-anchor="${d.align === 'center' ? 'middle' : 'end'}"` : ''} fill="${col(d.col)}">${esc2(d.s)}</text>`);
   });
   while (open--) out.push('</g>');
+  const MZ = o.mosaico ? mosaicoTiles(L.W, L.H, o.mosaico) : null;
+  if (MZ && MZ.list.length > 1) MZ.list.forEach((t, i) => {
+    out.push(`<rect x="${n(t.x)}" y="${n(H - t.y - MZ.rh)}" width="${n(MZ.rw)}" height="${n(MZ.rh)}" fill="none" stroke="#0e8fb0" stroke-width="1.2" stroke-dasharray="8 5" opacity=".75"/><text x="${n(t.x + 8)}" y="${n(H - t.y - MZ.rh + 22)}" font-size="18" font-weight="700" fill="#0e8fb0" opacity=".8">${i + 1}</text>`);
+  });
   out.push('</svg>');
-  return { svg: out.join(''), W: L.W, H: L.H, scale: L.scale, note: L.note, paper: L.paper, dbox: L.dbox ? { x: L.dbox.x0, y: H - L.dbox.y1, w: L.dbox.x1 - L.dbox.x0, h: L.dbox.y1 - L.dbox.y0 } : null };
+  return { hojas: MZ ? MZ.list.length : 1, hojaMz: MZ && MZ.hoja, svg: out.join(''), W: L.W, H: L.H, scale: L.scale, note: L.note, paper: L.paper, dbox: L.dbox ? { x: L.dbox.x0, y: H - L.dbox.y1, w: L.dbox.x1 - L.dbox.x0, h: L.dbox.y1 - L.dbox.y0 } : null };
 }
 // Imprime el SVG en una hoja del tamaño elegido (sin márgenes del navegador)
 function printPlotSVG(r) {
@@ -2739,16 +2907,18 @@ const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace
 // Dibujo para imprimir con la letra elegida: busca la escala en la que esa letra cabe sin amontonar
 // los bloques (letra entre 1 y 1.6 veces la del LISP) y la hoja más chica donde entra.
 const ESC_LETRA = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
+function planoSrc() { const A = window.PRINT_AV; return A ? { holes: A.holes, matched: A.matched, P: A.P0 } : { holes: state.rb && state.rb.holes, matched: state.m && state.m.matched, P: state.P }; }
 function planoP(o) {
+  const SRC = planoSrc();
   const pt = parseFloat($('pdfLetra').value) || 0;
   o.aviso = '';
   const PL = printLay(), esDXF = PL.showId && !PL.pad;
-  const base = () => (esDXF || !state.rb || !state.m ? state.P : layout(state.rb.holes, state.m.matched, Object.assign(opts(), PL)));
-  if (!pt || !state.rb || !state.m) return base();
+  const base = () => (esDXF || !SRC.holes || !SRC.matched ? SRC.P : layout(SRC.holes, SRC.matched, Object.assign(opts(), PL)));
+  if (!pt || !SRC.holes || !SRC.matched) return base();
   const hojas = ['A4', 'A3', 'A2', 'A1'], desde = Math.max(0, hojas.indexOf(o.paper));
   const fijo = parseInt(o.scale, 10) || 0;
   const cache = {}, cero = !!(window.PRINT_OPTS || {}).cero && opts().avoid; let mejor = null;
-  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = layout(state.rb.holes, state.m.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f }))); };
+  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = layout(SRC.holes, SRC.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f }))); };
   for (let hi = desde; hi < hojas.length; hi++) {
     for (const s of (fijo ? [fijo] : ESC_LETRA)) {
       const f = pt * s / PT_PER_M_1 / 0.4;
@@ -2772,12 +2942,17 @@ function planoP(o) {
 try { const v = localStorage.getItem('bhl-letra-imp'); if (v != null) $('pdfLetra').value = v; } catch (e) {}
 $('pdfLetra').addEventListener('change', () => { try { localStorage.setItem('bhl-letra-imp', $('pdfLetra').value); } catch (e) {} });
 function planoOpts() {
+  const o0 = planoOpts0(); const A = window.PRINT_AV;
+  if (A) Object.assign(o0, { title: A.title, subtitle: A.subtitle, polys: A.polys, marks: null, cuadro: A.cuadro });
+  return o0;
+}
+function planoOpts0() {
   const proj = ((parseProjectCode(state.bhName) || {}).text) || (state.found && state.found.p && state.found.p.label) || '';
   const mt = state.m && state.m.matched; const conLey = mt ? (mt.size != null ? mt.size : mt.length) : 0;
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
   const lv = state.libView ? lib.projects.filter(p => state.libView.ids.includes(p.id)).map(p => p.name) : null;
   const T = window.TITULO || {};
-  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
+  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, mosaico: (window.PRINT_OPTS || {}).mosaico || '', grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
     subtitle: lv ? `Proyecto${lv.length > 1 ? 's' : ''} ${lv.join(', ')} · ${state.holes.length} taladros · ${conLey} con leyes` : `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
 }
 // En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
@@ -2802,7 +2977,7 @@ function abrirPrevia() {
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
   $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'dibujo'; pintarPrevia();
 }
-function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; }
+function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; window.PRINT_AV = null; }
 function ajustarPapel() {
   if (!prevR) return;
   const body = $('prevBody'), paper = $('prevPaper');
@@ -2832,7 +3007,7 @@ function pintarPrevia() {
       paper.innerHTML = prevR.svg; if (prevModo === 'dibujo') ajustarAlDibujo(); else ajustarPapel();
       const avisos = [o.aviso, prevR.note].filter(Boolean).join(' ');
       info.className = 'prev-info' + (avisos ? ' warn' : '');
-      info.textContent = `Hoja ${prevR.paper} ${prevR.W > prevR.H ? 'horizontal' : 'vertical'} · escala 1:${prevR.scale}` + (o.conf != null && opts().avoid ? (o.conf ? ` · ${o.conf} bloque${o.conf > 1 ? 's' : ''} todavía se tocan` : ' · ninguna ley montada') : '') + (avisos ? ' · ' + avisos : '');
+      info.textContent = `Hoja ${prevR.paper} ${prevR.W > prevR.H ? 'horizontal' : 'vertical'} · escala 1:${prevR.scale}` + (prevR.hojas > 1 ? ` · el PDF sale partido en ${prevR.hojas} hojas ${prevR.hojaMz}` : o.mosaico ? ` · ya entra en una ${o.mosaico}, no hace falta partir` : '') + (o.conf != null && opts().avoid ? (o.conf ? ` · ${o.conf} bloque${o.conf > 1 ? 's' : ''} todavía se tocan` : ' · ninguna ley montada') : '') + (avisos ? ' · ' + avisos : '');
     } catch (e) { info.className = 'prev-info warn'; info.textContent = 'No se pudo preparar el plano: ' + (e && e.message || e); }
     paper.classList.remove('busy');
   }, 30);
@@ -2844,13 +3019,17 @@ $('pvMas').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; pre
 $('pvMenos').onclick = () => { const w = $('prevPaper').offsetWidth / prevR.W; prevModo = 'zoom'; prevZoom = Math.max(0.15, w / 1.4); ajustarPapel(); };
 window.addEventListener('resize', () => { if (!$('dlgPrev').hidden) { if (prevModo === 'dibujo') ajustarAlDibujo(); else if (prevModo === 'hoja') { prevZoom = 0; ajustarPapel(); } } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dlgPrev').hidden) cerrarPrevia(); });
-$('pvImprimir').onclick = () => { if (!prevR) return; printPlotSVG(prevR); };
+$('pvImprimir').onclick = () => {
+  if (!prevR) return;
+  if (prevR.hojas > 1) { const o = planoOpts(); o.mosaico = ''; printPlotSVG(buildPlotSVG(planoP(o), o)); return; }
+  printPlotSVG(prevR);
+};
 $('pvPdf').onclick = () => $('btnPdf').click();
 $('btnPdf').onclick = async () => {
   try {
     const o = planoOpts(); const r = await buildPlotPDF(planoP(o), o);
-    await save(baseName() + '.pdf', r.blob);
-    { const m = $('dlMsg'); if (r.note || o.aviso) { m.className = 'msg warn'; m.textContent = (o.aviso ? o.aviso + ' ' : '') + (r.note ? r.note + ' ' : '') + `PDF en ${r.paper} a 1:${r.scale}.`; } }
+    await save((window.PRINT_AV ? window.PRINT_AV.title.replace(/[\\/:*?"<>|]+/g, '_') : baseName()) + '.pdf', r.blob);
+    { const m = $('dlMsg'); if (r.note || o.aviso) { m.className = 'msg warn'; m.textContent = (o.aviso ? o.aviso + ' ' : '') + (r.note ? r.note + ' ' : '') + `PDF en ${r.paper} a 1:${r.scale}.`; } else if (r.hojas > 1) { m.className = 'msg ok'; m.textContent = `PDF partido en ${r.hojas} hojas ${r.hojaMz} (con 1 cm de traslape para pegarlas).`; } }
   } catch (e) { const m = $('dlMsg'); m.className = 'msg err'; m.textContent = 'No se pudo generar el PDF: ' + (e && e.message || e); }
 };
 $('btnZip').onclick = async () => {
@@ -3124,6 +3303,7 @@ $('libTbl').addEventListener('click', async e => {
 $('btnBackup').addEventListener('click', async () => {
   const data = { app: 'BlastHole Leyes', version: 3, exportedAt: new Date().toISOString(), projects: await dbAll('projects'), avances: await dbAll('avances'), limites: (await idbGet('limites')) || [] };
   save(`Respaldo_BlastHoleLeyes_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data), $('libMsg'));
+  await idbSet('bhl-ult-respaldo', new Date().toISOString()); try { respaldoAviso(); } catch (e) {}
 });
 $('fileRestore').addEventListener('change', async () => {
   const f = $('fileRestore').files[0]; $('fileRestore').value = ''; if (!f) return;
@@ -3628,7 +3808,7 @@ function computeT2() {
   if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
   if (idwCfg().on && noEst.length && est.items.length + noEst.length) notes.push(`${noEst.length} sin vecinos suficientes dentro de ${idwCfg().r} m: quedan sin ley.`.replace(`${idwCfg().r} m`, `${idwCfg().r} m (${idwCfg().rs} m arriba)`));
   if (repeated.length) notes.push(`Ya estaban en un avance anterior: ${lista(repeated)}.`);
-  if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · d = ${DENS_MODEL.a.toFixed(2)} + ${DENS_MODEL.b.toFixed(4)} × Fe.`);
+  if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · ${densTxt()}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
   setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
@@ -3703,16 +3883,17 @@ function renderHistory() {
   const row = (a, av) => { const tn = av ? tonAv(av) : a.tonnage; return `<td>${a.n}${a.nEst ? ` <small class="est">(${a.nEst} est.)</small>` : ''}</td><td>${tn ? Math.round(tn).toLocaleString('es-PE') : '—'}</td>` + AVG_FIELDS.map(F => `<td>${f((a.fields[F.k] || {}).mean, F.dec)}</td>`).join(''); };
   const c = cumulative();
   const inp = (a, k, ph, w) => `<input class="hin" data-id="${a.id}" data-k="${k}" value="${esc(a[k] || '')}" placeholder="${ph}" style="width:${w}" aria-label="${ph}">`;
-  tb.innerHTML = '<thead><tr><th>Fecha</th><th>Proyectos</th><th>Avance</th><th>Taladros</th><th>Tonelaje (t)</th>' + AVG_FIELDS.map(F => `<th>${F.label}</th>`).join('') + '<th>Tipo</th><th>Material</th><th>Obs.</th><th></th></tr></thead><tbody>' +
-    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result, a)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td><span class="matb" title="Automático por S/FeS">${esc(matDe(a)) || '—'}</span></td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
-    (c ? `<tr class="tot"><td><b>Acumulado</b></td><td></td><td>${t2.avs.length} avances</td>${row(c)}<td></td><td><b>${matAuto(c)}</b></td><td colspan="2"></td></tr>` : '') + '</tbody>';
+  tb.innerHTML = '<thead><tr><th>Fecha</th><th>Proyectos</th><th>Avance</th><th>Taladros</th><th>Tonelaje (t)</th>' + AVG_FIELDS.map(F => `<th>${F.label}</th>`).join('') + '<th>Tipo</th><th>Material</th><th>Obs.</th><th title="Tonelaje y Fe oficiales (topografía / planta) para comparar">Oficial t · Fe</th><th></th></tr></thead><tbody>' +
+    t2.avs.map(a => `<tr class="${t2.viewing === a.id ? 'cur' : ''}"><td>${fmtDate(a.fecha)}</td><td class="pj">${esc(a.projectNames.join(' + '))}</td><td>${esc(a.nombre || '')}</td>${row(a.result, a)}<td>${inp(a, 'tipo', 'Tipo', '5.5em')}</td><td><span class="matb" title="Automático por S/FeS">${esc(matDe(a)) || '—'}</span></td><td>${inp(a, 'obs', 'Obs.', '9em')}</td><td class="ofc">${inp(a, 'tonOf', 't', '5.5em')} ${inp(a, 'feOf', 'Fe', '3.5em')}${difOf(a)}</td><td class="acts"><button class="btn sec small" data-act="view" data-id="${a.id}">Ver</button> <button class="btn sec small" data-act="del" data-id="${a.id}">Borrar</button></td></tr>`).join('') +
+    (c ? `<tr class="tot"><td><b>Acumulado</b></td><td></td><td>${t2.avs.length} avances</td>${row(c)}<td></td><td><b>${matAuto(c)}</b></td><td></td><td>${difTot(t2.avs)}</td><td></td></tr>` : '') + '</tbody>';
 }
 $('histTbl').addEventListener('change', async e => {
   const i = e.target.closest('input.hin'); if (!i) return;
   const a = lib.avances.find(a => a.id === i.dataset.id); if (!a) return;
   a[i.dataset.k] = i.value.trim();
   const ok = await dbSave('avances', a);
-  const nom = { tipo: 'Tipo', tipoMat: 'Tipo de material', obs: 'Observación' }[i.dataset.k];
+  const nom = { tipo: 'Tipo', tipoMat: 'Tipo de material', obs: 'Observación', tonOf: 'Tonelaje oficial', feOf: 'Fe oficial' }[i.dataset.k];
+  if (i.dataset.k === 'tonOf' || i.dataset.k === 'feOf') renderHistory();
   setMsg('histMsg', ok ? 'ok' : 'err', ok ? `${nom} guardado en el avance del ${fmtDate(a.fecha)}.` : 'No se pudo guardar el cambio.');
 });
 const histClick = async e => {
@@ -3797,7 +3978,7 @@ $('btnReporte').addEventListener('click', async () => {
     const tot = Object.assign({ bold: true, fill: 'D9E1F2' }, box);
     rows.push([Object.assign({ v: 'TOTAL' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: `${avs.length} avances` }, tot), Object.assign({ v: cb.n, t: 'n', dec: 0 }, tot), ton ? Object.assign({ v: Math.round(ton), t: 'n', fmt: '#,##0' }, tot) : Object.assign({ v: '-' }, tot)]
       .concat(cols.slice(7, 17).map(c => { const cell = c[2] ? numC(cb.fields[c[2]].mean, c[3]) : Object.assign({ v: '-' }, box); return Object.assign(cell, { bold: true, fill: 'D9E1F2' }); }))
-      .concat([Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot), Object.assign({ v: '' }, tot)]));
+      .concat([Object.assign({ v: '' }, tot), Object.assign({ v: matAuto(cb) }, tot), Object.assign({ v: '' }, tot)]));
   }
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true, fill: AZ, border: true, align: 'center' }))];
   avs.forEach(a => (a.result.rows || []).forEach(x => {
@@ -3864,7 +4045,10 @@ function drawLimits(ctx, v) {
 }
 function bboxOf(pts) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }); return { x0, y0, x1, y1 }; }
 async function loadLimits() {
-  const arr = (await idbGet('limites')) || [];
+  const own = (await idbGet('limites')) || [];
+  const ownFiles = new Set(own.map(l => l.file));
+  const comp = ((await idbGet('limites-comp')) || []).filter(l => !ownFiles.has(l.file));
+  const arr = own.concat(comp);
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
@@ -3875,9 +4059,13 @@ function renderLimList() {
   const todos = [...new Set(t2.lims.map(l => l.file))];
   const files = todos.filter(f => t2.lims.some(l => l.file === f && limVisible(l)));
   const ocultos = todos.length - files.length;
-  box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
+  const sinComp = todos.filter(f => t2.lims.some(l => l.file === f && !l.compDe && !l.compartido)).length;
+  box.innerHTML = (sinComp > 1 ? `<button class="btn sec small limtodos" data-sharetodos="1" type="button">👥 Compartir mis ${sinComp} archivos con el equipo</button>` : '') + (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
-    return `<div class="limf"><div class="limh"><span class="pn">${esc(f)}</span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button></div>` +
+    const de = ls[0].compDe, comp = ls.every(l => l.compartido);
+    const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
+      : `<span class="pn">${esc(f)}</span><button class="btn sec small limshare${comp ? ' on' : ''}" data-share="${esc(f)}" type="button" title="${comp ? 'Los demás usuarios ven este archivo. Toca para dejar de compartir.' : 'Solo tú ves este archivo. Toca para compartirlo con el equipo.'}">${comp ? '👥 Compartido' : '🔒 Solo yo'}</button><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
+    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
 }
@@ -3888,6 +4076,22 @@ $('limList').addEventListener('change', e => {
   pv.draw();
 });
 $('limList').addEventListener('click', async e => {
+  if (e.target.closest('button[data-sharetodos]')) {
+    const prev = (await idbGet('limites')) || [], now = Date.now();
+    const arr = prev.map(l => l.compartido ? l : Object.assign({}, l, { compartido: true, _mod: now, _dirty: true }));
+    await saveLimites(arr, prev); await loadLimits();
+    const m = $('limMsg'); m.className = 'msg ok'; m.textContent = 'Todos tus límites quedan compartidos. Los demás usuarios los verán al sincronizar.';
+    return;
+  }
+  const sb = e.target.closest('button[data-share]');
+  if (sb) {
+    const prev = (await idbGet('limites')) || [], f = sb.dataset.share;
+    const on = !prev.filter(l => l.file === f).every(l => l.compartido), now = Date.now();
+    const arr = prev.map(l => l.file === f ? Object.assign({}, l, { compartido: on, _mod: now, _dirty: true }) : l);
+    await saveLimites(arr, prev); await loadLimits();
+    const m = $('limMsg'); m.className = 'msg ok'; m.textContent = on ? `${f}: compartido. Los demás usuarios lo verán al sincronizar.` : `${f}: ya no se comparte.`;
+    return;
+  }
   const b = e.target.closest('button[data-delfile]'); if (!b) return;
   if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Quitar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Quitar'; b.classList.remove('danger'); } }, 4000); return; }
   const prev = (await idbGet('limites')) || [];
@@ -3906,7 +4110,7 @@ async function addLimitFiles(files) {
       else { const tabs = await readTables(f); for (const tb of tabs) { polys = parseCSVPolylines(tb.csv); if (polys.length) break; } }
       if (!polys.length) { errs.push(`${f.name}: no encontré polilíneas (en DXF deben ser polilíneas de 3 o más vértices).`); continue; }
       const keep = arr.filter(l => l.file !== f.name); arr.length = 0; arr.push(...keep);
-      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.layer, name: /\.dxf$/i.test(f.name) ? '' : p.layer, pts: p.pts, closed: p.closed, _dirty: true }));
+      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.layer, name: /\.dxf$/i.test(f.name) ? '' : p.layer, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
       added.push(`${f.name}: ${polys.length} polígono(s) en ${new Set(polys.map(p => p.layer)).size} capa(s)`);
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
@@ -4156,7 +4360,7 @@ function pintarAjustes() {
 }
 if (ES_APP) {
   document.body.classList.add('app');
-  $('appTopR').appendChild($('btnCarga')); $('appTopR').appendChild($('btnSync'));
+  $('appTopR').appendChild($('btnTablero')); $('appTopR').appendChild($('btnCarga')); $('appTopR').appendChild($('btnSync'));
   $('appTemaSlot').appendChild(document.querySelector('.tema'));
   $('appBar').addEventListener('click', e => { const b = e.target.closest('button[data-at]'); if (b) appTab(b.dataset.at); });
   $('appSyncBtn').addEventListener('click', () => $('btnSync').click());
@@ -4207,7 +4411,7 @@ function vlLimsRender() {
   const box = $('vlLims'); if (!box) return;
   const V = state.libView;
   const ids = new Set(V ? V.ids : [...vl.ids]);
-  if (!ids.size) { box.innerHTML = '<p class="note">Elige un proyecto para ver sus límites.</p>'; return; }
+  if (!ids.size) { box.innerHTML = '<p class="note">Marca un proyecto.</p>'; return; }
   const lims = vlLimites(ids), avs = vlAvances(ids), off = V ? V.off : new Set(), clip = V ? V.clip : '';
   const row = (key, color, name, sub) => `<label class="vl-li${off.has(key) ? ' off' : ''}"><input type="checkbox" data-show="${esc(key)}" ${off.has(key) ? '' : 'checked'}><i class="sw" style="background:${color}"></i><span class="nm">${esc(name)}${sub ? ` <small>${esc(sub)}</small>` : ''}</span><label class="rc" title="Imprimir solo lo que está dentro"><input type="radio" name="vlclip" value="${esc(key)}" ${clip === key ? 'checked' : ''}><span>recortar</span></label></label>`;
   let h = `<label class="vl-li"><span></span><span></span><span class="nm"><b>Sin recortar</b> <small>todo el proyecto</small></span><label class="rc"><input type="radio" name="vlclip" value="" ${clip ? '' : 'checked'}><span>todo</span></label></label>`;
@@ -4286,13 +4490,13 @@ function vlPintarEstado() {
   try { t1BarRender(); } catch (e) {}
   const on = !!state.libView;
   $('vlibBox').classList.toggle('on', on); $('vlSalir').hidden = !on;
-  $('vlVer').textContent = on ? 'Actualizar vista' : 'Ver en el plano';
-  $('vlSum').textContent = on ? `viendo ${state.libView.ids.length} proyecto${state.libView.ids.length === 1 ? '' : 's'}${state.libView.clip ? ' · recortado' : ''}` : 'elige proyectos y límites para solo verlos';
+  $('vlVer').textContent = on ? 'Actualizar' : 'Ver';
+  $('vlSum').textContent = on ? `viendo ${state.libView.ids.length} proyecto${state.libView.ids.length === 1 ? '' : 's'}${state.libView.clip ? ' · recortado' : ''}` : 'solo vista e impresión';
 }
 function vlAplicar() {
   const ids = vlProyectos().filter(p => vl.ids.has(p.id)).map(p => p.id);
-  if (!ids.length) { $('vlNote').className = 'msg err'; $('vlNote').textContent = 'Marca al menos un proyecto.'; return; }
-  $('vlNote').className = 'note'; $('vlNote').textContent = 'Solo para ver e imprimir: no cambia tus proyectos ni tus avances.';
+  if (!ids.length) { $('vlNote').hidden = false; $('vlNote').className = 'msg err'; $('vlNote').textContent = 'Marca al menos un proyecto.'; return; }
+  $('vlNote').hidden = true;
   const prev = state.libView;
   state.libView = { ids, clip: prev ? prev.clip : '', off: prev ? prev.off : new Set(), sup: $('vlSup').checked };
   vlPintarEstado(); recompute(true); vlLimsRender();
@@ -4620,7 +4824,7 @@ function pvOptsPintar() {
   document.querySelectorAll('#pvPop [data-po]').forEach(el => {
     const k = el.dataset.po;
     const v = k === 'avoid' ? $('avoid').checked : k === 'leader' ? $('leader').checked : k === 'cuzn' ? $('cuzn').checked : PO[k];
-    if (el.type === 'checkbox') el.checked = k === 'cero' ? !!v : v !== false; else el.value = String(v || 0);
+    if (el.type === 'checkbox') el.checked = k === 'cero' ? !!v : v !== false; else el.value = k === 'mosaico' ? (v || '') : String(v || 0);
   });
   const lv = !!state.libView;
   ['lims', 'sup'].forEach(k => { const el = document.querySelector(`#pvPop [data-po=${k}]`); el.closest('label').hidden = !lv || (k === 'sup' && !(state.libView && state.libView.sup)); });
@@ -4629,7 +4833,7 @@ $('pvOptBtn').addEventListener('click', e => { e.stopPropagation(); const pop = 
 document.addEventListener('click', e => { if (!$('pvPop').hidden && !e.target.closest('.pv-mas')) { $('pvPop').hidden = true; $('pvOptBtn').setAttribute('aria-expanded', 'false'); } });
 $('pvPop').addEventListener('change', e => {
   const el = e.target.closest('[data-po]'); if (!el) return;
-  const k = el.dataset.po, v = el.type === 'checkbox' ? el.checked : parseFloat(el.value) || 0;
+  const k = el.dataset.po, v = el.type === 'checkbox' ? el.checked : k === 'mosaico' ? el.value : parseFloat(el.value) || 0;
   if (k === 'avoid' || k === 'leader' || k === 'cuzn') $(k).checked = v; else window.PRINT_OPTS[k] = v;
   try { localStorage.setItem('bhl-printopts', JSON.stringify(window.PRINT_OPTS)); } catch (e2) {}
   recompute(false); pintarPrevia();
@@ -4825,6 +5029,247 @@ function t2Layout() {
 }
 try { t2Layout(); } catch (e) { console.error('t2Layout', e); }
 
+// ===== Imprimir el avance (pestaña 2) con su cuadro de promedio =====
+function imprimirAvance() {
+  const viendo = t2.viewing ? t2.avs.find(a => a.id === t2.viewing) : null;
+  const r = viendo ? viendo.result : t2.result;
+  const shapes = viendo ? avShapes(viendo) : t2.shapes.map(s => s.pts);
+  if (!r || !r.n || !shapes.length) { setMsg('t2Msg', 'err', 'Primero dibuja (o abre) un avance con taladros para imprimirlo.'); return; }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  shapes.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }));
+  const m = 15; x0 -= m; y0 -= m; x1 += m; y1 += m;
+  const holes = t2.holes.filter(h => h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1).map(h => ({ key: h.ck, id: h.id, x: h.x, y: h.y, z: 0 }));
+  const matched = new Map(); holes.forEach(h => { const l = t2.leyBy.get(h.key); if (l) matched.set(h.key, l); });
+  const P0 = layout(holes, matched, Object.assign(opts(), { useZ: false }));
+  const ac = [0.75, 0.53, 0.04];
+  const polys = shapes.map(P => ({ pts: P, col: ac, w: 1.6 }));
+  t2.lims.forEach(L => { try { if (t2.limOff.has(L.layer) || !limVisible(L)) return; } catch (e) {} if (L.bb.x1 < x0 || L.bb.x0 > x1 || L.bb.y1 < y0 || L.bb.y0 > y1) return; const c = limColor(L.layer); const hx = /^#[0-9a-f]{6}$/i.test(c) ? [parseInt(c.slice(1, 3), 16) / 255, parseInt(c.slice(3, 5), 16) / 255, parseInt(c.slice(5, 7), 16) / 255] : [0.4, 0.4, 0.4]; polys.push({ pts: L.pts, col: hx, w: 0.3 * limAncho() }); });
+  const f = (k, d) => fmt((r.fields[k] || {}).mean, d, '—');
+  const fecha = viendo ? fmtDate(viendo.fecha) : fmtDate($('avFecha').value);
+  const nombre = viendo ? viendo.nombre : $('avNombre').value.trim();
+  const ton = viendo ? tonAv(viendo) : r.tonnage;
+  const filas = [['Fecha', fecha], ['Proyectos', (r.projectNames || []).join(' + ')], ['Taladros', r.n + (r.nEst ? ` (${r.nEst} est.)` : '')], ['Tonelaje (t)', ton ? Math.round(ton).toLocaleString('es-PE') : '—'],
+    ['Fe', f('fe', 'c3')], ['FeO', f('feo', 'c3')], ['S', f('s', 'c3')], ['S_100', f('s100', 'c3')], ['S/FeS', f('sfe', 'c3')], ['Cu', f('cu', 2)], ['Zn', f('zn', 2)], ['Material', matAuto(r) || '—', [0.6, 0.2, 0.05]]];
+  if (r.groups && r.groups.length > 1) r.groups.filter(g => g.n).forEach(g => filas.push([g.label, `${(g.pct || 0).toFixed(0)} % · Fe ${fmt(g.fields.fe, 'c3', '—')}`]));
+  if (r.nEst) filas.push(['Estimado (IDW)', r.estPct.toFixed(0) + ' %']);
+  window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: 'Promedio del avance', filas },
+    title: `Avance ${fecha}${nombre ? ' · ' + nombre : ''}`, subtitle: `${(r.projectNames || []).join(' + ')} · ${r.n} taladros promediados · ponderado por tonelaje` };
+  abrirPrevia();
+}
+(() => {
+  const row = $('btnSaveAv').closest('.btnrow');
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sec small'; b.id = 'btnPrintAv'; b.textContent = '🖨 Imprimir avance';
+  row.appendChild(b); b.addEventListener('click', imprimirAvance);
+})();
+
+// ===== Reporte del día en un toque: todos los avances de esa fecha (de todos los proyectos) =====
+$('btnDia').addEventListener('click', () => {
+  const fechas = [...new Set(lib.avances.map(a => String(a.fecha).slice(0, 10)))].sort();
+  if (!fechas.length) { setMsg('histMsg', 'err', 'Aún no hay avances guardados.'); return; }
+  const hoy = todayISO();
+  let dia = $('repHasta').value && $('repHasta').value === $('repDesde').value ? $('repHasta').value : (fechas.includes(hoy) ? hoy : fechas[fechas.length - 1]);
+  const delDia = lib.avances.filter(a => String(a.fecha).slice(0, 10) === dia);
+  if (!delDia.length) { setMsg('histMsg', 'err', `No hay avances del ${fmtDate(dia)}.`); return; }
+  delDia.forEach(a => a.projectIds.forEach(id => t2.selIds.add(id)));
+  // que el filtro de mina/nivel no esconda proyectos de ese día
+  $('fMina').value = ''; $('fNivel').value = ''; try { localStorage.setItem('bhl-fil', JSON.stringify({ m: '', n: '' })); } catch (e) {}
+  refreshT2();
+  $('repDesde').value = dia; $('repHasta').value = dia;
+  setMsg('histMsg', 'ok', `Reporte del ${fmtDate(dia)}: ${delDia.length} avance${delDia.length > 1 ? 's' : ''} de ${new Set(delDia.flatMap(a => a.projectNames)).size} proyecto(s). Para otro día, pon la misma fecha en «Desde» y «Hasta».`);
+  $('btnReporte').click();
+});
+
+// ===== Traer proyectos desde BlastHole Control (solo lectura; Control y Leyes siguen separados) =====
+const CTRL = { url: 'https://igpbwhfqtusjjuivcjck.supabase.co', key: 'sb_publishable_0VcrMreKQPfmNuSCc-kupQ_LpWdISQm', ses: null, projs: [] };
+async function ctrlFetch(path, opt) {
+  const r = await fetch(CTRL.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: CTRL.key, 'Content-Type': 'application/json' }, CTRL.ses ? { Authorization: 'Bearer ' + CTRL.ses.access_token } : {}, (opt || {}).headers || {}) }));
+  const txt = await r.text(); let j = null; try { j = txt ? JSON.parse(txt) : null; } catch (e) {}
+  if (!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || ('HTTP ' + r.status));
+  return { j, r };
+}
+async function ctrlSesion() {
+  if (!CTRL.ses) { CTRL.ses = await idbGet('bhl-ctrl'); }
+  if (!CTRL.ses) return null;
+  if (Date.now() / 1000 > (CTRL.ses.expires_at || 0) - 60) {
+    try { const { j } = await ctrlFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: CTRL.ses.refresh_token }), headers: { Authorization: '' } }); CTRL.ses = Object.assign({ email: CTRL.ses.email }, j); await idbSet('bhl-ctrl', CTRL.ses); }
+    catch (e) { CTRL.ses = null; await idbSet('bhl-ctrl', null); return null; }
+  }
+  return CTRL.ses;
+}
+const ctrlTipo = p => p.final_file_name ? (p.final_es_avance || /AVANCE/i.test(p.final_file_name) ? 'avance' : 'final') : 'malla';
+function ctrlEstado(p) {
+  const c = parseProjectCode(p.project_code); if (!c) return { txt: '', cls: '' };
+  const ya = lib.projects.find(q => (parseProjectCode(q.name) || {}).text === c.text);
+  const tp = ctrlTipo(p);
+  if (!ya) return { txt: 'nuevo', cls: 'nu', marcar: true };
+  const tYa = ya.tipo || tipoArchivo(ya.fileName);
+  if (TIPO_RANGO[tp] > TIPO_RANGO[tYa]) return { txt: `${tYa} → ${tp}`, cls: 'ac', marcar: true };
+  return { txt: 'ya está', cls: '' };
+}
+function ctrlPintar() {
+  const q = ($('ctrlBusca').value || '').trim().toLowerCase();
+  $('ctrlItems').innerHTML = CTRL.projs.filter(p => !q || String(p.project_code).toLowerCase().includes(q)).map(p => {
+    const e = ctrlEstado(p), tp = ctrlTipo(p);
+    return `<label class="ctrl-it"><input type="checkbox" data-cid="${esc(p.id)}" ${p._sel ? 'checked' : ''}><span class="pn">${esc(p.project_code)}</span><span class="tbadge t-${tp}">${tp}</span><small class="${e.cls}">${esc(e.txt)}</small></label>`;
+  }).join('') || '<p class="note2">No hay proyectos.</p>';
+}
+async function ctrlCargarLista() {
+  const msg = $('ctrlMsg'); msg.className = 'msg'; msg.textContent = 'Leyendo proyectos de BlastHole Control…';
+  try {
+    if (!await ctrlSesion()) { $('ctrlLogin').hidden = false; $('ctrlLista').hidden = true; msg.textContent = ''; return; }
+    const { j } = await ctrlFetch('/rest/v1/projects?select=id,mina,banco,project_number,project_code,malla_file_name,final_file_name,final_es_avance,closed_at,created_at&order=created_at.desc');
+    CTRL.projs = j || []; CTRL.projs.forEach(p => { p._sel = !!ctrlEstado(p).marcar; });
+    $('ctrlLogin').hidden = true; $('ctrlLista').hidden = false; $('ctrlQuien').textContent = `Conectado como ${CTRL.ses.email || ''} · ${CTRL.projs.length} proyectos en Control`;
+    ctrlPintar(); msg.textContent = '';
+  } catch (e) { msg.className = 'msg err'; msg.textContent = 'No se pudo leer BlastHole Control: ' + e.message; }
+}
+$('ctrlBox').addEventListener('toggle', () => { if ($('ctrlBox').open) ctrlCargarLista(); });
+$('ctrlEntrar').addEventListener('click', async () => {
+  const msg = $('ctrlMsg'); msg.className = 'msg'; msg.textContent = 'Conectando…';
+  try {
+    CTRL.ses = null;
+    const email = $('ctrlEmail').value.trim();
+    const { j } = await ctrlFetch('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password: $('ctrlPw').value }) });
+    CTRL.ses = Object.assign({ email }, j); $('ctrlPw').value = '';
+    await idbSet('bhl-ctrl', CTRL.ses); await ctrlCargarLista();
+  } catch (e) { msg.className = 'msg err'; msg.textContent = /invalid/i.test(e.message) ? 'Correo o contraseña de BlastHole Control incorrectos.' : 'No se pudo conectar: ' + e.message; }
+});
+$('ctrlSalir').addEventListener('click', async () => { CTRL.ses = null; await idbSet('bhl-ctrl', null); $('ctrlLogin').hidden = false; $('ctrlLista').hidden = true; });
+$('ctrlItems').addEventListener('change', e => { const cb = e.target.closest('[data-cid]'); if (!cb) return; const p = CTRL.projs.find(x => x.id === cb.dataset.cid); if (p) p._sel = cb.checked; });
+$('ctrlBusca').addEventListener('input', ctrlPintar);
+$('ctrlNuevos').addEventListener('click', () => { CTRL.projs.forEach(p => { p._sel = !!ctrlEstado(p).marcar; }); ctrlPintar(); });
+$('ctrlTraer').addEventListener('click', async () => {
+  const sel = CTRL.projs.filter(p => p._sel); const msg = $('ctrlMsg');
+  if (!sel.length) { msg.className = 'msg err'; msg.textContent = 'Marca al menos un proyecto.'; return; }
+  const out = [], nuevos = [];
+  for (let i = 0; i < sel.length; i++) {
+    const p = sel[i]; msg.className = 'msg'; msg.textContent = `Trayendo ${p.project_code} (${i + 1} de ${sel.length})…`;
+    try {
+      await ctrlSesion();
+      let rows = [], off = 0;
+      for (;;) { const { j } = await ctrlFetch(`/rest/v1/contractor_blastholes?project_id=eq.${encodeURIComponent(p.id)}&select=design_id,bhid,east,north,elev&order=bhid&limit=1000&offset=${off}`); rows = rows.concat(j || []); if (!j || j.length < 1000) break; off += 1000; }
+      const holes = rows.filter(r => r.east != null && r.north != null).map(r => { const id = String(r.design_id || r.bhid || '').trim(); return { id, key: keyOf(id), x: +r.east, y: +r.north, z: r.elev != null ? +r.elev : 0, depth: null }; }).filter(h => h.id);
+      if (!holes.length) { out.push(`${p.project_code}: sin coordenadas en Control`); continue; }
+      const code = parseProjectCode(p.project_code);
+      const fname = p.final_file_name || p.malla_file_name || (p.project_code + '.csv');
+      const found = state.base && code ? findBaseProject(state.base, code, holes, null) : null;
+      const rec = buildProjectRecord(null, fname, holes, code, found && found.how !== 'alias' ? found : null, null);
+      rec.tipo = ctrlTipo(p); rec.origen = 'BlastHole Control';
+      const r = await saveProjectRecord(rec);
+      out.push(`${p.project_code}: ${TIPO_TXT[rec.tipo]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'} · ${holes.length} taladros`);
+      nuevos.push(rec.id);
+    } catch (e) { out.push(`${p.project_code}: ${e.message}`); }
+  }
+  msg.className = 'msg ok'; msg.textContent = out.join(' · ');
+  if (nuevos.length) { $('cargaVer').hidden = false; $('cargaVer').dataset.ids = JSON.stringify(nuevos); }
+  cargaEstado(); ctrlPintar();
+});
+
+// ===== Comparar con tonelaje / Fe oficial (topografía o planta) =====
+const numOf = v => { const n = parseFloat(String(v || '').replace(/,/g, '')); return isNaN(n) ? null : n; };
+function difOf(a) {
+  const t = numOf(a.tonOf), fe = numOf(a.feOf), mt = tonAv(a), mf = (a.result.fields.fe || {}).mean, out = [];
+  if (t != null && mt) { const d = 100 * (mt - t) / t; out.push(`<span class="${Math.abs(d) > 10 ? 'dbad' : 'dok'}" title="App ${Math.round(mt).toLocaleString('es-PE')} t vs oficial ${t.toLocaleString('es-PE')} t">${d >= 0 ? '+' : ''}${d.toFixed(1)} % t</span>`); }
+  if (fe != null && mf != null) { const d = mf - fe; out.push(`<span class="${Math.abs(d) > 2 ? 'dbad' : 'dok'}" title="App Fe ${mf.toFixed(1)} vs oficial ${fe}">${d >= 0 ? '+' : ''}${d.toFixed(1)} Fe</span>`); }
+  return out.length ? `<div class="dof">${out.join(' ')}</div>` : '';
+}
+function difTot(avs) {
+  const con = avs.filter(a => numOf(a.tonOf) != null && tonAv(a));
+  if (!con.length) return '';
+  const app = con.reduce((s, a) => s + tonAv(a), 0), of = con.reduce((s, a) => s + numOf(a.tonOf), 0), d = 100 * (app - of) / of;
+  return `<div class="dof"><span class="${Math.abs(d) > 10 ? 'dbad' : 'dok'}">${d >= 0 ? '+' : ''}${d.toFixed(1)} % t en ${con.length}</span></div>`;
+}
+
+// ===== Tablero: resumen del período, gráficos por semana y pendientes =====
+const MCOL = { M1: '#2F6F4F', M2: '#6FA58A', M3: '#D9A23B', M4: '#C66B2E', M5: '#8E2F1F' };
+function tabMinaDe(a) { const p = lib.projects.find(p => a.projectIds.includes(p.id)); return p ? projCode(p).mina : '?'; }
+function tabRango() {
+  const v = $('tabPer').value, d = new Date(), iso = x => x.toISOString().slice(0, 10);
+  if (v === 'mes') return [iso(new Date(d.getFullYear(), d.getMonth(), 1)), '9999'];
+  if (v === 'mesant') return [iso(new Date(d.getFullYear(), d.getMonth() - 1, 1)), iso(new Date(d.getFullYear(), d.getMonth(), 0))];
+  if (v === '30') return [iso(new Date(Date.now() - 30 * 864e5)), '9999'];
+  return ['0000', '9999'];
+}
+function semanaDe(f) { const d = new Date(String(f).slice(0, 10) + 'T12:00:00'); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); }
+function svgBarras(datos, fmtV, unidad, color) {
+  if (!datos.length) return '<p class="note2">Sin avances en el período.</p>';
+  const W = 520, H = 170, L = 44, B = 24, T = 10, n = datos.length, max = Math.max(...datos.map(d => d.v)) || 1;
+  const bw = Math.min(46, (W - L - 10) / n - 6), step = (W - L - 10) / n;
+  const nice = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / nice) * nice, y = v => T + (H - T - B) * (1 - v / top);
+  let g = ''; for (let i = 0; i <= 4; i++) { const v = top * i / 4; g += `<line x1="${L}" x2="${W - 4}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" stroke-opacity=".12"/><text x="${L - 6}" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="currentColor" fill-opacity=".6">${fmtV(v)}</text>`; }
+  const bars = datos.map((d, i) => { const x = L + i * step + (step - bw) / 2, h = Math.max(1, y(0) - y(d.v)); return `<path class="b" d="M${x} ${y(0)} V${y(d.v) + 4} q0 -4 4 -4 h${bw - 8} q4 0 4 4 V${y(0)} Z" fill="${color}"><title>Semana del ${fmtDate(d.k)}: ${fmtV(d.v)} ${unidad}</title></path><text x="${x + bw / 2}" y="${H - 8}" font-size="10" text-anchor="middle" fill="currentColor" fill-opacity=".6">${fmtDate(d.k).slice(0, 5)}</text>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${unidad} por semana">${g}${bars}</svg>`;
+}
+function svgLinea(datos, dec, color) {
+  if (!datos.length) return '<p class="note2">Sin avances en el período.</p>';
+  const W = 520, H = 170, L = 44, B = 24, T = 12, n = datos.length;
+  const vs = datos.map(d => d.v), mn = Math.floor(Math.min(...vs) - 1), mx = Math.ceil(Math.max(...vs) + 1);
+  const x = i => n === 1 ? (L + W) / 2 : L + 10 + i * (W - L - 24) / (n - 1), y = v => T + (H - T - B) * (1 - (v - mn) / ((mx - mn) || 1));
+  let g = ''; for (let i = 0; i <= 4; i++) { const v = mn + (mx - mn) * i / 4; g += `<line x1="${L}" x2="${W - 4}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" stroke-opacity=".12"/><text x="${L - 6}" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="currentColor" fill-opacity=".6">${v.toFixed(dec)}</text>`; }
+  const pts = datos.map((d, i) => `${x(i)},${y(d.v)}`).join(' ');
+  const dots = datos.map((d, i) => `<circle class="d" cx="${x(i)}" cy="${y(d.v)}" r="5" fill="${color}" stroke="var(--panel, #fff)" stroke-width="2"><title>Semana del ${fmtDate(d.k)}: Fe ${d.v.toFixed(1)}</title></circle><text x="${x(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="currentColor" fill-opacity=".6">${fmtDate(d.k).slice(0, 5)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fe por semana">${g}<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}</svg>`;
+}
+async function pintarTablero() {
+  const [d0, d1] = tabRango(), mina = $('tabMina').value;
+  const avs = lib.avances.filter(a => { const f = String(a.fecha).slice(0, 10); return f >= d0 && f <= d1 && (!mina || tabMinaDe(a) === mina); }).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+  const c = avs.length ? combineAvances(avs) : null, ton = avs.reduce((s, a) => s + (tonAv(a) || 0), 0);
+  const mt = {}; avs.forEach(a => { const m = matAuto(a.result); if (m) mt[m] = (mt[m] || 0) + (tonAv(a) || 0); });
+  const mtot = Object.values(mt).reduce((s, v) => s + v, 0);
+  const f = (k, d) => c ? fmt((c.fields[k] || {}).mean, d, '—') : '—';
+  $('tabKpi').innerHTML = `<div class="k"><span>Tonelaje</span><b>${ton ? Math.round(ton).toLocaleString('es-PE') : '—'}</b><small>${avs.length} avance${avs.length === 1 ? '' : 's'}</small></div>`
+    + `<div class="k"><span>Fe</span><b>${f('fe', 'c3')}</b><small>ponderado por tonelaje</small></div>`
+    + `<div class="k"><span>S/FeS</span><b>${f('sfe', 'c3')}</b><small>material ${c ? matAuto(c) || '—' : '—'}</small></div>`
+    + `<div class="k"><span>FeO · S</span><b style="font-size:1.15rem">${f('feo', 'c3')} · ${f('s', 'c3')}</b><small>ponderados</small></div>`
+    + `<div class="k"><span>Material (t)</span>${mtot ? `<div class="mbar">${['M1', 'M2', 'M3', 'M4', 'M5'].map(m => mt[m] ? `<i style="flex:${mt[m]};background:${MCOL[m]}" title="${m}: ${Math.round(mt[m]).toLocaleString('es-PE')} t (${(100 * mt[m] / mtot).toFixed(0)} %)"></i>` : '').join('')}</div><div class="mlab">${['M1', 'M2', 'M3', 'M4', 'M5'].filter(m => mt[m]).map(m => `<span>${m} ${(100 * mt[m] / mtot).toFixed(0)}%</span>`).join('')}</div>` : '<small>—</small>'}</div>`;
+  const sem = new Map(); avs.forEach(a => { const k = semanaDe(a.fecha); if (!sem.has(k)) sem.set(k, []); sem.get(k).push(a); });
+  const ks = [...sem.keys()].sort().slice(-12);
+  $('tabChTon').innerHTML = svgBarras(ks.map(k => ({ k, v: sem.get(k).reduce((s, a) => s + (tonAv(a) || 0), 0) })), v => v >= 1000 ? Math.round(v / 1000) + 'k' : Math.round(v), 't', 'var(--accent, #B4481C)');
+  $('tabChFe').innerHTML = svgLinea(ks.map(k => ({ k, v: (combineAvances(sem.get(k)).fields.fe || {}).mean })).filter(d => d.v != null), 0, '#1F5F8B');
+  $('tabUlt').innerHTML = avs.length ? '<div class="tult">' + avs.slice(-6).reverse().map(a => `<div><span>${fmtDate(a.fecha).slice(0, 5)}</span><span style="font-family:var(--f-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.projectNames.join(' + '))}</span><span>${tonAv(a) ? Math.round(tonAv(a)).toLocaleString('es-PE') : '—'}</span><span>${fmt((a.result.fields.fe || {}).mean, 'c3', '—')}</span><span style="color:${MCOL[matAuto(a.result)] || 'inherit'};font-weight:700">${matAuto(a.result)}</span></div>`).join('') + '</div>' : '<p class="note2">Sin avances en el período.</p>';
+  // pendientes
+  const pend = [];
+  const nuevas = (t2.avs || []).filter(a => { const r = leyesNuevas(a); return r.n || r.est || r.dens; }).length;
+  pend.push([nuevas, 'avance(s) guardado(s) con leyes nuevas o densidad por corregir', 'Actualízalos desde el aviso amarillo del historial']);
+  const mallas = lib.projects.filter(p => (p.tipo || tipoArchivo(p.fileName)) === 'malla').length;
+  pend.push([mallas, 'proyecto(s) solo con malla inicial (sin avance ni final)', 'Trae el final desde BlastHole Control o súbelo']);
+  const sinLey = lib.projects.filter(p => { const L = leyesForProject(p); return !L.leyes || !L.leyes.some(l => l.hasData !== false); }).length;
+  pend.push([sinLey, 'proyecto(s) sin leyes en la base', 'Carga la base de leyes más reciente']);
+  let qcBad = 0; lib.projects.forEach(p => { const L = leyesForProject(p); const keys = new Set(p.holes.map(h => h.key)); (L.leyes || []).forEach(l => { if (keys.has(l.key) && qcLey(l).some(q => q.lvl === 'bad')) qcBad++; }); });
+  pend.push([qcBad, 'taladro(s) con valores imposibles en la base', 'Revisa la pestaña 1 («Revisión del cruce»)']);
+  const ult = await idbGet('bhl-ult-respaldo'), dias = ult ? Math.floor((Date.now() - new Date(ult)) / 864e5) : null;
+  pend.push([dias == null || dias >= 7 ? 1 : 0, dias == null ? 'nunca se sacó un respaldo en este equipo' : `último respaldo hace ${dias} día(s)`, 'Proyectos → «Sacar respaldo»']);
+  $('tabPend').innerHTML = pend.map(([n, t, h]) => `<div class="pe ${n ? '' : 'ok'}"><b>${n ? (typeof n === 'number' && t.startsWith('nunca') || t.startsWith('último') ? '⚠' : n) : '✓'}</b><div>${t}${n ? `<br><small style="color:var(--muted)">${h}</small>` : ''}</div></div>`).join('');
+}
+function abrirTablero() {
+  const minas = [...new Set(lib.projects.map(p => projCode(p).mina))].sort(sortNum), cur = $('tabMina').value;
+  $('tabMina').innerHTML = '<option value="">Todas las minas</option>' + minas.map(m => `<option value="${esc(m)}">Mina ${esc(m)}</option>`).join(''); $('tabMina').value = minas.includes(cur) ? cur : '';
+  $('dlgTab').hidden = false; pintarTablero();
+}
+$('btnTablero').addEventListener('click', abrirTablero);
+$('tabCerrar').addEventListener('click', () => { $('dlgTab').hidden = true; });
+$('tabPer').addEventListener('change', pintarTablero); $('tabMina').addEventListener('change', pintarTablero);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dlgTab').hidden) $('dlgTab').hidden = true; });
+// Respaldo semanal: aviso si pasaron 7 días o más
+async function respaldoAviso() {
+  const ult = await idbGet('bhl-ult-respaldo'), dias = ult ? (Date.now() - new Date(ult)) / 864e5 : 999;
+  const b = $('btnTablero'); b.classList.toggle('alerta', dias >= 7 && lib.projects.length > 0);
+  b.title = dias >= 7 ? 'Tienes pendientes: hace más de una semana que no sacas respaldo' : 'Resumen del período';
+  const hoy = new Date().toISOString().slice(0, 10);
+  let ya = ''; try { ya = localStorage.getItem('bhl-resp-aviso') || ''; } catch (e) {}
+  const old = document.getElementById('respBanner');
+  if (dias < 7 || !lib.projects.length) { if (old) old.remove(); return; }
+  if (old || ya === hoy) return;
+  const d = document.createElement('div'); d.id = 'respBanner'; d.className = 'respban'; d.setAttribute('role', 'status');
+  d.innerHTML = `<span>💾 ${ult ? `Último respaldo hace ${Math.floor(dias)} días.` : 'Aún no sacas un respaldo en este equipo.'}</span><button class="btn small" type="button" id="respYa">Sacar respaldo</button><button class="btn sec small" type="button" id="respLuego" aria-label="Recordar mañana">Mañana</button>`;
+  document.body.appendChild(d);
+  const fuera = () => { try { localStorage.setItem('bhl-resp-aviso', hoy); } catch (e) {} d.remove(); };
+  d.querySelector('#respYa').onclick = () => { $('btnBackup').click(); d.remove(); };
+  d.querySelector('#respLuego').onclick = fuera;
+  setTimeout(() => { if (d.isConnected) d.remove(); }, 20000);
+}
+setTimeout(() => { try { respaldoAviso(); } catch (e) {} }, 3000);
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -4902,7 +5347,25 @@ const rest = {
   },
   pull: since => rest.rpc('bhl_pull', { p_since: since }),
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
+  compartidos: () => rest.rpc('bhl_compartidos', {}),
 };
+// Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
+async function bajarCompartidos(T, forzar) {
+  if (!T.compartidos) return 0;
+  const ult = sync.compAt || 0;
+  if (!forzar && Date.now() - ult < 5 * 60 * 1000) return 0;
+  sync.compAt = Date.now();
+  const rows = (await T.compartidos()) || [];
+  const arr = rows.filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => {
+    const d = Object.assign({}, r.data); delete d._dirty;
+    return Object.assign(d, { id: 'comp:' + r.de + ':' + r.id, compDe: r.de, ro: true });
+  });
+  const prev = (await idbGet('limites-comp')) || [];
+  const firma = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
+  if (firma(prev) === firma(arr)) return 0;
+  await idbSet('limites-comp', arr);
+  return 1;
+}
 function traducirError(m) {
   if (/invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
   if (/already registered|already exists/i.test(m)) return 'Esa cuenta ya existe: usa «Entrar».';
@@ -4957,7 +5420,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('limites-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -5030,6 +5493,8 @@ async function sincronizar() {
       });
       await idbSet('limites', [...by.values()]);
     }
+    try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
+    sync.compForzar = false;
     if (res.now) await idbSet('bhl-since', res.now);
     sync.last = new Date(); sync.err = '';
     if (cambios) { await loadLibrary(); await loadLimits(); }
