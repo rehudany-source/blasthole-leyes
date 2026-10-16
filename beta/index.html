@@ -793,7 +793,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v51</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v52</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2193,12 +2193,18 @@ function parseDXFPolylines(text) {
 // CSV: columnas polígono/id, Este/X, Norte/Y (una fila por vértice, en orden)
 function parseCSVPolylines(csv) {
   const n = csv.header.map(norm);
-  const ci = n.findIndex(c => /^(poligono|polygon|poly|id|nombre|name|limite|zona|bloque|sub|subdivision)/.test(c));
+  // V52: primero la columna del bloque/polígono (MinePlan: ID es el número de vértice, BLOCK el nombre del bloque)
+  let ci = n.findIndex(c => /^(block|blockname|bloque|blocker|poligono|polygon|poly|limite|zona|sub|subdivision)$/.test(c));
+  if (ci < 0) ci = n.findIndex(c => /^(poligono|polygon|poly|id|nombre|name|limite|zona|bloque|sub|subdivision)/.test(c));
+  const esBloque = ci >= 0 && /^(block|blockname|bloque|blocker)$/.test(n[ci]);
   const m = mapHoleCols(csv);
   if (m.x < 0 || m.y < 0) return [];
   const by = new Map();
   csv.rows.forEach(r => { const k = ci >= 0 ? (r[ci] || '').trim() || '1' : '1'; const x = toNum(r[m.x], numSep(csv)), y = toNum(r[m.y], numSep(csv)); if (x == null || y == null) return; if (!by.has(k)) by.set(k, []); by.get(k).push({ x, y }); });
-  return [...by].filter(([, pts]) => pts.length >= 3).map(([k, pts]) => ({ layer: k, pts, closed: true }));
+  return [...by].filter(([, pts]) => pts.length >= 3).map(([k, pts]) => {
+    if (pts.length > 3 && Math.abs(pts[0].x - pts[pts.length - 1].x) < 1e-6 && Math.abs(pts[0].y - pts[pts.length - 1].y) < 1e-6) pts = pts.slice(0, -1);
+    return esBloque ? { layer: 'BLOQUES', name: k, pts, closed: true } : { layer: k, pts, closed: true };
+  });
 }
 function polyArea(pts) { let a = 0; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y); return Math.abs(a / 2); }
 
@@ -4126,32 +4132,53 @@ function marcarSinTaladros() {
     L._sinTal = !hs.some(den);
     L._sinLey = !L._sinTal && !conLey.some(den); // V51: tiene taladros pero ninguno con ley
   });
+  // V52: un polígono sin datos del modelo que es el mismo contorno de un bloque del modelo (p. ej. el _C.dxf) sigue al modelo
+  const conMod = (t2.lims || []).filter(L => L.modelo && L.closed);
+  (t2.lims || []).forEach(L => {
+    L._cubierto = false; if (L.modelo || !L.closed || !L.pts || L.pts.length < 3 || !conMod.length) return;
+    const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length, a = polyArea(L.pts);
+    L._cubierto = conMod.some(M => { const am = polyArea(M.pts); return am > 0 && a / am > 0.6 && a / am < 1.6 && pointInPoly(cx, cy, M.pts); });
+  });
 }
-function esDesmonte(L) { return !!L && L.closed && L._sinTal && L.mat !== 'no' && !t2.limOff.has(L.layer) && limVisible(L); }
+function esDesmonte(L) { return !!L && L.closed && L._sinTal && !L._cubierto && L.mat !== 'no' && !t2.limOff.has(L.layer) && limVisible(L); }
 // V51: polígonos cerrados con taladros pero ninguno con ley → desmonte; sus taladros sin ley toman la ley del desmonte
 function taladrosDesmonte(keys) {
-  const by = new Map(), items = [], pols = new Set(), c = desCfg();
+  const by = new Map(), items = [], pols = new Set(), fes = [], c = desCfg();
   if (!c.on || !keys.length) return { by, items, pols: [], fe: c.fe };
   marcarSinTaladros();
-  const cand = (t2.lims || []).filter(L => L.closed && L.pts && L.pts.length >= 3 && !t2.limOff.has(L.layer) && limVisible(L)).sort((a, b) => (a.area || polyArea(a.pts)) - (b.area || polyArea(b.pts)));
+  const cand = (t2.lims || []).filter(L => L.closed && L.pts && L.pts.length >= 3 && !L._cubierto && !t2.limOff.has(L.layer) && limVisible(L)).sort((a, b) => (a.area || polyArea(a.pts)) - (b.area || polyArea(b.pts)));
   if (!cand.length) return { by, items, pols: [], fe: c.fe };
   const dentro = (L, h) => { const b = L.bb || bboxOf(L.pts); return h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts); };
   const conLey = h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false; };
   const esDes = new Map();
   const polDe = h => cand.find(L => dentro(L, h)) || null; // el más chico que lo contiene
-  const prof = perfilDesmonte(c.fe), dens = c.dens || Math.round(densFe(c.fe) * 1000) / 1000;
   keys.forEach(k => {
     const h = t2.holeBy.get(k); if (!h) return;
     const L = polDe(h); if (!L) return;
     if (!esDes.has(L)) esDes.set(L, L.mat !== 'no' && (L._sinLey || !t2.holes.some(o => conLey(o) && polDe(o) === L)));
     if (!esDes.get(L)) return;
-    const l = Object.assign({ key: h.key, grupo: h.id, des: true }, Object.fromEntries(AVG_FIELDS.map(F => [F.k, prof[F.k]])), { fe: c.fe, density: dens });
-    by.set(k, l); items.push({ hole: h, ley: l }); pols.add(L.name || L.layer || 'polígono');
+    const P = perfilDe(L, c);
+    const l = Object.assign({ key: h.key, grupo: h.id, des: true }, Object.fromEntries(AVG_FIELDS.map(F => [F.k, P.v[F.k]])), { fe: P.fe, density: P.dens });
+    by.set(k, l); items.push({ hole: h, ley: l }); pols.add(L.name || L.layer || 'polígono'); fes.push(P.fe);
   });
-  return { by, items, pols: [...pols].slice(0, 4), fe: c.fe };
+  const feTxt = [...new Set(fes.map(x => +(+x).toFixed(2)))].join(' / ');
+  return { by, items, pols: [...pols].slice(0, 4), fe: feTxt || c.fe };
 }
 function poligonosDesmonte() { marcarSinTaladros(); return (t2.lims || []).filter(esDesmonte); }
 // Área de los polígonos del avance que cae en desmonte (por cuadrícula fina; sin contar dos veces lo que se superpone)
+function areaEnDesmontePor(shapes, des) {
+  const out = new Map(); if (!shapes.length || !des.length) return out;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  shapes.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }));
+  const cand = des.filter(L => { const b = L.bb || bboxOf(L.pts); return !(b.x1 < x0 || b.x0 > x1 || b.y1 < y0 || b.y0 > y1); });
+  if (!cand.length) return out;
+  const W = x1 - x0, H = y1 - y0, cell = Math.max(0.2, Math.sqrt(W * H / 90000));
+  for (let y = y0 + cell / 2; y < y1; y += cell) for (let x = x0 + cell / 2; x < x1; x += cell) {
+    if (!shapes.some(P => pointInPoly(x, y, P))) continue;
+    const L = cand.find(L => pointInPoly(x, y, L.pts)); if (L) out.set(L, (out.get(L) || 0) + cell * cell);
+  }
+  return out;
+}
 function areaEnDesmonte(shapes, des) {
   if (!shapes.length || !des.length) return 0;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -4179,16 +4206,19 @@ function perfilDesmonte(fe) {
 function aplicarDilucion(r, shapes, banco, area, densProm) {
   const c = desCfg(); if (!c.on) return r;
   const des = poligonosDesmonte(); if (!des.length) return r;
-  const aDes = areaEnDesmonte(shapes, des); if (!(aDes > 0.5)) return r;
-  const prof = perfilDesmonte(c.fe), dDes = c.dens || Math.round(densFe(c.fe) * 1000) / 1000;
-  const tDes = aDes * banco * dDes;
+  const porPol = areaEnDesmontePor(shapes, des), aDes = [...porPol.values()].reduce((s, a) => s + a, 0); if (!(aDes > 0.5)) return r;
+  // cada polígono con su ley: la del modelo de MinePlan si la tiene, si no la del desmonte elegido
+  let tDes = 0; const acc = {}; let feW = 0;
+  porPol.forEach((a, L) => { const P = perfilDe(L, c), t = a * banco * P.dens; tDes += t; feW += t * P.fe; AVG_FIELDS.forEach(F => { const v = P.v[F.k]; if (v == null) return; acc[F.k] = acc[F.k] || [0, 0]; acc[F.k][0] += t * v; acc[F.k][1] += t; }); });
+  const prof = { n: [...porPol.keys()].some(L => L.modelo) ? 'modelo' : perfilDesmonte(c.fe).n }; AVG_FIELDS.forEach(F => { prof[F.k] = acc[F.k] ? acc[F.k][0] / acc[F.k][1] : null; });
+  const dDes = Math.round(tDes / (aDes * banco) * 1000) / 1000, feDes = Math.round(feW / tDes * 100) / 100;
   let tMin = null;
   if (r.tonMetodo === 'area' && densProm) tMin = Math.max(0, (area - aDes)) * banco * densProm;
   else if (r.tonnage) tMin = r.tonnage;
-  if (tMin == null) { r.dil = { area: aDes, t: tDes, sinTon: true, fe: c.fe }; return r; }
+  if (tMin == null) { r.dil = { area: aDes, t: tDes, sinTon: true, fe: feDes }; return r; }
   const tot = tMin + tDes;
   AVG_FIELDS.forEach(F => { const x = r.fields[F.k]; const vd = prof[F.k]; if (!x) return; if (x.mean == null) { if (vd != null && r.n === 0) x.mean = vd; return; } if (vd == null) return; x.sinDil = x.mean; x.mean = (x.mean * tMin + vd * tDes) / tot; });
-  r.dil = { area: aDes, t: tDes, tMin, pct: 100 * tDes / tot, fe: c.fe, dens: dDes, perfilN: prof.n, n: des.length };
+  r.dil = { area: aDes, t: tDes, tMin, pct: 100 * tDes / tot, fe: feDes, dens: dDes, perfilN: prof.n, n: des.length };
   r.tonnage = tot;
   return r;
 }
@@ -4290,7 +4320,7 @@ function computeT2() {
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
-  { const d = t2.result.dil; if (d && !d.sinTon) notes.push(`Dilución: ${Math.round(d.t).toLocaleString('es-PE')} t de desmonte (${d.pct.toFixed(0)} % del tonelaje, ${Math.round(d.area).toLocaleString('es-PE')} m² en polígonos sin taladros) con Fe ${d.fe} y densidad ${d.dens}${d.perfilN ? `; FeO, S y demás del promedio de ${d.perfilN} muestras de tu base con ese Fe` : '; sin muestras parecidas en tu base: solo se diluye el Fe'}.`); else if (d && d.sinTon) notes.push(`El avance entra ${Math.round(d.area)} m² en desmonte, pero falta el tonelaje del mineral para calcular la dilución.`); }
+  { const d = t2.result.dil; if (d && !d.sinTon) notes.push(`Dilución: ${Math.round(d.t).toLocaleString('es-PE')} t de desmonte (${d.pct.toFixed(0)} % del tonelaje, ${Math.round(d.area).toLocaleString('es-PE')} m² en polígonos sin taladros) con Fe ${d.fe} y densidad ${d.dens}${d.perfilN === 'modelo' ? '; leyes del bloque del modelo de MinePlan' : d.perfilN ? `; FeO, S y demás del promedio de ${d.perfilN} muestras de tu base con ese Fe` : '; sin muestras parecidas en tu base: solo se diluye el Fe'}.`); else if (d && d.sinTon) notes.push(`El avance entra ${Math.round(d.area)} m² en desmonte, pero falta el tonelaje del mineral para calcular la dilución.`); }
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
@@ -4566,7 +4596,7 @@ function drawDesmonte(ctx, v) {
     ctx.strokeStyle = 'rgba(138,90,43,.45)'; ctx.lineWidth = 1; const sx0 = v.sx(b.x0), sx1 = v.sx(b.x1), sy0 = v.sy(b.y1), sy1 = v.sy(b.y0);
     for (let d = sx0 - (sy1 - sy0); d < sx1; d += 9) { ctx.beginPath(); ctx.moveTo(d, sy1); ctx.lineTo(d + (sy1 - sy0), sy0); ctx.stroke(); }
     ctx.restore();
-    if (v.v.s > 1.2) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = '#8a5a2b'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(L.mat === 'desmonte' ? 'DESMONTE' : 'DESMONTE?', v.sx(cx), v.sy(cy) + 12); }
+    if (v.v.s > 1.2 && !L.modelo) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = '#8a5a2b'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(L.mat === 'desmonte' ? 'DESMONTE' : 'DESMONTE?', v.sx(cx), v.sy(cy) + 12); }
   });
 }
 function drawLimits(ctx, v) {
@@ -4579,7 +4609,7 @@ function drawLimits(ctx, v) {
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
     ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); if (L.closed) ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
-    if (L.name && v.v.s > 2.5) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
+    if (L.name && v.v.s > 2.5) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; if (L.modelo) { const des = L.mat === 'desmonte', col = des ? '#b07a45' : limColor(L.layer); ctx.globalAlpha = 1; ctx.font = '800 15px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--model').trim() || '#1c2126'; ctx.strokeText(L.name, v.sx(cx), v.sy(cy) - 7); ctx.fillStyle = col; ctx.fillText(L.name, v.sx(cx), v.sy(cy) - 7); if (v.v.s > 3.5) { ctx.font = '600 10.5px system-ui, sans-serif'; const tx = modeloEtiqueta(L.modelo); ctx.strokeText(tx, v.sx(cx), v.sy(cy) + 8); ctx.fillText(tx, v.sx(cx), v.sy(cy) + 8); } } else ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
   });
 }
 function bboxOf(pts) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }); return { x0, y0, x1, y1 }; }
@@ -4605,8 +4635,8 @@ function renderLimList() {
     const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
       : `<span class="pn">${esc(f)}<small class="limde">👥 lo ve todo el equipo</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
     marcarSinTaladros();
-    const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && limVisible(l));
-    const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
+    const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
+    const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
     return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
@@ -4660,7 +4690,9 @@ async function addLimitFiles(files) {
       else { const tabs = await readTables(f); for (const tb of tabs) { polys = parseCSVPolylines(tb.csv); if (polys.length) break; } }
       if (!polys.length) { errs.push(`${f.name}: no encontré polilíneas (en DXF deben ser polilíneas de 3 o más vértices).`); continue; }
       const keep = arr.filter(l => l.file !== f.name); arr.length = 0; arr.push(...keep);
-      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.layer, name: /\.dxf$/i.test(f.name) ? '' : p.layer, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
+      const proyM = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.name ? p.layer + (proyM ? ' ' + proyM.replace(/^S\d{2}-/, '') : '') : p.layer, name: /\.dxf$/i.test(f.name) ? '' : (p.name || p.layer), proyM: p.name ? proyM : undefined, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
+      await modeloAplicar(arr);
       added.push(`${f.name}: ${polys.length} polígono(s) en ${new Set(polys.map(p => p.layer)).size} capa(s)`);
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
@@ -5432,7 +5464,7 @@ async function cargarTodo(files) {
   const res = $('cargaRes'), filas = [];
   const fila = (ic, nombre, txt, err) => { filas.push(`<div class="r${err ? ' err' : ''}"><span>${ic}</span><div><b>${esc(nombre)}</b><small>${txt}</small></div></div>`); res.innerHTML = filas.join(''); };
   res.innerHTML = '<div class="r"><span>⏳</span><div><b>Leyendo archivos…</b></div></div>';
-  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [], topo: [] };
+  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [], topo: [], mod: [] };
   for (const f of files) {
     try {
       if (/\.msr$/i.test(f.name)) { grupos.topo.push(f); continue; }
@@ -5440,6 +5472,7 @@ async function cargarTodo(files) {
       if (!/\.xlsx?$/i.test(f.name)) { const head = decodeBytes(await f.slice(0, 4000).arrayBuffer()); if (isBaseTable(parseQuotedCSV(head.slice(0, head.lastIndexOf('\n') + 1 || head.length)))) { grupos.base.push(f); continue; } }
       const tabs = await readTables(f);
       if (tabs.some(t => isBaseTable(t.csv))) { grupos.base.push(f); continue; }
+      if (tabs.some(t => esResModelo(t.csv))) { grupos.mod.push(f); continue; }
       const t = tabs.find(t => detectRole(t.csv));
       const role = t ? detectRole(t.csv) : null;
       if (role === 'bh') { if (pareceLimite(f, t.csv)) grupos.lim.push(f); else grupos.bh.push(f); }
@@ -5460,6 +5493,7 @@ async function cargarTodo(files) {
   }
   if (grupos.ley.length) { await handleFiles(grupos.ley, 'ley'); grupos.ley.forEach(f => fila('🧪', f.name, 'Leyes de un proyecto: se abrieron en la pestaña 1 junto con sus taladros. Pulsa «Guardar proyecto» allí para guardarlas.')); }
   if (grupos.lim.length) { await addLimitFiles(grupos.lim); const m = $('limMsg').textContent; grupos.lim.forEach(f => { const part = m.split(' · ').find(x => x.startsWith(f.name)) || ''; const err = /no se puede|error|sin polígonos|no encontré/i.test(part); fila(err ? '⚠️' : '📐', f.name, esc(part.replace(f.name + ': ', '') || 'Límites cargados'), err); }); }
+  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _P.csv (polígonos de los bloques) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   for (const f of grupos.topo) { try { const r = await cargarTopo(f); fila('⛰', f.name, `Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos). Mírala en la pestaña 2 con «⛰ Topo».`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   grupos.mal.forEach(f => fila('❓', f.name, 'No reconocí este archivo. Debe ser una base de leyes, un CSV/Excel de taladros (ID, Este, Norte, Cota), un CSV de leyes o un DXF de límites.', true));
   if (state.base) refrescarCopias();
@@ -5949,7 +5983,18 @@ pv.after = (ctx, v) => {
 
 /* ===== V48: topografía de MinePlan (.msr) ===== */
 const topo = { lista: [], act: '', ant: '', ver: true, dems: new Map(), img: new Map(), dif: null, minados: null };
-const TOPO_MAX = 6, TOPO_CEL = 2, TOPO_BAJA = 1.5;
+const TOPO_MAX = 6, TOPO_POR_MINA = 4, TOPO_CEL = 2, TOPO_BAJA = 1.5;
+// V52: mina desde el nombre (TOPO_M14A_15_10_26, TOPO M14 15.10.26 → 14A, 14)
+function topoMina(nombre) { const m = String(nombre || '').toUpperCase().match(/(?:^|[^A-Z0-9])M(?:INA)?[\s_.-]*0*(\d{1,2}[A-Z]?)(?=[^0-9A-Z]|$)/); return m ? m[1] : ''; }
+const minaDe = t => t.mina || topoMina(t.nombre);
+// deja solo las 4 topografías más nuevas de cada mina en este equipo
+async function topoRecortar() {
+  topo.lista.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  const cuenta = {}, fuera = [];
+  topo.lista.forEach(t => { const k = minaDe(t) || '?'; cuenta[k] = (cuenta[k] || 0) + 1; if (cuenta[k] > TOPO_POR_MINA) fuera.push(t); });
+  for (const q of fuera) { topo.lista = topo.lista.filter(x => x.id !== q.id); await idbSet('topo:' + q.id, null); topo.dems.delete(q.id); topo.img.delete(q.id); }
+  return fuera;
+}
 function topoFecha(nombre, lastMod) {
   const m = [...String(nombre).matchAll(/(?:^|[^\d])(\d{1,2})[-_.](\d{1,2})[-_.](\d{4}|\d{2})(?!\d)/g)].pop();
   if (m) { const d = +m[1], mo = +m[2], y = m[3].length === 2 ? 2000 + +m[3] : +m[3]; if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
@@ -5963,7 +6008,8 @@ async function topoInit() {
 function topoDefaults() {
   const ids = topo.lista.map(t => t.id);
   if (!ids.includes(topo.act)) topo.act = ids[0] || '';
-  if (!ids.includes(topo.ant) || topo.ant === topo.act) topo.ant = ids.find(i => i !== topo.act) || '';
+  const ma = minaDe(topo.lista.find(t => t.id === topo.act) || {});
+  if (!ids.includes(topo.ant) || topo.ant === topo.act) topo.ant = (topo.lista.find(t => t.id !== topo.act && minaDe(t) === ma) || topo.lista.find(t => t.id !== topo.act) || {}).id || '';
   try { localStorage.setItem('bhl-topo-sel', JSON.stringify({ act: topo.act, ant: topo.ant, ver: topo.ver })); } catch (e) {}
 }
 async function topoDem(id) {
@@ -5983,11 +6029,12 @@ async function cargarTopo(f) {
   const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
   const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
   const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const meta = { id, nombre, fecha, nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
+  const meta = { id, nombre, fecha, mina: topoMina(nombre), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
   if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
   topo.lista = topo.lista.filter(x => x.id !== id).concat(meta).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-  while (topo.lista.length > TOPO_MAX) { const q = topo.lista.pop(); await idbSet('topo:' + q.id, null); topo.dems.delete(q.id); topo.img.delete(q.id); }
+  const borradas = await topoRecortar();
   await idbSet('topos', topo.lista);
+  if (borradas.some(b => b.id === id)) throw new Error(`Ya hay ${TOPO_POR_MINA} topografías más nuevas de la mina ${meta.mina}: esta no se guardó.`);
   topo.dems.set(id, dem); topo.img.delete(id); topo.dif = null;
   topo.ant = topo.act && topo.act !== id ? topo.act : topo.ant; topo.act = id; topoDefaults();
   await topoCalcMinados(); pv.draw(); topoPintar();
@@ -6104,7 +6151,7 @@ function topoPintar() {
   const box = $('topoLista'); if (!box) return;
   $('topoBtn').setAttribute('aria-pressed', topo.act && topo.ver ? 'true' : 'false');
   if (!topo.lista.length) { box.innerHTML = '<small>Aún no hay topografías. Sube el .msr que te envían (MinePlan): queda guardado en este equipo.</small>'; $('topoAvance').disabled = true; topoInfo(); return; }
-  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b>${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
+  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b>${minaDe(t) ? 'M' + esc(minaDe(t)) + ' · ' : ''}${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
   $('topoAvance').disabled = !(topo.act && topo.ant && topo.act !== topo.ant);
   $('topoVer').checked = topo.ver; topoInfo();
 }
@@ -6169,7 +6216,7 @@ async function topoEmpacar(m, Z) {
   const q = new Int16Array(m.W * m.H);
   for (let j = 0; j < m.H; j++) { let prev = 0; for (let i = 0; i < m.W; i++) { const k = j * m.W + i, z = Z[k]; if (z !== z) { q[k] = -32768; continue; } const v = Math.max(-32767, Math.min(32767, Math.round((z - zb) * 10))); q[k] = v - prev; prev = v; } }
   const raw = new Uint8Array(q.buffer); let comp = null; try { comp = await deflateRaw(raw); } catch (e) {}
-  return { meta: { x0: m.x0, y0: m.y0, cel: m.cel, W: m.W, H: m.H, zb, nT: m.nT || 0, fmt: comp ? 'd16z' : 'd16' }, data: b64De(comp || raw) };
+  return { meta: { mina: minaDe(m), x0: m.x0, y0: m.y0, cel: m.cel, W: m.W, H: m.H, zb, nT: m.nT || 0, fmt: comp ? 'd16z' : 'd16' }, data: b64De(comp || raw) };
 }
 async function topoDesempacar(meta, data) {
   let u = b64A(data); if (meta.fmt === 'd16z') u = await inflateRaw(u);
@@ -6206,24 +6253,62 @@ async function topoNube() {
     const tengo = new Set(topo.lista.map(m => m.id));
     const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
     for (const r of faltan) {
-      const masNuevas = topo.lista.filter(m => m.fecha > r.fecha).length; if (masNuevas >= TOPO_MAX) continue;
+      const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
+      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
       const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
-      topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
+      topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
       cambio = true;
     }
   } catch (e) { console.warn('topos nube', e); }
   finally {
     topo.nubeBusy = false;
     if (cambio) {
-      topo.lista.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-      while (topo.lista.length > TOPO_MAX) { const q = topo.lista.pop(); await idbSet('topo:' + q.id, null); topo.dems.delete(q.id); topo.img.delete(q.id); }
+      await topoRecortar();
       await idbSet('topos', topo.lista); topoDefaults();
       if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act);
       await topoCalcMinados(); topoPintar(); pv.draw();
     }
   }
+}
+
+/* ===== V52: bloques del modelo de MinePlan (_P.csv polígonos + _R.csv resultados) ===== */
+const MOD_COLS = { fe: 'fe', feo: 'feo', s: 's', cu: 'cu', zn: 'zn', cfe: 'cfe', cs: 'cs', cins: 'ccins' };
+function esResModelo(csv) { const h = csv.header.map(x => String(x).trim().toLowerCase()); return h.includes('blockname') && h.includes('projectid') && (h.includes('tonnes') || h.includes('fe')); }
+async function cargarModelo(f) {
+  const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas PROJECTID y BLOCKNAME.');
+  const h = tb.csv.header.map(x => String(x).trim().toLowerCase()), col = k => h.indexOf(k), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; };
+  const mod = (await idbGet('modelo-bloques')) || {}; const bloques = [];
+  tb.csv.rows.forEach(r => {
+    const proy = String(r[col('projectid')] || '').trim().toUpperCase(), b = String(r[col('blockname')] || '').trim(); if (!proy || !b) return;
+    const m = { proy, bloque: b, t: num(r[col('tonnes')]), vol: num(r[col('volumen')]), density: num(r[col('density')]), material: String(r[col('material')] || '').trim(), oretype: String(r[col('oretype')] || '').trim(), destino: String(r[col('destination')] || '').trim(), lito: String(r[col('litomine')] || '').trim(), zona: String(r[col('ozone')] || '').trim() };
+    Object.entries(MOD_COLS).forEach(([c, k]) => { if (col(c) >= 0) m[k] = num(r[col(c)]); });
+    mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
+  });
+  await idbSet('modelo-bloques', mod);
+  const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
+  const n = await modeloAplicar(arr);
+  if (n) { await saveLimites(arr, prev); await loadLimits(); }
+  return { n: bloques.length, bloques, enPlano: n };
+}
+// pone los resultados del modelo en los polígonos de bloques (mismo proyecto y nombre); el material decide si es desmonte
+async function modeloAplicar(arr) {
+  const mod = (await idbGet('modelo-bloques')) || {}; let n = 0;
+  arr.forEach(l => {
+    const proy = l.proyM || ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+    if (!proy || !l.name) return;
+    const m = mod[proy + '|' + String(l.name).toUpperCase()]; if (!m) return;
+    if (JSON.stringify(l.modelo) === JSON.stringify(m)) return;
+    l.modelo = m; l.mat = /desmonte|waste|est[eé]ril/i.test(m.material + ' ' + m.destino + ' ' + m.oretype) ? 'desmonte' : 'no';
+    l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; n++;
+  });
+  return n;
+}
+function modeloEtiqueta(m) { return [m.material || m.oretype, m.fe != null ? 'Fe ' + m.fe.toFixed(1) : '', m.t != null ? Math.round(m.t).toLocaleString('es-PE') + ' t' : ''].filter(Boolean).join(' · '); }
+function perfilDe(L, c) {
+  if (L && L.modelo && L.modelo.fe != null) { const m = L.modelo, v = { n: 'modelo' }; AVG_FIELDS.forEach(F => { v[F.k] = m[F.k] != null ? m[F.k] : null; }); return { v, dens: m.density || Math.round(densFe(m.fe) * 1000) / 1000, fe: m.fe }; }
+  return { v: perfilDesmonte(c.fe), dens: c.dens || Math.round(densFe(c.fe) * 1000) / 1000, fe: c.fe };
 }
 
 
