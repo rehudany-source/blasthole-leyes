@@ -742,13 +742,14 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
 .conf-it { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); } .conf-it small { color: var(--muted); }
 .conf-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: .82rem; }
 .syncb[data-estado=conflicto] { background: #e03131; color: #fff; border-color: #e03131; }
+.estw { color: #c21fc2; font-weight: 700; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v44</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v45</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3954,7 +3955,7 @@ function computeT2() {
   const conDens = i => { const r = densDe(i.ley); dens[r.src]++; if (r.src !== 'medida' && r.d != null) i.ley = Object.assign({}, i.ley, { density: r.d, densSrc: r.src }); return i; };
   items.forEach(conDens);
   // Taladros sin ley: estimación por inverso a la distancia (si está activada)
-  const est = idwEstimar(noLey.concat(pending));
+  const est = idwEstimar(noLey.concat(pending), items.length);
   t2.estBy = est.by;
   est.items.forEach(i => { if (i.ley.fe != null) i.ley.density = Math.round(densFe(i.ley.fe) * 1000) / 1000; items.push(i); });
   const noEst = noLey.concat(pending).filter(k => !est.by.has(k));
@@ -4011,7 +4012,9 @@ function computeT2() {
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
   if (qcWarn.length) notes.push(`Revisar (poco común): ${qcWarn.slice(0, 6).join(' · ')}${qcWarn.length > 6 ? ` y ${qcWarn.length - 6} más` : ''}.`);
-  if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado).`);
+  if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado). Solo con vecinos del mismo límite.`);
+  if (t2.result.estPct > 50) notes.unshift(`⚠ CUIDADO: el ${t2.result.estPct.toFixed(0)} % de este promedio es ESTIMADO, no medido. Revisa que la zona sea la misma (mineral o desmonte) antes de guardar.`);
+  if (t2.idwInfo && t2.idwInfo.sinReales && noLey.concat(pending).length) notes.unshift('Este avance no tiene ninguna ley real y no hay límites cargados que separen mineral de desmonte: no se estima nada. Carga los límites (DXF) para que la estimación use solo vecinos de la misma zona.');
   const pendR = pending.filter(k => noEst.includes(k)), noLeyR = noLey.filter(k => noEst.includes(k));
   if (pendR.length) notes.push(`${pendR.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pendR)}.`);
   if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
@@ -4020,7 +4023,7 @@ function computeT2() {
   if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · ${densTxt()}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
-  setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
+  setMsg('t2Msg', t2.result.estPct > 50 ? 'err' : pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
   t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: !H };
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
@@ -4032,7 +4035,7 @@ function sortIds(ids) { return ids.slice().sort(sortNum); }
 
 function renderTiles(r, title) {
   const f = (v, d) => fmt(v, d, '—');
-  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
+  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros${r.nEst ? ` · <b class="estw">${r.nEst} estimado${r.nEst > 1 ? 's' : ''} (${Math.round(r.estPct)} %)</b>` : ''}</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
     `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? (r.tonMetodo === 'area' ? `t · ${Math.round(r.area).toLocaleString('es-PE')} m² × ${r.banco} m × ${r.densProm.toFixed(2)}` : 't · dens × B × E × prof') : 'densidad · misma prof. para todos'}</span></div>` +
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
@@ -4046,6 +4049,14 @@ function bloquearGuardarAv(on) {
 $('btnSaveAv').addEventListener('click', async () => {
   if (guardandoAvance) { setMsg('t2Msg', 'err', 'Ya se está guardando este avance. Espera un momento.'); return; }
   if (!t2.result) return;
+  const b0 = $('btnSaveAv');
+  if (t2.result.estPct > 50 && b0.dataset.estOk !== '1') {
+    b0.dataset.estOk = '1'; setTimeout(() => { delete b0.dataset.estOk; }, 8000);
+    setMsg('t2Msg', 'err', `⚠ El ${t2.result.estPct.toFixed(0)} % de este avance es ESTIMADO por inverso a la distancia, no medido. Si la zona es de otro material (por ejemplo desmonte), apaga la estimación. Para guardar así, toca «Guardar avance» otra vez.`);
+    flashHint(`⚠ ${t2.result.estPct.toFixed(0)} % estimado. Toca Guardar otra vez para confirmar.`, false);
+    return;
+  }
+  delete b0.dataset.estOk;
   guardandoAvance = true; bloquearGuardarAv(true);
   try { await guardarAvanceSeguro(); } finally { guardandoAvance = false; bloquearGuardarAv(false); }
 });
@@ -4932,14 +4943,29 @@ function idwFuentes(c) {
   if (c.src !== 'nivel') { if (!t2.supData) supCalc(); (t2.supData.holes || []).forEach(h => { if (h.l) pts.push({ x: h.x, y: h.y, l: qcLimpia(h.l, qcLey(h.l)), sup: true }); }); }
   return pts;
 }
-function idwEstimar(keys) {
+// Dominio geológico de un punto = el límite cerrado visible más chico que lo contiene ('' = fuera de todos).
+// La estimación NUNCA mezcla taladros de dominios distintos (mineral con desmonte, una subdivisión con otra).
+function limDominios() {
+  return (t2.lims || []).filter(L => L.closed && L.pts && L.pts.length >= 3 && !t2.limOff.has(L.layer) && limVisible(L)).sort((a, b) => a.area - b.area);
+}
+function dominioDe(x, y, doms) {
+  for (const L of doms) { const b = L.bb; if (b && (x < b.x0 || x > b.x1 || y < b.y0 || y > b.y1)) continue; if (pointInPoly(x, y, L.pts)) return String(L.id); }
+  return '';
+}
+function idwEstimar(keys, reales) {
   const c = idwCfg(), by = new Map(), items = [];
+  t2.idwInfo = { cruces: 0, sinReales: false };
   if (!c.on || !keys.length) return { by, items };
+  const doms = limDominios();
+  // Sin ninguna ley real en el avance y sin límites que separen mineral de desmonte, no se estima:
+  // no hay forma de saber si los vecinos son del mismo material.
+  if (reales != null && reales === 0 && !doms.length) { t2.idwInfo.sinReales = true; return { by, items }; }
   const pts = idwFuentes(c), R2 = c.r * c.r, RS2 = c.rs * c.rs;
+  const domCache = new Map(); const dom = (x, y) => { const k = x + ',' + y; if (!domCache.has(k)) domCache.set(k, dominioDe(x, y, doms)); return domCache.get(k); };
   keys.forEach(k => {
     const h = t2.holeBy.get(k); if (!h) return;
-    const near = [];
-    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 <= (q.sup ? RS2 : R2)) near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
+    const near = []; const dh = doms.length ? dom(h.x, h.y) : '';
+    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 > (q.sup ? RS2 : R2)) return; if (doms.length && dom(q.x, q.y) !== dh) { t2.idwInfo.cruces++; return; } near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
     near.sort((a, b) => a.d - b.d); const use = near.slice(0, c.max);
     if (use.length < c.min) return;
     const l = { key: h.key, grupo: h.id, est: true, estN: use.length, estD: +use[use.length - 1].d.toFixed(1) };
