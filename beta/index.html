@@ -743,13 +743,20 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
 .conf-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: .82rem; }
 .syncb[data-estado=conflicto] { background: #e03131; color: #fff; border-color: #e03131; }
 .estw { color: #c21fc2; font-weight: 700; }
+.desli { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 4px 6px; font-size: .8rem; border-top: 1px dashed var(--line); }
+.desli .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.desli .seg button { border: 0; background: transparent; padding: 3px 8px; font: 600 .75rem var(--f-body); color: var(--muted); cursor: pointer; }
+.desli .seg button[aria-pressed=true] { background: #8a5a2b; color: #fff; }
+.desli .seg button.no[aria-pressed=true] { background: var(--ink, #1b2120); }
+.desli i { font-style: normal; color: #8a5a2b; font-weight: 700; }
+.dilt { color: #8a5a2b; font-weight: 700; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v45</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v46</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1006,6 +1013,14 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
+          <details class="idw" id="desBox" open>
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
+            <div class="grid2">
+              <label class="f">Fe del desmonte (%)<input type="number" id="desFe" step="0.5" min="0" max="40" value="16.5"></label>
+              <label class="f">Densidad del desmonte<input type="number" id="desDens" step="0.01" min="1.5" max="5" placeholder="automática"></label>
+            </div>
+            <p class="note">Los polígonos de límite <b>sin taladros</b> se toman como desmonte: si el avance entra en ellos, esa parte suma tonelaje con esta ley (FeO, S y demás salen del promedio de tu base para ese Fe) y diluye el promedio. Densidad vacía = la de tu fórmula con ese Fe. Confirma o cambia cada polígono en «Límites».</p>
+          </details>
           <details class="idw" id="idwBox">
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn"> Estimar taladros sin ley (inverso a la distancia)</label></summary>
             <div class="grid2">
@@ -3935,10 +3950,90 @@ function labelsFor(keys) {
   return hs.sort((a, b) => String(a.pname).localeCompare(String(b.pname)) || sortNum(a.id, b.id)).map(h => (multi ? `${h.pname}:${h.id}` : h.id));
 }
 
+// ===== Desmonte sin taladros = dilución =====
+// Un polígono de límite cerrado y visible SIN ningún taladro dentro se propone como desmonte (no se muestrea).
+// El usuario lo confirma o lo descarta (L.mat = 'desmonte' | 'no'); queda guardado en el límite y se comparte.
+function desCfg() {
+  const fe = parseFloat($('desFe') && $('desFe').value), d = parseFloat($('desDens') && $('desDens').value);
+  return { on: !$('desOn') || $('desOn').checked, fe: isNaN(fe) ? 16.5 : fe, dens: !isNaN(d) && d > 1 ? d : null };
+}
+function marcarSinTaladros() {
+  const hs = []; lib.projects.forEach(p => (p.holes || []).forEach(h => hs.push(h)));
+  const firma = hs.length + ':' + (t2.lims || []).length + ':' + lib.projects.length;
+  if (t2._sinTalFirma === firma) return; t2._sinTalFirma = firma;
+  (t2.lims || []).forEach(L => {
+    if (!L.closed || !L.pts || L.pts.length < 3) { L._sinTal = false; return; }
+    const b = L.bb || bboxOf(L.pts);
+    L._sinTal = !hs.some(h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts));
+  });
+}
+function esDesmonte(L) { return !!L && L.closed && L._sinTal && L.mat !== 'no' && !t2.limOff.has(L.layer) && limVisible(L); }
+function poligonosDesmonte() { marcarSinTaladros(); return (t2.lims || []).filter(esDesmonte); }
+// Área de los polígonos del avance que cae en desmonte (por cuadrícula fina; sin contar dos veces lo que se superpone)
+function areaEnDesmonte(shapes, des) {
+  if (!shapes.length || !des.length) return 0;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  shapes.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }));
+  const cand = des.filter(L => { const b = L.bb || bboxOf(L.pts); return !(b.x1 < x0 || b.x0 > x1 || b.y1 < y0 || b.y0 > y1); });
+  if (!cand.length) return 0;
+  const W = x1 - x0, H = y1 - y0, cell = Math.max(0.2, Math.sqrt(W * H / 90000));
+  let n = 0;
+  for (let y = y0 + cell / 2; y < y1; y += cell) for (let x = x0 + cell / 2; x < x1; x += cell) {
+    if (!shapes.some(P => pointInPoly(x, y, P))) continue;
+    if (cand.some(L => pointInPoly(x, y, L.pts))) n++;
+  }
+  return n * cell * cell;
+}
+// Leyes típicas del desmonte: promedio de tus leyes con Fe cercano al Fe elegido (± 1.5); el Fe es el elegido
+function perfilDesmonte(fe) {
+  const k = fe + ':' + lib.projects.length;
+  if (t2._perfil && t2._perfil.k === k) return t2._perfil.v;
+  const acc = {}; let n = 0;
+  lib.projects.forEach(p => { const L = leyesForProject(p); (L.leyes || []).forEach(l => { if (l.hasData === false || l.fe == null || Math.abs(l.fe - fe) > 1.5) return; const q = qcLimpia(l, qcLey(l)); n++; AVG_FIELDS.forEach(F => { const v = q[F.k]; if (v == null) return; acc[F.k] = acc[F.k] || [0, 0]; acc[F.k][0] += v; acc[F.k][1]++; }); }); });
+  const v = { n }; AVG_FIELDS.forEach(F => { v[F.k] = acc[F.k] ? acc[F.k][0] / acc[F.k][1] : null; }); v.fe = fe;
+  t2._perfil = { k, v }; return v;
+}
+// Mezcla el mineral (lo medido) con el desmonte (área × banco × densidad) ponderando por tonelaje
+function aplicarDilucion(r, shapes, banco, area, densProm) {
+  const c = desCfg(); if (!c.on) return r;
+  const des = poligonosDesmonte(); if (!des.length) return r;
+  const aDes = areaEnDesmonte(shapes, des); if (!(aDes > 0.5)) return r;
+  const prof = perfilDesmonte(c.fe), dDes = c.dens || Math.round(densFe(c.fe) * 1000) / 1000;
+  const tDes = aDes * banco * dDes;
+  let tMin = null;
+  if (r.tonMetodo === 'area' && densProm) tMin = Math.max(0, (area - aDes)) * banco * densProm;
+  else if (r.tonnage) tMin = r.tonnage;
+  if (tMin == null) { r.dil = { area: aDes, t: tDes, sinTon: true, fe: c.fe }; return r; }
+  const tot = tMin + tDes;
+  AVG_FIELDS.forEach(F => { const x = r.fields[F.k]; const vd = prof[F.k]; if (!x) return; if (x.mean == null) { if (vd != null && r.n === 0) x.mean = vd; return; } if (vd == null) return; x.sinDil = x.mean; x.mean = (x.mean * tMin + vd * tDes) / tot; });
+  r.dil = { area: aDes, t: tDes, tMin, pct: 100 * tDes / tot, fe: c.fe, dens: dDes, perfilN: prof.n, n: des.length };
+  r.tonnage = tot;
+  return r;
+}
+(() => {
+  const ids = ['desOn', 'desFe', 'desDens'];
+  try { const g = JSON.parse(localStorage.getItem('bhl-des') || 'null'); if (g) ids.forEach(id => { if (g[id] != null && $(id)) { if (id === 'desOn') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
+  const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'desOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-des', JSON.stringify(o)); } catch (e) {} t2._perfil = null; computeT2(); pv.draw(); };
+  ids.forEach(id => $(id) && $(id).addEventListener('change', upd));
+})();
 function computeT2() {
   t2.result = null;
   const tiles = $('t2Tiles');
   if (t2.viewing) { const a = t2.avs.find(a => a.id === t2.viewing); renderTiles(a.result, `${fmtDate(a.fecha)}${a.nombre ? ' · ' + a.nombre : ''}`); setMsg('t2Msg', '', `Viendo el avance guardado (${a.projectNames.join(' + ')}). Toca el plano para volver al avance nuevo.`); $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = false; paintPanel(); return; }
+  if (t2.holes.length && !t2.sel.size && t2.shapes.length && desCfg().on) {
+    // avance solo en desmonte (sin taladros): tonelaje y ley del desmonte
+    const banco = num('avBanco') || 12, shapes = t2.shapes.map(s => s.pts), area = shapes.reduce((s, P) => s + polyArea(P), 0);
+    const base = { n: 0, nEst: 0, estPct: 0, keys: [], rows: [], projectIds: t2.projs.map(p => p.id), projectNames: t2.projs.map(p => p.name), tonnage: null, tonMetodo: null, wsum: 0, area, banco, fields: Object.fromEntries(AVG_FIELDS.map(F => [F.k, { mean: null, n: 0 }])) };
+    const r = aplicarDilucion(base, shapes, banco, area, null);
+    if (r.dil && r.dil.t) {
+      // solo desmonte: el tonelaje es el del desmonte y la ley la del desmonte
+      const prof = perfilDesmonte(r.dil.fe); AVG_FIELDS.forEach(F => { r.fields[F.k].mean = prof[F.k]; });
+      r.tonnage = r.dil.t; r.dil.pct = 100; r.dil.tMin = 0;
+      t2.result = r; renderTiles(r, 'Avance nuevo · solo desmonte');
+      setMsg('t2Msg', 'warn', `Este avance cae solo en desmonte (polígonos sin taladros): ${Math.round(r.dil.t).toLocaleString('es-PE')} t con Fe ${r.dil.fe} supuesto.`);
+      $('btnSaveAv').disabled = false; $('btnCopyAv').disabled = false; paintPanel(); return;
+    }
+  }
   if (!t2.holes.length || !t2.sel.size) { tiles.innerHTML = ''; $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = true; setMsg('t2Msg', '', t2.holes.length && !t2.shapes.length ? 'Dibuja el polígono del avance en el plano.' : t2.shapes.length ? 'Los polígonos no tienen taladros de los proyectos marcados.' : ''); paintPanel(); return; }
   const keys = [...t2.sel];
   const items = [], pending = [], noLey = [], repeated = [];
@@ -4005,9 +4100,12 @@ function computeT2() {
   const pids = [...new Set(items.map(i => i.hole.pid))];
   const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
   t2.result = { dens, tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  aplicarDilucion(t2.result, t2.shapes.map(s => s.pts), banco, area, densProm);
+  if (t2.result.dil && !t2.result.dil.sinTon) t2.result.tonMetodo = (t2.result.tonMetodo || 'area') + '+desmonte';
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
+  { const d = t2.result.dil; if (d && !d.sinTon) notes.push(`Dilución: ${Math.round(d.t).toLocaleString('es-PE')} t de desmonte (${d.pct.toFixed(0)} % del tonelaje, ${Math.round(d.area).toLocaleString('es-PE')} m² en polígonos sin taladros) con Fe ${d.fe} y densidad ${d.dens}${d.perfilN ? `; FeO, S y demás del promedio de ${d.perfilN} muestras de tu base con ese Fe` : '; sin muestras parecidas en tu base: solo se diluye el Fe'}.`); else if (d && d.sinTon) notes.push(`El avance entra ${Math.round(d.area)} m² en desmonte, pero falta el tonelaje del mineral para calcular la dilución.`); }
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
@@ -4035,7 +4133,7 @@ function sortIds(ids) { return ids.slice().sort(sortNum); }
 
 function renderTiles(r, title) {
   const f = (v, d) => fmt(v, d, '—');
-  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros${r.nEst ? ` · <b class="estw">${r.nEst} estimado${r.nEst > 1 ? 's' : ''} (${Math.round(r.estPct)} %)</b>` : ''}</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
+  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros${r.dil && r.dil.t ? ` · <b class="dilt">desmonte ${Math.round(r.dil.pct || 0)} %</b>` : ''}${r.nEst ? ` · <b class="estw">${r.nEst} estimado${r.nEst > 1 ? 's' : ''} (${Math.round(r.estPct)} %)</b>` : ''}</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
     `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? (r.tonMetodo === 'area' ? `t · ${Math.round(r.area).toLocaleString('es-PE')} m² × ${r.banco} m × ${r.densProm.toFixed(2)}` : 't · dens × B × E × prof') : 'densidad · misma prof. para todos'}</span></div>` +
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
@@ -4273,7 +4371,20 @@ function limVisible(L) {
   const c = limMinaNivel(L); if (!c) return true;
   return (!fm || c.mina === fm) && (!fn || c.nivel === fn);
 }
+function drawDesmonte(ctx, v) {
+  if (!desCfg().on) return;
+  poligonosDesmonte().forEach(L => {
+    const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
+    ctx.save(); ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath();
+    ctx.fillStyle = L.mat === 'desmonte' ? 'rgba(138,90,43,.22)' : 'rgba(138,90,43,.12)'; ctx.fill(); ctx.clip();
+    ctx.strokeStyle = 'rgba(138,90,43,.45)'; ctx.lineWidth = 1; const sx0 = v.sx(b.x0), sx1 = v.sx(b.x1), sy0 = v.sy(b.y1), sy1 = v.sy(b.y0);
+    for (let d = sx0 - (sy1 - sy0); d < sx1; d += 9) { ctx.beginPath(); ctx.moveTo(d, sy1); ctx.lineTo(d + (sy1 - sy0), sy0); ctx.stroke(); }
+    ctx.restore();
+    if (v.v.s > 1.2) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = '#8a5a2b'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(L.mat === 'desmonte' ? 'DESMONTE' : 'DESMONTE?', v.sx(cx), v.sy(cy) + 12); }
+  });
+}
 function drawLimits(ctx, v) {
+  try { drawDesmonte(ctx, v); } catch (e) {}
   const isMain = L => /rotura|limite|límite/i.test(L.layer);
   // subdivisiones primero; el límite de rotura encima
   t2.lims.slice().sort((a, b) => isMain(a) - isMain(b)).forEach(L => {
@@ -4292,6 +4403,7 @@ async function loadLimits() {
   const comp = ((await idbGet('limites-comp')) || []).filter(l => !ownFiles.has(l.file));
   const arr = own.concat(comp);
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
+  t2._sinTalFirma = null;
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
 }
@@ -4306,7 +4418,10 @@ function renderLimList() {
     const de = ls[0].compDe;
     const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
       : `<span class="pn">${esc(f)}<small class="limde">👥 lo ve todo el equipo</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
-    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` +
+    marcarSinTaladros();
+    const cand = ls.filter(l => l.closed && l._sinTal && limVisible(l));
+    const desH = cand.length ? `<div class="desli"><span><i>Sin taladros (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
+    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
 }
@@ -4322,6 +4437,14 @@ $('limList').addEventListener('click', async e => {
     const arr = prev.map(l => l.compartido ? l : Object.assign({}, l, { compartido: true, _mod: now, _dirty: true }));
     await saveLimites(arr, prev); await loadLimits();
     const m = $('limMsg'); m.className = 'msg ok'; m.textContent = 'Todos tus límites quedan compartidos. Los demás usuarios los verán al sincronizar.';
+    return;
+  }
+  const dm = e.target.closest('button[data-desmat]');
+  if (dm) {
+    const prev = (await idbGet('limites')) || [];
+    const arr = prev.map(l => l.id === dm.dataset.desmat ? Object.assign({}, l, { mat: dm.dataset.v, _mod: undefined, _dirty: true }) : l);
+    arr.forEach(l => { if (l.id === dm.dataset.desmat) l._mod = (typeof ahora === 'function' ? ahora() : Date.now()); });
+    await saveLimites(arr, prev); await loadLimits(); t2._sinTalFirma = null; computeT2(); pv.draw();
     return;
   }
   const sb = e.target.closest('button[data-share]');
