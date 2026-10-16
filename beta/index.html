@@ -142,6 +142,7 @@ td.empty, td.empty:first-child { white-space: normal; font-family: var(--f-body)
 td.acts .btn { display: inline-flex; }
 .btn.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
 .warnc { color: var(--warn); }
+.errc { color: var(--bad, #c0392b); font-weight: 600; }
 .msg.warn { color: var(--warn); }
 tr.cur td { background: color-mix(in srgb, #40e0f0 10%, transparent); }
 tr.tot td { font-weight: 600; border-top: 2px solid var(--line); }
@@ -735,13 +736,19 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
 body.esbeta { --beta-h: 22px; }
 body.esbeta:not(.app) { padding-top: 26px; }
 body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); }
+.dupbox { border: 1px solid var(--warn, #c48a00); background: color-mix(in srgb, var(--warn, #c48a00) 8%, transparent); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; display: grid; gap: 6px; font-size: .88rem; }
+.dupbox ul { margin: 6px 0; padding-left: 18px; } .dupbox code { font-size: .8rem; }
+.dlgsub.conf { border: 1px solid var(--bad, #c0392b); border-radius: 10px; padding: 10px 12px; background: color-mix(in srgb, var(--bad, #c0392b) 6%, transparent); }
+.conf-it { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); } .conf-it small { color: var(--muted); }
+.conf-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: .82rem; }
+.syncb[data-estado=conflicto] { background: #e03131; color: #fff; border-color: #e03131; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v43</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v44</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1228,6 +1235,7 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
       <p class="note">En esta versión (Claude, iPad) la sincronización usa tu conector de Supabase. La primera vez Claude te pide permiso.</p>
       <div class="btnrow"><button class="btn small" id="syncConectar" type="button">Conectar y sincronizar</button></div>
     </div>
+    <div id="syncConf" class="dlgsub conf" hidden></div>
     <div id="syncOn" class="dlgsec" hidden>
       <p id="syncWho"></p>
       <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Cerrar sesión</button></div>
@@ -1284,6 +1292,28 @@ function parseCSV(text) {
   return tableFromRows(rows, sep);
 }
 
+// V44 (C-01): separador DECIMAL detectado por los datos, independiente del separador de columnas.
+// Cuenta celdas tipo 50,1 contra 50.1 (sin contar miles como 1,234,567).
+function detectDecimal(rows) {
+  let coma = 0, punto = 0;
+  const lim = Math.min(rows.length, 800);
+  for (let i = 0; i < lim; i++) {
+    const r = rows[i]; if (!r) continue;
+    for (const v0 of r) {
+      const v = String(v0 == null ? '' : v0).trim();
+      if (!v || v.length > 20) continue;
+      if (/^[-+]?\d{1,3}(,\d{3}){2,}(\.\d+)?$/.test(v) || /^[-+]?\d{1,3}(\.\d{3}){2,}(,\d+)?$/.test(v)) continue; // miles
+      if (/^[-+]?\d*,\d+$/.test(v)) coma++;
+      else if (/^[-+]?\d*\.\d+$/.test(v)) punto++;
+      else if (/^[-+]?\d{1,3}(\.\d{3})+,\d+$/.test(v)) coma++;
+      else if (/^[-+]?\d{1,3}(,\d{3})+\.\d+$/.test(v)) punto++;
+    }
+  }
+  return coma > punto ? ',' : '.';
+}
+// Separador que se pasa a toNum según el decimal detectado (';' = la coma es decimal)
+function numSep(csv) { return csv && csv.dec === ',' ? ';' : csv && csv.dec === '.' ? ',' : (csv ? csv.sep : ','); }
+
 // Filas de una hoja Excel (SheetJS) -> misma estructura que un CSV
 function parseSheetRows(rows) {
   const clean = rows.map(r => (r || []).map(c => (c == null ? '' : String(c).trim()))).filter(r => r.some(c => c !== ''));
@@ -1337,11 +1367,11 @@ function tableFromRows(rows, sep) {
   if (hi < 0 && rows.length && rows[0].some(c => c !== '' && toNum(c, sep) == null) && rows[0].filter(c => toNum(c, sep) != null).length < 2) hi = 0;
   const header = hi >= 0 ? rows[hi] : [];
   const data = rows.slice(hi + 1).filter(r => r.some(c => c !== ''));
-  return { header, rows: data, sep, headerLine: hi + 1 };
+  return { header, rows: data, sep, headerLine: hi + 1, dec: detectDecimal(data) };
 }
 
 function colStats(csv, i) {
-  const v = csv.rows.slice(0, 200).map(r => toNum(r[i], csv.sep)).filter(x => x != null);
+  const v = csv.rows.slice(0, 200).map(r => toNum(r[i], numSep(csv))).filter(x => x != null);
   if (!v.length) return { n: 0, med: null, frac: 0 };
   v.sort((a, b) => a - b);
   return { n: v.length, med: v[Math.floor(v.length / 2)], frac: v.length / Math.min(csv.rows.length, 200), min: v[0], max: v[v.length - 1] };
@@ -1406,12 +1436,12 @@ function readBlastholes(csv, override) {
   if (m.x < 0 || m.y < 0) return { holes: out, bad, map: m, auto, dupIds, missing: true };
   csv.rows.forEach((r, i) => {
     const idv = (r[m.id] || '').trim();
-    const x = toNum(r[m.x], csv.sep), y = toNum(r[m.y], csv.sep), z = m.z >= 0 ? toNum(r[m.z], csv.sep) : null;
-    const depth = m.depth >= 0 ? toNum(r[m.depth], csv.sep) : null;
+    const x = toNum(r[m.x], numSep(csv)), y = toNum(r[m.y], numSep(csv)), z = m.z >= 0 ? toNum(r[m.z], numSep(csv)) : null;
+    const depth = m.depth >= 0 ? toNum(r[m.depth], numSep(csv)) : null;
     if (!idv || x == null || y == null) { bad.push(i + 1 + csv.headerLine); return; }
     const key = keyOf(idv);
     if (seen.has(key)) dupIds.push(idv); else seen.set(key, true);
-    out.push({ id: idv, key, x, y, z: z == null ? 0 : z, depth: depth != null && depth > 0 ? depth : null });
+    out.push({ id: idv, key, x, y, z: z == null ? 0 : z, depth: depth != null && depth > 0 ? depth : null, row: i + 1 + csv.headerLine });
   });
   return { holes: out, bad, map: m, auto, dupIds: [...new Set(dupIds)] };
 }
@@ -1434,7 +1464,7 @@ function readLeyes(csv) {
   csv.rows.forEach((r, i) => {
     if (!r[0] || !r[0].trim()) { bad.push(i + 1 + csv.headerLine); return; }
     const rec = { grupo: r[0].trim(), key: keyOf(r[0]), line: i + 1 + csv.headerLine };
-    LEY_FIELDS.forEach(f => { rec[f.k] = toNum(r[cols[f.k]], csv.sep); });
+    LEY_FIELDS.forEach(f => { rec[f.k] = toNum(r[cols[f.k]], numSep(csv)); });
     out.push(rec);
   });
   return { leyes: out, bad };
@@ -1466,17 +1496,31 @@ function colorFe(v) {
   return null; // BYLAYER
 }
 
+// V44 (C-03): taladros con el mismo ID en un archivo/proyecto. Devuelve Map clave -> [taladros].
+function dupHoleGroups(holes, keyOf2) {
+  const g = new Map();
+  (holes || []).forEach(h => { const k = keyOf2 ? keyOf2(h) : h.key; if (!g.has(k)) g.set(k, []); g.get(k).push(h); });
+  const out = new Map(); g.forEach((arr, k) => { if (arr.length > 1) out.set(k, arr); });
+  return out;
+}
+// Texto del aviso: ID, repeticiones, coordenadas y filas
+function dupHoleTxt(groups, max) {
+  const items = [...groups.values()].slice(0, max || 12).map(arr => `ID ${arr[0].id} × ${arr.length}: ` + arr.map(h => `(E ${Number(h.x).toFixed(1)}, N ${Number(h.y).toFixed(1)}${h.row ? ', fila ' + h.row : ''})`).join(' · '));
+  return items.join(' | ') + (groups.size > (max || 12) ? ` … y ${groups.size - (max || 12)} más` : '');
+}
 function merge(holes, leyes) {
   const byKey = new Map();
   holes.forEach(h => byKey.set(h.key, h));
+  // V44 (C-03): un ID repetido NO recibe ley en ninguno de sus puntos hasta que se resuelva
+  const dupG = dupHoleGroups(holes);
   const last = new Map(), dupCount = new Map();
   leyes.forEach(l => { last.set(l.key, l); dupCount.set(l.key, (dupCount.get(l.key) || 0) + 1); });
   const dups = [...dupCount].filter(([, c]) => c > 1).map(([k, c]) => ({ grupo: last.get(k).grupo, count: c, lines: leyes.filter(l => l.key === k).map(l => l.line) }));
   const orphans = [...last.values()].filter(l => !byKey.has(l.key));
   const matched = new Map();
-  last.forEach((l, k) => { if (byKey.has(k)) matched.set(k, l); });
+  last.forEach((l, k) => { if (byKey.has(k) && !dupG.has(k)) matched.set(k, l); });
   const noLey = holes.filter(h => !matched.has(h.key));
-  return { matched, dups, orphans, noLey };
+  return { matched, dups, orphans, noLey, dupHoles: dupG };
 }
 
 // Ancho aproximado de un texto Arial de altura h (AutoCAD)
@@ -1733,7 +1777,8 @@ function checkProject(bhP, leyP, merged, nLeyes) {
 function parseQuotedCSV(text) {
   text = text.replace(/^﻿/, '');
   const first = text.slice(0, text.indexOf('\n') + 1 || text.length);
-  const sep = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',';
+  const nSc = (first.match(/;/g) || []).length, nCo = (first.match(/,/g) || []).length, nTab = (first.match(/\t/g) || []).length;
+  const sep = nTab > nSc && nTab > nCo ? '\t' : nSc > nCo ? ';' : ',';
   const rows = []; let row = [], cell = '', q = false, i = 0; const n = text.length;
   while (i < n) {
     const c = text[i];
@@ -1747,7 +1792,8 @@ function parseQuotedCSV(text) {
     cell += c; i++;
   }
   row.push(cell.trim()); if (row.some(v => v !== '')) rows.push(row);
-  return { header: rows[0] || [], rows: rows.slice(1), sep, headerLine: 1 };
+  const data = rows.slice(1);
+  return { header: rows[0] || [], rows: data, sep, headerLine: 1, dec: detectDecimal(data) };
 }
 
 function isBaseTable(csv) {
@@ -1784,6 +1830,9 @@ function buildBase(csv) {
   const cols = {};
   BASE_FIELDS.forEach(f => { let i = -1; for (const re of f.re) { i = n.findIndex(c => re.test(c)); if (i >= 0) break; } cols[f.k] = i; });
   const projects = new Map();
+  // V44 (C-01): antes se asumía siempre coma = miles (50,1 -> 501)
+  if (!csv.dec) csv.dec = detectDecimal(csv.rows);
+  const ns = numSep(csv);
   csv.rows.forEach((r, idx) => {
     let key;
     if (cMina >= 0 && cBanco >= 0 && cNro >= 0 && r[cMina]) key = codeKey(r[cMina], r[cBanco], r[cNro]);
@@ -1793,19 +1842,43 @@ function buildBase(csv) {
     if (!p) { p = { key, label: cProy >= 0 && r[cProy] ? r[cProy] : key, rows: [] }; projects.set(key, p); }
     const rec = { grupo: g, key: keyOf(g), line: cId >= 0 ? r[cId] : idx + 2, order: cId >= 0 ? (parseFloat(r[cId]) || idx) : idx, fecha: cFecha >= 0 ? r[cFecha] : '', type: cType >= 0 ? r[cType] : '' };
     let any = false;
-    BASE_FIELDS.forEach(f => { rec[f.k] = cols[f.k] >= 0 ? toNum(r[cols[f.k]], ',') : null; if (rec[f.k] != null) any = true; });
+    BASE_FIELDS.forEach(f => { rec[f.k] = cols[f.k] >= 0 ? toNum(r[cols[f.k]], ns) : null; if (rec[f.k] != null) any = true; });
     rec.hasData = any;
-    rec.density = cDens >= 0 ? toNum(r[cDens], ',') : null;
+    rec.density = cDens >= 0 ? toNum(r[cDens], ns) : null;
     p.rows.push(rec);
   });
   const header = k => (cols[k] >= 0 ? csv.header[cols[k]] : null);
   return { projects, nRows: csv.rows.length, cols: Object.fromEntries(BASE_FIELDS.map(f => [f.k, header(f.k)])) };
 }
 
+// V44 (C-01): revisa que la base tenga sentido antes de usarla.
+// Devuelve {total, malos, pct, ejemplos}; si más del 5 % de los valores son imposibles, la base no se carga.
+function validarBase(B) {
+  let total = 0, malos = 0; const ej = [];
+  B.projects.forEach(p => p.rows.forEach(r => {
+    QC_RULES.forEach(R => { const v = r[R.k]; if (v == null || isNaN(v)) return; total++; if (R.bad(v)) { malos++; if (ej.length < 5) ej.push(`${p.label} grupo ${r.grupo}: ${QC_LABEL[R.k] || R.k} = ${v}`); } });
+  }));
+  return { total, malos, pct: total ? 100 * malos / total : 0, ejemplos: ej };
+}
+
 // Elige el proyecto de la base para un archivo de taladros.
 // Prueba el código exacto; si no está o casi no coincide, busca el mismo banco y número en otra mina
 // (p. ej. el 14A se registra como mina 22) y se queda con el que más grupos comparte con los taladros.
 const MINA_ALIAS = { '14A': '22' };
+// V44 (A-01): identificador canónico del proyecto. La base registra el 14A como mina 22: ambos son el mismo proyecto.
+const MINA_CANON = { '22': '14A' };
+function canonCode(code) {
+  if (!code) return null;
+  const mina = String(code.mina || '').toUpperCase().trim();
+  return `${MINA_CANON[mina] || mina}-${normBanco(code.nivel)}-${normNro(code.nro)}`;
+}
+function canonOfProject(p) {
+  if (!p) return null;
+  const c = parseProjectCode(p.name) || parseProjectCode(p.fileName) || parseProjectCode(String(p.id || '').replace(/^[A-Z]:/, ''));
+  if (c) return canonCode(c);
+  if (p.baseKey) { const m = String(p.baseKey).match(/^([^-]+)-([^-]+)-(.+)$/); if (m) return canonCode({ mina: m[1], nivel: m[2], nro: m[3] }); }
+  return null;
+}
 
 function findBaseProject(base, code, holes, manualKey) {
   if (!base) return null;
@@ -2041,7 +2114,7 @@ function parseCSVPolylines(csv) {
   const m = mapHoleCols(csv);
   if (m.x < 0 || m.y < 0) return [];
   const by = new Map();
-  csv.rows.forEach(r => { const k = ci >= 0 ? (r[ci] || '').trim() || '1' : '1'; const x = toNum(r[m.x], csv.sep), y = toNum(r[m.y], csv.sep); if (x == null || y == null) return; if (!by.has(k)) by.set(k, []); by.get(k).push({ x, y }); });
+  csv.rows.forEach(r => { const k = ci >= 0 ? (r[ci] || '').trim() || '1' : '1'; const x = toNum(r[m.x], numSep(csv)), y = toNum(r[m.y], numSep(csv)); if (x == null || y == null) return; if (!by.has(k)) by.set(k, []); by.get(k).push({ x, y }); });
   return [...by].filter(([, pts]) => pts.length >= 3).map(([k, pts]) => ({ layer: k, pts, closed: true }));
 }
 function polyArea(pts) { let a = 0; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y); return Math.abs(a / 2); }
@@ -2544,12 +2617,20 @@ async function idbGet(k) { const db = await idb(); if (!db) return null; return 
 async function idbDel(k) { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete(k); } catch (e) {} }
 
 function setBase(csv, name, savedAt) {
-  state.base = buildBase(csv); try { fitDensModel(state.base); } catch (e) {} state.baseName = name; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
+  const B = buildBase(csv);
+  // V44 (C-01): no usar en silencio una base que salió con valores imposibles (formato decimal mal leído)
+  const v = validarBase(B);
+  if (v.total >= 20 && v.pct > 5) {
+    const e = new Error(`Se detectó un posible problema con el formato decimal del archivo. Revise el separador decimal y el separador de columnas antes de continuar. (${v.malos.toLocaleString('es-PE')} de ${v.total.toLocaleString('es-PE')} valores, ${v.pct.toFixed(1)} %, son imposibles; por ejemplo ${v.ejemplos.slice(0, 3).join('; ')}). La base anterior se mantiene.`);
+    e.validacion = v; throw e;
+  }
+  state.base = B; try { fitDensModel(state.base); } catch (e) {} state.baseName = name; state.baseDec = csv.dec; state.baseSep = csv.sep; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
   const labels = [...state.base.projects.values()].map(p => p.label).sort();
   $('projList').innerHTML = labels.map(l => `<option value="${esc(l)}"></option>`).join('');
 }
 async function loadBaseFile(f) {
   const msg = $('loadMsg'); msg.className = 'msg'; msg.textContent = 'Leyendo base de leyes…';
+  let ok = false;
   try {
     let csv, text = null;
     if (/\.xlsx?$/i.test(f.name)) {
@@ -2565,10 +2646,12 @@ async function loadBaseFile(f) {
     const saved = text ? await idbSet('base', { name: f.name, text, savedAt: state.baseSaved }) : false;
     msg.className = 'msg ok';
     msg.textContent = `Base cargada: ${state.base.projects.size.toLocaleString('es-PE')} proyectos.` + (saved ? ' Queda guardada en este navegador.' : '');
+    ok = true;
   } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
   recompute(true);
   await loadLibrary();
-  refrescarCopias();
+  if (ok) refrescarCopias();
+  return ok;
 }
 async function restoreBase() {
   const v = await idbGet('base');
@@ -2768,7 +2851,8 @@ function renderReport(rb, badLEY) {
     it('info', 'Columnas', `ID ${nm(mp.id)} · Este ${nm(mp.x)} · Norte ${nm(mp.y)} · Cota ${mp.z >= 0 ? nm(mp.z) : 'no encontrada (Z = 0)'}` + (state.mapOverride ? ' · ajustado a mano' : ''));
     (rb.auto.notes || []).forEach(t => it('warn', 'Revisar', esc(t)));
   }
-  if (rb.dupIds && rb.dupIds.length) it('warn', 'ID repetido', `Estos taladros aparecen más de una vez en el archivo de ubicación: <code>${rb.dupIds.map(esc).join(', ')}</code>. Las leyes se colocan en el último.`);
+  if (m && m.dupHoles && m.dupHoles.size) it('bad', 'ID duplicado', `Se encontraron IDs de taladro duplicados (${m.dupHoles.size}). Estos taladros <b>no reciben ley</b> en el plano, el PDF, el DXF ni el CSV, y el proyecto no se puede guardar hasta corregir el archivo de taladros: <code>${esc(dupHoleTxt(m.dupHoles))}</code>`);
+  else if (rb.dupIds && rb.dupIds.length) it('bad', 'ID duplicado', `Se encontraron IDs de taladro duplicados: <code>${rb.dupIds.map(esc).join(', ')}</code>. No reciben ley hasta corregir el archivo.`);
   if (state.bh && !state.ley && !state.base) it('info', 'Sin leyes', 'Solo se dibujan los taladros con su ID. Sube el CSV de leyes cuando lo tengas.');
   m.dups.forEach(d => it('warn', 'Repetido', `El grupo <code>${esc(d.grupo)}</code> aparece ${d.count} veces (filas ${d.lines.join(', ')}). Se usó la <b>última</b> fila. Corrige el CSV si debía ser otra.`));
   if (m.orphans.length) it('bad', 'Sin taladro', `Estos grupos de leyes no tienen taladro con el mismo ID y no se dibujaron: <code>${m.orphans.map(o => esc(o.grupo)).join(', ')}</code>`);
@@ -3158,15 +3242,19 @@ $('tabBtn1').addEventListener('click', () => showTab(1));
 $('tabBtn2').addEventListener('click', () => showTab(2));
 
 // ===== Pestaña 1: guardar proyecto =====
+// V44 (A-01): si ya existe un proyecto propio con el mismo código canónico (14A = 22), se usa SU id
 function projectIdFor(code, found, fileName) {
-  if (found) return 'B:' + found.p.key;
-  if (code) return 'C:' + code.text;
+  const ck = code ? canonCode(code) : found ? canonOfProject({ baseKey: found.p.key }) : null;
+  if (ck) { const ya = (lib.projects || []).find(p => !p.ro && canonOfProject(p) === ck); if (ya) return ya.id; }
+  if (found) return 'B:' + (ck || found.p.key);
+  if (code) return 'C:' + (ck || code.text);
   return 'F:' + fileName.replace(/\.[^.]+$/, '');
 }
+function nombreCanon(code) { if (!code) return null; const m = MINA_CANON[String(code.mina).toUpperCase()]; return m ? `${m}-${code.nivel}-${code.nro}` : code.text; }
 function buildProjectRecord(csv, fileName, holes, code, found, leyesSnapshot) {
   return {
     id: projectIdFor(code, found, fileName),
-    name: code ? code.text : fileName.replace(/\.[^.]+$/, ''),
+    name: code ? nombreCanon(code) : fileName.replace(/\.[^.]+$/, ''),
     baseKey: found ? found.p.key : null,
     baseLabel: found ? found.p.label : null,
     fileName, savedAt: new Date().toISOString(),
@@ -3202,6 +3290,9 @@ function unirTaladros(prev, rec) {
   return { holes, resumen: r };
 }
 async function saveProjectRecord(rec) {
+  // V44 (C-03): un archivo con IDs de taladro repetidos no se guarda hasta corregirlo
+  const dg = dupHoleGroups(rec.holes);
+  if (dg.size) return { ok: false, motivo: `no se guardó: se encontraron IDs de taladro duplicados (${dupHoleTxt(dg, 5)}). Corrige el archivo de taladros y vuelve a cargarlo.` };
   const prev = lib.projects.find(p => p.id === rec.id);
   if (prev) rec.createdAt = prev.createdAt || prev.savedAt; else rec.createdAt = rec.savedAt;
   rec.tipo = rec.tipo || tipoArchivo(rec.fileName);
@@ -3226,6 +3317,7 @@ $('btnSaveProj').addEventListener('click', async () => {
   const snap = state.src === 'file' ? state.leyes.map(l => Object.assign({}, l)) : null;
   const rec = buildProjectRecord(state.bh, fname, state.holes, code, state.found, snap);
   const r = await saveProjectRecord(rec);
+  if (r.motivo) { msg.className = 'msg err'; msg.textContent = `Proyecto ${rec.name}: ${r.motivo}`; return; }
   msg.className = r.ok ? 'msg ok' : 'msg err';
   msg.textContent = r.ok ? `Proyecto ${rec.name} (${TIPO_TXT[tipoArchivo(fname)]}) ${r.updated ? 'actualizado: ' + r.resumen + '. Sus avances se mantienen' : 'guardado'}. Ya puedes sacar sus promedios en la pestaña 2.` : 'No se pudo guardar en esta PC. Revisa que el navegador permita guardar datos.';
 });
@@ -3245,6 +3337,7 @@ async function batchSave(files) {
       const found = state.base ? findBaseProject(state.base, code, rb.holes, null) : null;
       if (found && found.how === 'alias') { out.push(`${f.name}: no se guardó; el proyecto en la base no es seguro (${found.p.label}). Ábrelo en la pestaña 1 para confirmarlo.`); continue; }
       const r = await saveProjectRecord(buildProjectRecord(t.csv, f.name, rb.holes, code, found, null));
+      if (r.motivo) { out.push(`${f.name}: ${r.motivo}`); continue; }
       out.push(`${f.name}: ${r.ok ? `${TIPO_TXT[tipoArchivo(f.name)]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'}` : 'error al guardar'}${found ? ` · leyes de ${found.p.label}` : state.base ? ' · no está en la base todavía' : ''}`);
     } catch (e) { out.push(`${f.name}: ${e.message}`); }
   }
@@ -3299,7 +3392,67 @@ async function refrescarCopias() {
 
 const fmtDate = s => { if (!s) return ''; const [y, m, d] = String(s).slice(0, 10).split('-'); return d ? `${d}/${m}/${y}` : s; };
 let libFiltro = '';
+// ===== V44 (A-01): proyectos duplicados por la equivalencia 14A = mina 22 (u otro id para el mismo código) =====
+function gruposDuplicados() {
+  const g = new Map();
+  lib.projects.filter(p => !p.ro).forEach(p => { const k = canonOfProject(p); if (!k) return; if (!g.has(k)) g.set(k, []); g.get(k).push(p); });
+  return [...g.entries()].filter(([, arr]) => arr.length > 1).map(([k, arr]) => {
+    const nAv = p => lib.avances.filter(a => a.projectIds.includes(p.id)).length;
+    // se conserva el que tiene más avances; luego el de tipo más avanzado; luego el id C:
+    const orden = arr.slice().sort((a, b) => nAv(b) - nAv(a) || TIPO_RANGO[b.tipo || tipoArchivo(b.fileName)] - TIPO_RANGO[a.tipo || tipoArchivo(a.fileName)] || (a.id.startsWith('C:') ? -1 : 1));
+    return { canon: k, queda: orden[0], otros: orden.slice(1), nAv };
+  });
+}
+function pintarDuplicados() {
+  let box = $('libDupBox');
+  const gs = gruposDuplicados();
+  if (!gs.length) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement('div'); box.id = 'libDupBox'; box.className = 'dupbox'; $('libRes').before(box); }
+  const det = gs.map(g => `<li><b>${esc(g.canon)}</b>: se conserva <code>${esc(g.queda.id)}</code> (${g.queda.holes.length} taladros, ${g.nAv(g.queda)} avances) y se le unen ${g.otros.map(o => `<code>${esc(o.id)}</code> (${o.holes.length} taladros, ${g.nAv(o)} avances)`).join(', ')}</li>`).join('');
+  box.innerHTML = `<b>⚠ ${gs.length} proyecto${gs.length > 1 ? 's' : ''} guardado${gs.length > 1 ? 's' : ''} dos veces</b> (por la equivalencia 14A = mina 22 o por otro identificador). Sus avances pueden estar repartidos.<details><summary>Ver cuáles se unirán</summary><ul>${det}</ul><p class="note">Al unir: los taladros se juntan (el archivo final manda sobre la malla), todos los avances pasan al proyecto que se conserva y nada se pierde. El proyecto unido queda marcado como borrado en la nube, recuperable por el administrador.</p></details><div class="btnrow"><button class="btn small" type="button" id="btnUnirDup">Unir duplicados</button></div><p class="msg" id="dupMsg"></p>`;
+  $('btnUnirDup').onclick = async () => {
+    const b = $('btnUnirDup');
+    if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Unir ahora? Toca otra vez'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Unir duplicados'; b.classList.remove('danger'); } }, 5000); return; }
+    b.disabled = true;
+    const res = await unirDuplicados(gruposDuplicados());
+    await loadLibrary();
+    const m = $('dupMsg') || $('libMsg'); m.className = 'msg ok'; m.textContent = res;
+  };
+}
+async function unirDuplicados(gs) {
+  const out = [];
+  for (const g of gs) {
+    let keep = Object.assign({}, g.queda);
+    for (const o of g.otros) {
+      // taladros: el de tipo más avanzado manda sobre las coordenadas
+      const rk = p => TIPO_RANGO[p.tipo || tipoArchivo(p.fileName)];
+      const [base, nuevo] = rk(o) > rk(keep) ? [keep, Object.assign({}, o, { tipo: o.tipo || tipoArchivo(o.fileName) })] : [Object.assign({}, o), Object.assign({}, keep, { tipo: keep.tipo || tipoArchivo(keep.fileName) })];
+      const u = unirTaladros(base, nuevo);
+      keep.holes = u.holes;
+      if (rk(o) > rk(keep)) keep.tipo = o.tipo || tipoArchivo(o.fileName);
+      if (!keep.leyes && o.leyes) keep.leyes = o.leyes;
+      if (!keep.leyesBase && o.leyesBase) { keep.leyesBase = o.leyesBase; keep.leyesBaseLabel = o.leyesBaseLabel; keep.leyesBaseFecha = o.leyesBaseFecha; }
+      if (!keep.baseKey && o.baseKey) { keep.baseKey = o.baseKey; keep.baseLabel = o.baseLabel; }
+      keep.archivos = Object.assign({}, o.archivos, keep.archivos);
+      keep.unidoDe = (keep.unidoDe || []).concat([o.id]);
+      // avances: pasan al proyecto que queda (ids y claves "proyecto|taladro")
+      let nA = 0;
+      for (const a of (await dbAll('avances')).map(normAvance).filter(a => a.projectIds.includes(o.id))) {
+        const pids = [...new Set(a.projectIds.map(id => (id === o.id ? keep.id : id)))];
+        const keys = [...new Set(a.keys.map(k => (k.startsWith(o.id + '|') ? keep.id + '|' + k.slice(o.id.length + 1) : k)))];
+        const names = [...new Set(pids.map(id => (id === keep.id ? keep.name : (lib.projects.find(p => p.id === id) || {}).name || id)))];
+        await dbSave('avances', Object.assign({}, a, { projectIds: pids, keys, projectNames: names, _mod: undefined }));
+        nA++;
+      }
+      await dbSave('projects', Object.assign({}, keep, { _mod: undefined }));
+      await dbRemove('projects', o.id);
+      out.push(`${g.canon}: ${o.id} unido a ${keep.id} (${nA} avance${nA === 1 ? '' : 's'} trasladado${nA === 1 ? '' : 's'})`);
+    }
+  }
+  return out.length ? 'Listo. ' + out.join(' · ') : 'No había duplicados.';
+}
 function renderLibRes() {
+  try { pintarDuplicados(); } catch (e) { console.warn(e); }
   const box = $('libRes'); if (!box) return;
   const n = lib.projects.length, c = { final: 0, avance: 0, malla: 0 };
   lib.projects.forEach(p => { c[p.tipo || tipoArchivo(p.fileName)]++; });
@@ -3478,15 +3631,18 @@ function refreshT2() {
   paintFsFiltro();
   t2.holes = []; t2.holeBy = new Map(); t2.leyBy = new Map(); t2.supData = null;
   const errs = [];
+  t2.dupTxt = [];
   t2.projs.forEach(p => {
     const L = leyesForProject(p);
     if (L.err) errs.push(L.err);
     const lmap = new Map((L.leyes || []).map(l => [l.key, l]));
+    const dg = dupHoleGroups(p.holes); // V44 (C-03): IDs repetidos sin ley y fuera de los promedios
+    if (dg.size) t2.dupTxt.push(`${p.name}: ${dupHoleTxt(dg, 6)}`);
     p.holes.forEach(h => {
       const ck = p.id + '|' + h.key;
-      const hh = { ck, key: h.key, id: h.id, x: h.x, y: h.y, depth: h.depth, pid: p.id, pname: p.name };
-      t2.holes.push(hh); t2.holeBy.set(ck, hh);
-      const l = lmap.get(h.key); if (l) t2.leyBy.set(ck, l);
+      const hh = { ck, key: h.key, id: h.id, x: h.x, y: h.y, depth: h.depth, pid: p.id, pname: p.name, dup: dg.has(h.key) };
+      t2.holes.push(hh); if (!hh.dup) t2.holeBy.set(ck, hh);
+      const l = lmap.get(h.key); if (l && !hh.dup) t2.leyBy.set(ck, l);
     });
   });
   const ids = new Set(t2.projs.map(p => p.id));
@@ -3502,6 +3658,7 @@ function refreshT2() {
   if (!t2.projs.length) info.innerHTML = (lib.projects.length ? 'Marca uno o varios proyectos para verlos en el plano.' : '') + ocult;
   else info.innerHTML = `${t2.projs.length} proyecto${t2.projs.length > 1 ? 's' : ''} · ${t2.holes.length} taladros · ${withRes} con resultados · ${t2.avs.length} avance${t2.avs.length === 1 ? '' : 's'}` +
     (errs.length ? `<br><span class="warnc">${esc([...new Set(errs)].join(' '))}</span>` : '') +
+    (t2.dupTxt.length ? `<br><span class="errc">Se encontraron IDs de taladro duplicados; no entran en el avance ni reciben ley hasta corregir el proyecto: ${esc(t2.dupTxt.join(' · '))}</span>` : '') +
     (noDepth.length ? `<br><span class="warnc">Sin profundidad (se pondera solo por densidad): ${esc(noDepth.join(', '))}.</span>` : '') + ocult;
   if (!pv.W) pv.resize();
   if (!t2.fitted && pv.W && t2.holes.length) { pv.fit(t2Bounds()); t2.fitted = true; }
@@ -3570,6 +3727,8 @@ function renderPlan2(ctx, v) {
     });
   }
   drawLimits(ctx, v);
+  // V44 (C-03): taladros con ID repetido, marcados en rojo (sin ley)
+  t2.holes.forEach(h => { if (!h.dup) return; const x = v.sx(h.x), y = v.sy(h.y); if (x < -30 || x > v.W + 30 || y < -30 || y > v.H + 30) return; ctx.save(); ctx.strokeStyle = '#e03131'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(6, Math.min(12, v.v.s * 0.5)), 0, Math.PI * 2); ctx.stroke(); if (v.v.s > 4) { ctx.fillStyle = '#e03131'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('ID repetido ' + h.id, x + 8, y - 6); } ctx.restore(); });
   t2.avs.forEach(a => {
     const shapes = avShapes(a); if (!shapes.length) return;
     const cur = viewing && viewing.id === a.id;
@@ -3661,7 +3820,7 @@ function shapeKeys(s) {
   const excl = $('avExcl').checked, P = s.pts;
   const pid = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
-  const dentro = t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !t2.manOff.has(h.ck));
+  const dentro = t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !t2.manOff.has(h.ck) && !h.dup);
   s._prev = excl ? dentro.filter(h => t2.prevKey.has(h.ck)).length : 0;
   return dentro.filter(h => !(excl && t2.prevKey.has(h.ck))).map(h => h.ck);
 }
@@ -3878,10 +4037,32 @@ function renderTiles(r, title) {
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
 
+// V44 (C-02): un solo guardado a la vez. Bandera lógica + botón desactivado; el segundo clic se rechaza.
+let guardandoAvance = false;
+function bloquearGuardarAv(on) {
+  ['btnSaveAv', 'fsSave', 'mSave'].forEach(id => { const b = document.getElementById(id); if (b) { if (on) { b.dataset.guardando = '1'; b.disabled = true; } else { delete b.dataset.guardando; } } });
+  if (!on) { const hay = !!(t2.result && t2.sel && t2.sel.size && !t2.viewing); ['btnSaveAv', 'fsSave', 'mSave'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !hay; }); try { paintPanel(); } catch (e) {} }
+}
 $('btnSaveAv').addEventListener('click', async () => {
+  if (guardandoAvance) { setMsg('t2Msg', 'err', 'Ya se está guardando este avance. Espera un momento.'); return; }
   if (!t2.result) return;
+  guardandoAvance = true; bloquearGuardarAv(true);
+  try { await guardarAvanceSeguro(); } finally { guardandoAvance = false; bloquearGuardarAv(false); }
+});
+async function guardarAvanceSeguro() {
   const fecha = $('avFecha').value || todayISO();
   const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), shapes: t2.shapes.map(s => ({ pts: s.pts, pid: s.pid || '', w: s.w, lim: s.lim || null })), tipo: $('avTipo').value.trim(), tipoMat: matAuto(t2.result), obs: $('avObs').value.trim(), poly: [], keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
+  // Segunda protección: justo antes de escribir, revisar contra lo que está guardado AHORA (no contra lo calculado antes)
+  const guardados = ((await dbAll('avances')) || []).map(normAvance);
+  const mios = new Set(rec.keys);
+  const igual = guardados.find(a => a.keys.length === rec.keys.length && a.keys.every(k => mios.has(k)));
+  if (igual) { setMsg('t2Msg', 'err', 'Este avance ya fue registrado. No se realizará un segundo guardado.'); flashHint('Este avance ya fue registrado. No se realizará un segundo guardado.', false); return; }
+  const choques = guardados.filter(a => a.keys.some(k => mios.has(k)));
+  if (choques.length) {
+    const n = rec.keys.filter(k => choques.some(a => a.keys.includes(k))).length;
+    setMsg('t2Msg', 'err', `No se guardó: ${n} taladro(s) ya están en otro avance (${choques.map(a => fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : '')).join(', ')}). Un taladro no puede contarse dos veces. Vuelve a dibujar el avance sin esos taladros.`);
+    return;
+  }
   const ok = await dbSave('avances', rec);
   if (!ok) { setMsg('t2Msg', 'err', 'No se pudo guardar el avance en esta PC.'); return; }
   t2.shapes = []; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set(); t2.sel = new Set(); t2.groups = [];
@@ -3889,7 +4070,7 @@ $('btnSaveAv').addEventListener('click', async () => {
   await loadLibrary();
   const okTxt = `Avance del ${fmtDate(fecha)} guardado con ${rec.result.n} taladros (${rec.projectNames.join(' + ')}).`;
   setMsg('t2Msg', 'ok', okTxt); paintPanel(); flashHint('✓ ' + okTxt, true);
-});
+}
 
 function summaryText(r, fecha, nombre, names) {
   const f = (v, d) => fmt(v, d, '-');
@@ -4486,18 +4667,21 @@ function recomputeLib(refit) {
   const projs = lib.projects.filter(p => V.ids.includes(p.id));
   const clip = vlClipPolys(V.clip);
   const holes = [], matched = new Map(), errs = [];
+  const dupAll = new Map();
   projs.forEach(p => {
     const L = leyesForProject(p); if (L.err) errs.push(L.err);
     const lm = new Map((L.leyes || []).map(l => [l.key, l]));
+    const dg = dupHoleGroups(p.holes); // V44 (C-03)
+    dg.forEach((arr, k) => dupAll.set(p.id + '|' + k, arr.map(h => Object.assign({}, h, { id: p.name + ' ' + h.id }))));
     p.holes.forEach(h => {
       if (clip && !clip.some(P => pointInPoly(h.x, h.y, P))) return;
       const k = p.id + '|' + h.key;
       holes.push(Object.assign({}, h, { key: k, z: h.z || 0 }));
-      const l = lm.get(h.key); if (l) matched.set(k, l);
+      const l = lm.get(h.key); if (l && !dg.has(h.key)) matched.set(k, l);
     });
   });
   state.rb = { holes, bad: [], dupIds: [] }; state.holes = holes; state.leyes = [...matched.values()];
-  state.m = { matched, dups: [], orphans: [], noLey: holes.filter(h => !matched.has(h.key)) };
+  state.m = { matched, dups: [], orphans: [], noLey: holes.filter(h => !matched.has(h.key)), dupHoles: dupAll };
   state.P = layout(holes, matched, opts()); state.pc = null; state.vlErrs = [...new Set(errs)];
   state.vlClipPolys = clip;
   state.vlSup = null;
@@ -4928,7 +5112,7 @@ async function cargarTodo(files) {
     } catch (e) { grupos.mal.push(f); }
   }
   filas.length = 0; res.innerHTML = '';
-  for (const f of grupos.base) { await loadBaseFile(f); fila(state.base ? '📊' : '⚠️', f.name, state.base ? `Base de leyes cargada · ${state.base.projects.size.toLocaleString('es-PE')} proyectos. Se actualizaron las leyes de tus proyectos guardados.` : esc($('loadMsg').textContent), !state.base); }
+  for (const f of grupos.base) { const okB = await loadBaseFile(f); fila(okB ? '📊' : '⚠️', f.name, okB ? `Base de leyes cargada · ${state.base.projects.size.toLocaleString('es-PE')} proyectos. Se actualizaron las leyes de tus proyectos guardados.` : esc($('loadMsg').textContent), !okB); }
   const nuevos = [];
   if (grupos.bh.length) {
     const antes = new Set(lib.projects.map(p => p.id));
@@ -5210,6 +5394,7 @@ $('ctrlTraer').addEventListener('click', async () => {
       const rec = buildProjectRecord(null, fname, holes, code, found && found.how !== 'alias' ? found : null, null);
       rec.tipo = ctrlTipo(p); rec.origen = 'BlastHole Control';
       const r = await saveProjectRecord(rec);
+      if (r.motivo) { out.push(`${p.project_code}: ${r.motivo}`); continue; }
       out.push(`${p.project_code}: ${TIPO_TXT[rec.tipo]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'} · ${holes.length} taladros`);
       nuevos.push(rec.id);
     } catch (e) { out.push(`${p.project_code}: ${e.message}`); }
@@ -5335,9 +5520,20 @@ const SYNC = {
 };
 const sync = { mode: null, session: null, mcp: null, busy: false, again: false, last: null, err: '', timer: null, on: false };
 
+// ---- V44 (A-03): hora corregida con la del servidor ----
+// Cada sincronización mide la diferencia entre el reloj de este equipo y el de la nube; las marcas _mod usan esa hora
+// corregida, así un equipo con la hora atrasada o adelantada no gana ni pierde cambios por error.
+let RELOJ_OFF = 0; try { RELOJ_OFF = parseInt(localStorage.getItem('bhl-reloj') || '0', 10) || 0; } catch (e) {}
+function ahora() { return Date.now() + RELOJ_OFF; }
+function ajustarReloj(serverIso, t0, t1) {
+  const srv = Date.parse(serverIso); if (!srv) return;
+  const off = Math.round(srv - (t0 + t1) / 2);
+  if (Math.abs(off - RELOJ_OFF) > 2000) { RELOJ_OFF = off; try { localStorage.setItem('bhl-reloj', String(off)); } catch (e) {} }
+}
+
 // ---- Escrituras locales que se sincronizan ----
 async function dbSave(store, rec) {
-  rec._mod = Date.now(); rec._dirty = true;
+  rec._mod = Math.max(ahora(), (rec._base || 0) + 1); rec._dirty = true; delete rec._conflicto;
   const ok = await dbPut(store, rec);
   pedirSync();
   return ok;
@@ -5350,14 +5546,14 @@ async function dbRemove(store, id) {
 }
 async function addTombs(list) {
   const t = (await idbGet('bhl-tomb')) || [];
-  list.forEach(x => t.push({ store: x.store, id: x.id, _mod: Date.now() }));
+  list.forEach(x => t.push({ store: x.store, id: x.id, _mod: ahora() }));
   await idbSet('bhl-tomb', t);
 }
 // Límites: se guardan como lista; marcar los nuevos y registrar los quitados
 async function saveLimites(arr, prev) {
   const prevIds = new Set((prev || []).map(l => l.id)), nowIds = new Set(arr.map(l => l.id));
   const removed = (prev || []).filter(l => !nowIds.has(l.id)).map(l => ({ store: 'limites', id: l.id }));
-  arr.forEach(l => { if (!prevIds.has(l.id) || l._dirty) { l._mod = l._mod && prevIds.has(l.id) ? l._mod : Date.now(); l._dirty = true; } });
+  arr.forEach(l => { if (!prevIds.has(l.id) || l._dirty) { l._mod = l._mod && prevIds.has(l.id) ? l._mod : ahora(); l._dirty = true; } });
   if (removed.length) await addTombs(removed);
   await idbSet('limites', arr);
   pedirSync();
@@ -5484,7 +5680,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -5503,7 +5699,51 @@ function pedirSync(ms) {
   clearTimeout(sync.timer);
   sync.timer = setTimeout(sincronizar, ms == null ? 1500 : ms);
 }
-const limpio = r => { const c = Object.assign({}, r); delete c._dirty; delete c.bb; delete c.area; return c; };
+const limpio = r => { const c = Object.assign({}, r); delete c._dirty; delete c.bb; delete c.area; delete c._base; delete c._conflicto; return c; };
+// ---- V44 (A-03): conflictos ----
+// Un conflicto = este equipo tiene un cambio sin subir y la nube recibió otro cambio del mismo registro desde la última
+// sincronización (o la nube rechazó el cambio). No se pierde ninguno: se guardan las dos versiones y el usuario elige.
+const NOMBRE_STORE = { projects: 'Proyecto', avances: 'Avance', limites: 'Límite' };
+const nombreReg = (store, r) => (r && (store === 'avances' ? `${r.fecha || ''}${r.nombre ? ' · ' + r.nombre : ''}${r.projectNames ? ' · ' + r.projectNames.join(' + ') : ''}` : r.name || r.file || r.layer)) || '';
+async function leerConflictos() { return (await idbGet('bhl-conflictos')) || []; }
+async function anotarConflicto(store, local, remoto, remotoBorrado, motivo) {
+  const cs = (await leerConflictos()).filter(c => !(c.store === store && c.id === local.id));
+  cs.push({ store, id: local.id, nombre: nombreReg(store, local) || nombreReg(store, remoto) || local.id, local: limpio(local), remoto: remoto ? limpio(remoto) : null, remotoBorrado: !!remotoBorrado, motivo, at: new Date().toISOString() });
+  await idbSet('bhl-conflictos', cs);
+}
+async function marcarEnConflicto(store, id, on) {
+  if (store === 'limites') { const L = (await idbGet('limites')) || []; L.forEach(l => { if (l.id === id) { if (on) l._conflicto = true; else delete l._conflicto; } }); await idbSet('limites', L); return; }
+  const r = (await dbAll(store)).find(x => x.id === id); if (!r) return;
+  if (on) r._conflicto = true; else delete r._conflicto; await dbPut(store, r);
+}
+// Resolver: 'local' = queda la versión de este equipo (se vuelve a subir, gana); 'nube' = queda la de la nube
+async function resolverConflicto(store, id, cual) {
+  const cs = await leerConflictos(); const c = cs.find(x => x.store === store && x.id === id); if (!c) return;
+  const remMod = (c.remoto && c.remoto._mod) || 0;
+  if (cual === 'local') {
+    const rec = Object.assign({}, c.local, { _base: remMod });
+    rec._mod = Math.max(ahora(), remMod + 1); rec._dirty = true;
+    if (store === 'limites') { const L = (await idbGet('limites')) || []; const i = L.findIndex(l => l.id === id); if (i >= 0) L[i] = rec; else L.push(rec); await idbSet('limites', L); }
+    else await dbPut(store, rec);
+  } else {
+    if (!c.remoto && !c.remotoBorrado) return 'espera';
+    if (c.remotoBorrado) { if (store === 'limites') await idbSet('limites', ((await idbGet('limites')) || []).filter(l => l.id !== id)); else await dbDel(store, id); }
+    else { const rec = Object.assign({}, c.remoto, { _dirty: false, _base: remMod }); if (store === 'limites') { const L = (await idbGet('limites')) || []; const i = L.findIndex(l => l.id === id); if (i >= 0) L[i] = rec; else L.push(rec); await idbSet('limites', L); } else await dbPut(store, rec); }
+  }
+  await idbSet('bhl-conflictos', cs.filter(x => x !== c));
+  await loadLibrary(); await loadLimits(); pedirSync(100);
+}
+// Respuesta de bhl_push: número de filas que la nube aceptó (null si no se sabe)
+const aceptadas = r => (typeof r === 'number' ? r : r != null && !isNaN(parseInt(r, 10)) ? parseInt(r, 10) : null);
+// Sube un lote y devuelve los registros que la nube NO aceptó
+async function subirLote(T, store, part) {
+  const n = aceptadas(await T.push(SYNC.tables[store], part.map(r => ({ id: r.id, data: limpio(r) }))));
+  if (n == null || n >= part.length) return [];
+  // alguno fue rechazado: se sube de a uno para saber cuál
+  const rech = [];
+  for (const r of part) { const k = aceptadas(await T.push(SYNC.tables[store], [{ id: r.id, data: limpio(r) }])); if (k === 0) rech.push(r); }
+  return rech;
+}
 async function sincronizar() {
   if (!sync.on) return;
   if (sync.busy) { sync.again = true; return; }
@@ -5511,19 +5751,71 @@ async function sincronizar() {
   sync.busy = true; pintarSync('busy');
   const T = transporte();
   try {
-    // 1) subir cambios locales
+    let cambios = 0, nuevosConf = 0;
+    // 1) V44: PRIMERO bajar lo de los otros equipos y detectar conflictos con lo que este equipo aún no subió
+    const since = (await idbGet('bhl-since')) || '1970-01-01T00:00:00Z';
+    const desde = new Date(new Date(since).getTime() - 5000).toISOString();
+    const t0 = Date.now(); const res = await T.pull(desde); const t1 = Date.now();
+    if (res.now) ajustarReloj(res.now, t0, t1);
+    // ¿hay conflicto? local con cambios sin subir + la nube cambió desde la versión que este equipo conocía
+    const choca = (loc, rm) => loc && loc._dirty && (loc._base != null ? rm !== loc._base : rm > (loc._mod || 0));
     for (const store of ['projects', 'avances']) {
-      const dirty = (await dbAll(store)).filter(r => r._dirty);
+      const locales = new Map((await dbAll(store)).map(r => [r.id, r]));
+      for (const row of res[SYNC.tables[store].replace('bhl_', '')] || []) {
+        const loc = locales.get(row.id), rm = (row.data && row.data._mod) || 0;
+        if (loc && loc._base === rm && !row.deleted && !loc._dirty) continue; // ya la tengo
+        if (loc && (loc._conflicto || choca(loc, rm))) {
+          if (loc._base === rm && !row.deleted) continue;
+          await anotarConflicto(store, loc, row.deleted ? null : row.data, row.deleted, 'Este equipo y la nube cambiaron el mismo registro.');
+          if (!loc._conflicto) { await marcarEnConflicto(store, row.id, true); nuevosConf++; }
+          continue;
+        }
+        if (row.deleted) { if (loc && !loc._dirty) { await dbDel(store, row.id); cambios++; } continue; }
+        if (!loc || !loc._dirty) { await dbPut(store, Object.assign({}, row.data, { _dirty: false, _base: rm })); cambios++; }
+      }
+    }
+    const remLim = res.limites || [];
+    if (remLim.length) {
+      const lims0 = (await idbGet('limites')) || [];
+      const by = new Map(lims0.map(l => [l.id, l]));
+      for (const row of remLim) {
+        const loc = by.get(row.id), rm = (row.data && row.data._mod) || 0;
+        if (loc && loc._base === rm && !row.deleted && !loc._dirty) continue;
+        if (loc && (loc._conflicto || choca(loc, rm))) {
+          if (loc._base === rm && !row.deleted) continue;
+          await anotarConflicto('limites', loc, row.deleted ? null : row.data, row.deleted, 'Este equipo y la nube cambiaron el mismo límite.');
+          if (!loc._conflicto) { loc._conflicto = true; nuevosConf++; }
+          continue;
+        }
+        if (row.deleted) { if (loc && !loc._dirty) { by.delete(row.id); cambios++; } continue; }
+        if (!loc || !loc._dirty) { by.set(row.id, Object.assign({}, row.data, { _dirty: false, _base: rm })); cambios++; }
+      }
+      await idbSet('limites', [...by.values()]);
+    }
+    // 2) subir lo de este equipo (sin los registros en conflicto) y comprobar qué aceptó la nube
+    for (const store of ['projects', 'avances']) {
+      const dirty = (await dbAll(store)).filter(r => r._dirty && !r._conflicto);
       for (let i = 0; i < dirty.length; i += 25) {
         const part = dirty.slice(i, i + 25);
-        await T.push(SYNC.tables[store], part.map(r => ({ id: r.id, data: limpio(r) })));
-        for (const r of part) { const cur = (await dbAll(store)).find(x => x.id === r.id); if (cur && cur._mod === r._mod) { cur._dirty = false; await dbPut(store, cur); } }
+        const rech = await subirLote(T, store, part);
+        for (const r of part) {
+          const cur = (await dbAll(store)).find(x => x.id === r.id);
+          if (!cur || cur._mod !== r._mod) continue; // se volvió a editar mientras subía: queda pendiente
+          if (rech.some(x => x.id === r.id)) { await anotarConflicto(store, cur, null, false, 'La nube no aceptó el cambio porque tiene una versión más nueva.'); cur._conflicto = true; await dbPut(store, cur); nuevosConf++; sync.forzarPull = true; continue; }
+          cur._dirty = false; cur._base = cur._mod; await dbPut(store, cur);
+        }
       }
     }
     let lims = (await idbGet('limites')) || [];
-    const ld = lims.filter(l => l._dirty);
-    for (let i = 0; i < ld.length; i += 25) await T.push(SYNC.tables.limites, ld.slice(i, i + 25).map(l => ({ id: l.id, data: limpio(l) })));
-    if (ld.length) { lims = (await idbGet('limites')) || []; const ids = new Set(ld.map(l => l.id + '@' + l._mod)); lims.forEach(l => { if (ids.has(l.id + '@' + l._mod)) l._dirty = false; }); await idbSet('limites', lims); }
+    const ld = lims.filter(l => l._dirty && !l._conflicto);
+    let rechL = [];
+    for (let i = 0; i < ld.length; i += 25) rechL = rechL.concat(await subirLote(T, 'limites', ld.slice(i, i + 25)));
+    if (ld.length) {
+      lims = (await idbGet('limites')) || [];
+      const ids = new Set(ld.map(l => l.id + '@' + l._mod)), rj = new Set(rechL.map(l => l.id));
+      for (const l of lims) { if (!ids.has(l.id + '@' + l._mod)) continue; if (rj.has(l.id)) { await anotarConflicto('limites', l, null, false, 'La nube no aceptó el cambio porque tiene una versión más nueva.'); l._conflicto = true; nuevosConf++; sync.forzarPull = true; } else { l._dirty = false; l._base = l._mod; } }
+      await idbSet('limites', lims);
+    }
     const tombs = (await idbGet('bhl-tomb')) || [];
     if (tombs.length) {
       for (const store of ['projects', 'avances', 'limites']) {
@@ -5533,36 +5825,17 @@ async function sincronizar() {
       const rest2 = ((await idbGet('bhl-tomb')) || []).filter(x => !tombs.some(y => y.store === x.store && y.id === x.id && y._mod === x._mod));
       await idbSet('bhl-tomb', rest2);
     }
-    // 2) bajar cambios de los otros equipos
-    const since = (await idbGet('bhl-since')) || '1970-01-01T00:00:00Z';
-    const desde = new Date(new Date(since).getTime() - 5000).toISOString();
-    const res = await T.pull(desde);
-    let cambios = 0;
-    for (const store of ['projects', 'avances']) {
-      const locales = new Map((await dbAll(store)).map(r => [r.id, r]));
-      for (const row of res[SYNC.tables[store].replace('bhl_', '')] || []) {
-        const loc = locales.get(row.id), rm = (row.data && row.data._mod) || 0;
-        if (row.deleted) { if (loc && (loc._mod || 0) <= rm) { await dbDel(store, row.id); cambios++; } continue; }
-        if (!loc || (!loc._dirty && (loc._mod || 0) !== rm) || (loc._dirty && (loc._mod || 0) < rm)) { await dbPut(store, Object.assign({}, row.data, { _dirty: false })); cambios++; }
-      }
-    }
-    const remLim = res.limites || [];
-    if (remLim.length) {
-      lims = (await idbGet('limites')) || [];
-      const by = new Map(lims.map(l => [l.id, l]));
-      remLim.forEach(row => {
-        const loc = by.get(row.id), rm = (row.data && row.data._mod) || 0;
-        if (row.deleted) { if (loc && (loc._mod || 0) <= rm) { by.delete(row.id); cambios++; } return; }
-        if (!loc || (!loc._dirty && (loc._mod || 0) !== rm) || (loc._dirty && (loc._mod || 0) < rm)) { by.set(row.id, Object.assign({}, row.data, { _dirty: false })); cambios++; }
-      });
-      await idbSet('limites', [...by.values()]);
-    }
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
     sync.compForzar = false;
-    if (res.now) await idbSet('bhl-since', res.now);
+    // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
+    if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
+    else if (res.now) await idbSet('bhl-since', res.now);
     sync.last = new Date(); sync.err = '';
-    if (cambios) { await loadLibrary(); await loadLimits(); }
-    pintarSync('ok', cambios);
+    if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
+    const nConf = (await leerConflictos()).length;
+    sync.conflictos = nConf;
+    pintarSync(nConf ? 'conflicto' : 'ok', cambios);
+    if (nuevosConf) pedirSync(1500);
   } catch (e) {
     sync.err = e.message || String(e);
     pintarSync(e.code === 'login' ? 'login' : /conexión|fetch/i.test(sync.err) ? 'offline' : 'error');
@@ -5578,17 +5851,18 @@ function pintarSync(estado, cambios) {
   b.hidden = false;
   b.dataset.estado = estado;
   const hora = sync.last ? sync.last.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
-  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar' }[estado] || 'Sincronizar';
+  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar', conflicto: `Conflicto (${sync.conflictos || 1})` }[estado] || 'Sincronizar';
   b.innerHTML = `<span class="sy-i">☁</span><span class="sy-t"> ${txt}</span>`; b.setAttribute('aria-label', txt);
   const at = document.getElementById('appSyncTxt');
   if (at) {
     const quien = sync.session ? nombreDe(sync.session.email) : '';
-    at.textContent = estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
-    at.style.color = estado === 'login' || estado === 'error' ? 'var(--bad, #c0392b)' : '';
+    at.textContent = estado === 'conflicto' ? `${quien} · conflicto de sincronización` : estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
+    at.style.color = estado === 'login' || estado === 'error' || estado === 'conflicto' ? 'var(--bad, #c0392b)' : '';
     const bt = document.getElementById('appSyncBtn');
     if (bt) bt.firstChild.textContent = sync.session ? 'Cuenta, contraseña y usuarios' : 'Iniciar sesión';
   }
-  b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
+  if (estado === 'conflicto') b.title = 'Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Toca para revisarlo.';
+  else b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
 }
 function abrirPanelSync() {
   const d = $('dlgSync');
@@ -5604,6 +5878,7 @@ function abrirPanelSync() {
   $('syncMsg').textContent = ''; $('syncMsg').className = 'msg';
   $('syncCuenta').hidden = !(conectado && sync.mode === 'rest');
   $('syncWipeL').hidden = sync.mode !== 'rest';
+  pintarConflictos();
   $('syncAdmin').hidden = !(conectado && esAdmin());
   // versión de pruebas: solo el administrador, en la app web (la PC recibe su instalador de pruebas aparte)
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
@@ -5635,7 +5910,17 @@ async function conectarMcp() {
   } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
 }
 function activarSync() { sync.on = true; pedirSync(100); }
+// V44 (A-03): los registros ya sincronizados (sin cambios pendientes) toman su versión de nube = su _mod
+async function migrarBases() {
+  try {
+    if (localStorage.getItem('bhl-base-v44')) return;
+    for (const st of ['projects', 'avances']) for (const r of await dbAll(st)) if (!r._dirty && r._base == null && r._mod) { r._base = r._mod; await dbPut(st, r); }
+    const L = (await idbGet('limites')) || []; let ch = false; L.forEach(l => { if (!l._dirty && l._base == null && l._mod) { l._base = l._mod; ch = true; } }); if (ch) await idbSet('limites', L);
+    localStorage.setItem('bhl-base-v44', '1');
+  } catch (e) {}
+}
 async function iniciarSync() {
+  await migrarBases();
   const enClaude = !!(window.claude && window.claude.use) && typeof window.bhlVersion !== 'function';
   if (enClaude) {
     sync.mode = 'mcp';
@@ -5751,6 +6036,29 @@ $('dlgSync').addEventListener('click', e => { if (e.target === $('dlgSync')) $('
   document.body.appendChild(d);
   setInterval(() => { if (sync.session && !esAdmin()) location.replace('../'); }, 3000);
 })();
+
+// ---- V44 (A-03): lista de conflictos en la ventana de la cuenta ----
+async function pintarConflictos() {
+  const box = document.getElementById('syncConf'); if (!box) return;
+  const cs = await leerConflictos();
+  sync.conflictos = cs.length;
+  if (!cs.length) { box.hidden = true; box.innerHTML = ''; return; }
+  const f = d => { try { return new Date(d).toLocaleString('es-PE'); } catch (e) { return ''; } };
+  box.hidden = false;
+  box.innerHTML = `<h3>⚠ Conflictos de sincronización (${cs.length})</h3><p class="note">Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Nada se borró: elige cuál versión queda.</p>` +
+    cs.map(c => `<div class="conf-it"><b>${esc(NOMBRE_STORE[c.store] || c.store)}: ${esc(c.nombre)}</b><small>${esc(c.motivo || '')}</small>` +
+      `<div class="conf-v"><span>Este equipo: ${c.local && c.local._mod ? f(c.local._mod) : '—'}${c.store !== 'limites' && c.local && c.local.holes ? ' · ' + c.local.holes.length + ' taladros' : ''}${c.local && c.local.result ? ' · ' + c.local.result.n + ' taladros' : ''}</span>` +
+      `<span>Nube: ${c.remotoBorrado ? 'borrado en otro equipo' : c.remoto ? f(c.remoto._mod) + (c.remoto.holes ? ' · ' + c.remoto.holes.length + ' taladros' : '') + (c.remoto.result ? ' · ' + c.remoto.result.n + ' taladros' : '') : 'trayendo la versión de la nube…'}</span></div>` +
+      `<div class="btnrow"><button class="btn small" type="button" data-conf="local" data-st="${esc(c.store)}" data-id="${esc(c.id)}">Quedarme con la de este equipo</button><button class="btn sec small" type="button" data-conf="nube" data-st="${esc(c.store)}" data-id="${esc(c.id)}" ${!c.remoto && !c.remotoBorrado ? 'disabled' : ''}>Quedarme con la de la nube</button></div></div>`).join('');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-conf]'); if (!b) return;
+  b.disabled = true;
+  await resolverConflicto(b.dataset.st, b.dataset.id, b.dataset.conf);
+  await pintarConflictos();
+  const n = (await leerConflictos()).length; sync.conflictos = n;
+  pintarSync(n ? 'conflicto' : 'ok');
+});
 
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
