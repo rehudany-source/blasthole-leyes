@@ -702,13 +702,17 @@ body.dragging::after { content: "Suelta para cargar"; position: fixed; inset: 10
 .adm-tag { font: 600 .72rem var(--f-body); color: var(--accent); white-space: nowrap; }
 .respban { position: fixed; right: 12px; top: 12px; z-index: 60; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: min(420px, calc(100vw - 24px)); padding: 8px 10px; border-radius: 10px; background: var(--panel, #fff); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: .85rem; }
 body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-inset-top)); }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .grid3 { grid-template-columns: 1fr 1fr; } .grid3 > :last-child { grid-column: 1 / -1; } }
+.adm-pw { display: flex; gap: 6px; margin-top: 6px; } .adm-pw input { flex: 1; min-width: 0; }
+.adm-u .adm-bt { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v40</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v41</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1183,12 +1187,12 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
     <h2 id="syncTit">Tu cuenta</h2>
-    <p class="note">Cada persona entra con su propio correo y solo ve sus proyectos, avances y límites, en todos sus equipos. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
+    <p class="note">Cada persona entra con su usuario y ve sus propios proyectos y avances en todos sus equipos. Los límites, los proyectos FINAL y los polígonos de los avances se comparten con todo el equipo. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
     <div id="syncLogin" class="dlgsec">
-      <label class="f">Correo<input type="email" id="syncEmail" autocomplete="username"></label>
+      <label class="f">Usuario o correo<input type="text" id="syncEmail" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ej. calidad1"></label>
       <label class="f">Contraseña<input type="password" id="syncPw" autocomplete="current-password" placeholder="mínimo 6 caracteres"></label>
-      <div class="btnrow"><button class="btn small" id="syncEntrar" type="button">Entrar</button><button class="btn sec small" id="syncCrear" type="button">Crear cuenta (primera vez)</button></div>
-      <p class="note">Para crear tu cuenta, el administrador debe autorizar tu correo primero.</p>
+      <div class="btnrow"><button class="btn small" id="syncEntrar" type="button">Entrar</button><button class="btn sec small" id="syncCrear" type="button" hidden>Crear cuenta (primera vez)</button></div>
+      <p class="note">Entra con el usuario y la contraseña que te dio el administrador.</p>
     </div>
     <div id="syncMcp" class="dlgsec" hidden>
       <p class="note">En esta versión (Claude, iPad) la sincronización usa tu conector de Supabase. La primera vez Claude te pide permiso.</p>
@@ -1206,10 +1210,10 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
       </div>
       <div id="syncAdmin" class="dlgsub" hidden>
         <h3>Usuarios del programa</h3>
-        <p class="note">Solo los correos de esta lista pueden crear cuenta. Cada uno ve únicamente sus propios datos.</p>
+        <p class="note">Cada usuario ve solo sus proyectos y avances. Los <b>límites</b>, los <b>proyectos FINAL</b> y los <b>polígonos de los avances</b> los ven todos.</p>
         <div class="adm-lista" id="admLista"></div>
-        <div class="grid2"><label class="f">Correo<input type="email" id="admEmail" placeholder="nombre@empresa.com" autocomplete="off"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off"></label></div>
-        <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Autorizar correo</button></div>
+        <div class="grid3 adm-nuevo"><label class="f">Usuario<input type="text" id="admEmail" placeholder="calidad1" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label class="f">Contraseña<input type="text" id="admPw" placeholder="mínimo 6" autocomplete="new-password" autocapitalize="none" spellcheck="false"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off" placeholder="ej. Juan Pérez"></label></div>
+        <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Crear usuario</button><button class="btn sec small" id="admSerie" type="button" title="Llena el primer usuario calidad que falta">Siguiente «calidad»</button></div>
         <p class="msg" id="admMsg"></p>
       </div>
     </div>
@@ -3089,8 +3093,14 @@ try { navigator.storage && navigator.storage.persist && navigator.storage.persis
 const lib = { projects: [], avances: [] };
 const t2 = { selIds: null, projs: [], holes: [], holeBy: new Map(), leyBy: new Map(), avs: [], prevKey: new Map(), shapes: [], draft: [], tool: 'pan', manOn: new Set(), manOff: new Set(), groups: [], sel: new Set(), result: null, viewing: null, fitted: false, analito: 'fe', lims: [], limOff: new Set() };
 async function loadLibrary() {
-  lib.projects = (await dbAll('projects')).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  const propios = await dbAll('projects');
+  const ya = new Set(propios.map(p => String(p.name).toUpperCase()));
+  // proyectos FINAL de los compañeros (solo lectura): si tengo el mismo proyecto, manda el mío
+  const comp = new Map();
+  ((await idbGet('proyectos-comp')) || []).forEach(p => { const k = String(p.name).toUpperCase(); if (ya.has(k)) return; const o = comp.get(k); if (!o || String(p.savedAt) > String(o.savedAt)) comp.set(k, p); });
+  lib.projects = propios.concat([...comp.values()]).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
   lib.avances = (await dbAll('avances')).map(normAvance);
+  lib.avComp = ((await idbGet('avances-comp')) || []).filter(a => avShapes(a).length);
   renderLibrary();
   if (!t2.selIds) { // primera carga: recuperar la última selección
     let last = []; try { last = JSON.parse(localStorage.getItem('bhl-sel') || '[]'); } catch (e) {}
@@ -3246,7 +3256,7 @@ async function refrescarCopias() {
   if (!state.base) return;
   let n = 0;
   for (const p of lib.projects) {
-    if (p.leyes) continue;
+    if (p.leyes || p.ro) continue;
     const L = leyesDesdeBase(p); if (!L) continue;
     const snap = snapLeyes(L.leyes);
     if (JSON.stringify(snap) === JSON.stringify(p.leyesBase || null)) continue;
@@ -3282,8 +3292,8 @@ function renderLibrary() {
       const keys = new Set(p.holes.map(h => h.key));
       const withRes = L.leyes ? L.leyes.filter(l => keys.has(l.key) && l.hasData !== false).length : null;
       const nAv = lib.avances.filter(a => a.projectIds.includes(p.id)).length;
-      return `<tr><td>${esc(p.name)} ${tipoBadge(p)}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
-        `<td class="acts"><button class="btn small" data-act="avg" data-id="${esc(p.id)}">Promediar</button> <button class="btn sec small" data-act="del" data-id="${esc(p.id)}">Borrar</button></td></tr>`;
+      return `<tr${p.ro ? ' class="ro"' : ''}><td>${esc(p.name)} ${tipoBadge(p)}${p.compDe ? `<small class="limde">👥 de ${esc(p.compDe)}</small>` : ''}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
+        `<td class="acts"><button class="btn small" data-act="avg" data-id="${esc(p.id)}">Promediar</button> ${p.ro ? '' : `<button class="btn sec small" data-act="del" data-id="${esc(p.id)}">Borrar</button>`}</td></tr>`;
     }).join('') + '</tbody>';
 }
 $('libTbl').addEventListener('click', async e => {
@@ -3536,6 +3546,15 @@ function renderPlan2(ctx, v) {
     shapes.forEach(poly => { ctx.beginPath(); poly.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); ctx.stroke(); });
     ctx.setLineDash([]);
     if (v.v.s > 3) { const P = shapes[0]; const cx = P.reduce((s, q) => s + q.x, 0) / P.length, cy = P.reduce((s, q) => s + q.y, 0) / P.length; ctx.fillStyle = cur ? CAD.sel : CAD.ghostTxt; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : ''), v.sx(cx), v.sy(cy)); }
+  });
+  // polígonos de los avances de los compañeros (solo el contorno, punteado)
+  (lib.avComp || []).forEach(a => {
+    const shapes = avShapes(a); if (!shapes.length) return;
+    ctx.save(); ctx.strokeStyle = CAD.ghost; ctx.lineWidth = 0.9; ctx.setLineDash([5, 4]);
+    let vis = false;
+    shapes.forEach(poly => { ctx.beginPath(); poly.forEach((q, i) => { const X = v.sx(q.x), Y = v.sy(q.y); if (X > -50 && X < v.W + 50 && Y > -50 && Y < v.H + 50) vis = true; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath(); ctx.stroke(); });
+    ctx.restore();
+    if (vis && v.v.s > 3) { const P = shapes[0]; const cx = P.reduce((s, q) => s + q.x, 0) / P.length, cy = P.reduce((s, q) => s + q.y, 0) / P.length; ctx.fillStyle = CAD.ghostTxt; ctx.font = 'italic 600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmtDate(a.fecha) + ' · ' + a.compDe, v.sx(cx), v.sy(cy)); }
   });
   // polígonos del avance (cada uno con su color)
   const path = P => { ctx.beginPath(); P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); };
@@ -4059,12 +4078,11 @@ function renderLimList() {
   const todos = [...new Set(t2.lims.map(l => l.file))];
   const files = todos.filter(f => t2.lims.some(l => l.file === f && limVisible(l)));
   const ocultos = todos.length - files.length;
-  const sinComp = todos.filter(f => t2.lims.some(l => l.file === f && !l.compDe && !l.compartido)).length;
-  box.innerHTML = (sinComp > 1 ? `<button class="btn sec small limtodos" data-sharetodos="1" type="button">👥 Compartir mis ${sinComp} archivos con el equipo</button>` : '') + (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
+  box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
-    const de = ls[0].compDe, comp = ls.every(l => l.compartido);
+    const de = ls[0].compDe;
     const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
-      : `<span class="pn">${esc(f)}</span><button class="btn sec small limshare${comp ? ' on' : ''}" data-share="${esc(f)}" type="button" title="${comp ? 'Los demás usuarios ven este archivo. Toca para dejar de compartir.' : 'Solo tú ves este archivo. Toca para compartirlo con el equipo.'}">${comp ? '👥 Compartido' : '🔒 Solo yo'}</button><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
+      : `<span class="pn">${esc(f)}<small class="limde">👥 lo ve todo el equipo</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
     return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
@@ -4388,7 +4406,11 @@ function vlBounds(ids) {
 }
 const bbOv = (a, b) => a && b && a.x0 <= b.x1 && a.x1 >= b.x0 && a.y0 <= b.y1 && a.y1 >= b.y0;
 function vlLimites(ids) { const b = vlBounds(ids); return b ? t2.lims.filter(L => L.closed && bbOv(L.bb, b)) : []; }
-function vlAvances(ids) { return lib.avances.filter(a => a.projectIds.some(id => ids.has(id)) && avShapes(a).length).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))); }
+function vlAvances(ids) {
+  const nombres = new Set(lib.projects.filter(p => ids.has(p.id)).map(p => String(p.name).toUpperCase()));
+  const comp = (lib.avComp || []).filter(a => (a.projectNames || []).some(n => nombres.has(String(n).toUpperCase())));
+  return lib.avances.filter(a => a.projectIds.some(id => ids.has(id)) && avShapes(a).length).concat(comp).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+}
 function vlRender() {
   if (!$('vlList')) return;
   const minas = [...new Set(lib.projects.map(p => projCode(p).mina))].sort(sortNum);
@@ -4417,7 +4439,7 @@ function vlLimsRender() {
   let h = `<label class="vl-li"><span></span><span></span><span class="nm"><b>Sin recortar</b> <small>todo el proyecto</small></span><label class="rc"><input type="radio" name="vlclip" value="" ${clip ? '' : 'checked'}><span>todo</span></label></label>`;
   if (lims.length) h += '<div class="vl-sub">Límites de rotura y subdivisiones</div>' + lims.map((L, i) => row('L:' + L.id, limColor(L.layer), L.name || L.layer || 'Límite', `#${i + 1} · ${Math.round(L.area).toLocaleString('es-PE')} m²`)).join('');
   else h += '<p class="note">Este proyecto no tiene límites cargados. Súbelos en la pestaña 2 («Límites y subdivisiones»).</p>';
-  if (avs.length) h += '<div class="vl-sub">Avances guardados</div>' + avs.map(a => row('A:' + a.id, 'var(--muted)', fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : ''), matDe(a))).join('');
+  if (avs.length) h += '<div class="vl-sub">Avances guardados</div>' + avs.map(a => row('A:' + a.id, 'var(--muted)', fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : '') + (a.compDe ? ' · 👥 ' + a.compDe : ''), a.compDe ? '' : matDe(a))).join('');
   box.innerHTML = h;
 }
 function vlClipPolys(clip) {
@@ -5353,18 +5375,24 @@ const rest = {
 async function bajarCompartidos(T, forzar) {
   if (!T.compartidos) return 0;
   const ult = sync.compAt || 0;
-  if (!forzar && Date.now() - ult < 5 * 60 * 1000) return 0;
+  if (!forzar && Date.now() - ult < 3 * 60 * 1000) return 0;
   sync.compAt = Date.now();
-  const rows = (await T.compartidos()) || [];
-  const arr = rows.filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => {
-    const d = Object.assign({}, r.data); delete d._dirty;
-    return Object.assign(d, { id: 'comp:' + r.de + ':' + r.id, compDe: r.de, ro: true });
-  });
-  const prev = (await idbGet('limites-comp')) || [];
+  let res = (await T.compartidos()) || [];
+  if (Array.isArray(res)) res = { limites: res }; // servidor antiguo
   const firma = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
-  if (firma(prev) === firma(arr)) return 0;
-  await idbSet('limites-comp', arr);
-  return 1;
+  const pref = r => 'comp:' + r.de + ':' + r.id;
+  const grupos = {
+    'limites-comp': (res.limites || []).filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true })),
+    'proyectos-comp': (res.finales || []).filter(r => r && r.data && Array.isArray(r.data.holes)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true, tipo: 'final' })),
+    'avances-comp': (res.avances || []).filter(r => r && r.data).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true })),
+  };
+  let n = 0;
+  for (const [k, arr] of Object.entries(grupos)) {
+    arr.forEach(x => { delete x._dirty; });
+    const prev = (await idbGet(k)) || [];
+    if (firma(prev) !== firma(arr)) { await idbSet(k, arr); n++; }
+  }
+  return n;
 }
 function traducirError(m) {
   if (/invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
@@ -5414,13 +5442,17 @@ function parseSqlResult(res) {
   return JSON.parse(body.slice(a, b + 1));
 }
 
+// Usuarios por nombre (calidad1...) se guardan como <usuario>@usuarios.invalid
+const DOM_U = '@usuarios.invalid';
+function correoDe(v) { v = String(v || '').trim().toLowerCase(); return v.includes('@') ? v : v + DOM_U; }
+function nombreDe(e) { e = String(e || ''); return e.endsWith(DOM_U) ? e.slice(0, -DOM_U.length) : e; }
 function jwtSub(t) { try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || ''; } catch (e) { return ''; } }
 const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.session.email).toLowerCase() === SYNC.email;
 
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('limites-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -5524,10 +5556,10 @@ function abrirPanelSync() {
   $('syncLogin').hidden = mcp || conectado;
   $('syncMcp').hidden = !mcp || conectado;
   $('syncOn').hidden = !conectado;
-  $('syncWho').innerHTML = mcp ? `Sincronizando con tu conector de Supabase (${esc(SYNC.email)}).` : sync.session ? `Cuenta: <b>${esc(sync.session.email)}</b>${esAdmin() ? ' · administrador' : ''}` : '';
+  $('syncWho').innerHTML = mcp ? `Sincronizando con tu conector de Supabase (${esc(SYNC.email)}).` : sync.session ? `Usuario: <b>${esc(nombreDe(sync.session.email))}</b>${esAdmin() ? ' · administrador' : ''}` : '';
   $('syncStatus').textContent = sync.err ? 'Último error: ' + sync.err : sync.last ? `Última sincronización: ${sync.last.toLocaleString('es-PE')}` : '';
   let ult = ''; try { ult = localStorage.getItem('bhl-email') || ''; } catch (e) {}
-  if (!$('syncEmail').value) $('syncEmail').value = ult;
+  if (!$('syncEmail').value) $('syncEmail').value = nombreDe(ult);
   $('syncMsg').textContent = ''; $('syncMsg').className = 'msg';
   $('syncCuenta').hidden = !(conectado && sync.mode === 'rest');
   $('syncWipeL').hidden = sync.mode !== 'rest';
@@ -5539,7 +5571,7 @@ function abrirPanelSync() {
 async function loginRest(crear) {
   const msg = $('syncMsg'); msg.className = 'msg'; msg.textContent = crear ? 'Creando cuenta…' : 'Entrando…';
   try {
-    const email = $('syncEmail').value.trim().toLowerCase(), pw = $('syncPw').value;
+    const email = correoDe($('syncEmail').value), pw = $('syncPw').value;
     if (crear) await rest.signup(email, pw); else await rest.login(email, pw);
     $('syncPw').value = '';
     try { localStorage.setItem('bhl-email', email); } catch (e) {}
@@ -5582,6 +5614,7 @@ $('btnSync').addEventListener('click', abrirPanelSync);
 $('syncCerrar').addEventListener('click', () => { $('dlgSync').hidden = true; });
 $('syncEntrar').addEventListener('click', () => loginRest(false));
 $('syncCrear').addEventListener('click', () => loginRest(true));
+$('syncEmail').addEventListener('input', () => { $('syncCrear').hidden = !$('syncEmail').value.includes('@'); });
 $('syncConectar').addEventListener('click', conectarMcp);
 $('syncAhora').addEventListener('click', () => { $('dlgSync').hidden = true; pedirSync(0); });
 $('syncSalir').addEventListener('click', async () => {
@@ -5617,21 +5650,48 @@ async function cargarUsuarios() {
   try {
     const us = await rest.rpc('bhl_admin_usuarios', {});
     const f = d => (d ? new Date(d).toLocaleDateString('es-PE') : '—');
-    box.innerHTML = (us || []).map(u => `<div class="adm-u"><div><b>${esc(u.nombre || u.email)}</b><span>${esc(u.email)}</span><small>${u.registrado ? `Cuenta creada · último ingreso ${f(u.ultimo)} · ${u.proyectos} proyectos · ${u.avances} avances` : 'Autorizado · aún no crea su cuenta'}</small></div>${u.email === SYNC.email ? '<span class="adm-tag">Administrador</span>' : `<button type="button" class="btn sec small" data-quitar="${esc(u.email)}">Quitar</button>`}</div>`).join('');
+    window.ADM_US = us || [];
+    box.innerHTML = (us || []).map(u => `<div class="adm-u"><div><b>${esc(u.usuario || u.nombre || u.email)}</b><span>${esc(u.usuario ? (u.nombre && u.nombre !== u.usuario ? u.nombre : 'usuario') : u.email)}</span><small>${u.registrado ? `${u.ultimo ? 'Último ingreso ' + f(u.ultimo) : 'Aún no entra'} · ${u.proyectos} proyectos · ${u.avances} avances` : 'Autorizado · aún no crea su cuenta'}</small><div class="adm-pw" data-pwbox="${esc(u.email)}" hidden><input type="text" placeholder="nueva contraseña" autocomplete="new-password" autocapitalize="none" spellcheck="false"><button type="button" class="btn small" data-pwok="${esc(u.email)}">Guardar</button></div></div>${u.email === SYNC.email ? '<span class="adm-tag">Administrador</span>' : `<div class="adm-bt">${u.usuario ? `<button type="button" class="btn sec small" data-pw="${esc(u.email)}">🔑 Contraseña</button>` : ''}<button type="button" class="btn sec small" data-quitar="${esc(u.email)}">Quitar</button></div>`}</div>`).join('');
   } catch (e) { box.innerHTML = ''; m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar la gestión de usuarios en la base de datos.' : e.message; }
 }
 $('admAgregar').addEventListener('click', async () => {
-  const email = $('admEmail').value.trim().toLowerCase(), nombre = $('admNombre').value.trim(), m = $('admMsg');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { m.className = 'msg err'; m.textContent = 'Escribe un correo válido.'; return; }
-  m.className = 'msg'; m.textContent = 'Agregando…';
-  try { await rest.rpc('bhl_admin_agregar', { p_email: email, p_nombre: nombre }); $('admEmail').value = $('admNombre').value = ''; m.className = 'msg ok'; m.textContent = `${email} ya puede crear su cuenta con «Crear cuenta (primera vez)».`; cargarUsuarios(); }
-  catch (e) { m.className = 'msg err'; m.textContent = e.message; }
+  const v = $('admEmail').value.trim().toLowerCase(), pw = $('admPw').value, nombre = $('admNombre').value.trim(), m = $('admMsg');
+  if (v.includes('@')) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { m.className = 'msg err'; m.textContent = 'Escribe un correo válido.'; return; }
+    m.className = 'msg'; m.textContent = 'Agregando…';
+    try { await rest.rpc('bhl_admin_agregar', { p_email: v, p_nombre: nombre }); $('admEmail').value = $('admNombre').value = $('admPw').value = ''; m.className = 'msg ok'; m.textContent = `${v} ya puede crear su cuenta con su correo.`; cargarUsuarios(); }
+    catch (e) { m.className = 'msg err'; m.textContent = e.message; }
+    return;
+  }
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(v)) { m.className = 'msg err'; m.textContent = 'Usuario: de 3 a 30 letras o números, sin espacios (ej. calidad1).'; return; }
+  if (pw.length < 6) { m.className = 'msg err'; m.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  m.className = 'msg'; m.textContent = 'Creando…';
+  try {
+    await rest.rpc('bhl_admin_crear_usuario', { p_usuario: v, p_pw: pw, p_nombre: nombre });
+    $('admEmail').value = $('admNombre').value = $('admPw').value = '';
+    m.className = 'msg ok'; m.textContent = `Listo. «${v}» ya puede entrar con su contraseña (anótala y entrégasela).`; cargarUsuarios();
+  } catch (e) { m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar «usuarios por nombre» en la base de datos.' : e.message; }
+});
+$('admSerie').addEventListener('click', () => {
+  const ya = new Set((window.ADM_US || []).map(u => u.usuario).filter(Boolean));
+  let i = 1; while (ya.has('calidad' + i)) i++;
+  $('admEmail').value = 'calidad' + i; $('admNombre').value = 'Calidad ' + i; $('admPw').focus();
 });
 $('admLista').addEventListener('click', async e => {
+  const bp = e.target.closest('button[data-pw]');
+  if (bp) { const bx = $('admLista').querySelector(`[data-pwbox="${bp.dataset.pw}"]`); bx.hidden = !bx.hidden; if (!bx.hidden) bx.querySelector('input').focus(); return; }
+  const bo = e.target.closest('button[data-pwok]');
+  if (bo) {
+    const inp = bo.previousElementSibling, m = $('admMsg');
+    if (inp.value.length < 6) { m.className = 'msg err'; m.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+    try { await rest.rpc('bhl_admin_cambiar_pw', { p_email: bo.dataset.pwok, p_pw: inp.value }); m.className = 'msg ok'; m.textContent = `Contraseña de «${nombreDe(bo.dataset.pwok)}» cambiada. Tendrá que entrar de nuevo con la nueva.`; inp.value = ''; inp.parentElement.hidden = true; }
+    catch (err) { m.className = 'msg err'; m.textContent = err.message; }
+    return;
+  }
   const b = e.target.closest('button[data-quitar]'); if (!b) return;
   if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Quitar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Quitar'; b.classList.remove('danger'); } }, 4000); return; }
   const m = $('admMsg');
-  try { await rest.rpc('bhl_admin_quitar', { p_email: b.dataset.quitar }); m.className = 'msg ok'; m.textContent = `${b.dataset.quitar} ya no puede entrar. Sus datos quedan guardados por si lo vuelves a agregar.`; cargarUsuarios(); }
+  try { await rest.rpc('bhl_admin_quitar', { p_email: b.dataset.quitar }); m.className = 'msg ok'; m.textContent = `${nombreDe(b.dataset.quitar)} ya no puede entrar. Sus datos quedan guardados por si lo vuelves a agregar.`; cargarUsuarios(); }
   catch (err) { m.className = 'msg err'; m.textContent = err.message; }
 });
 $('dlgSync').addEventListener('click', e => { if (e.target === $('dlgSync')) $('dlgSync').hidden = true; });

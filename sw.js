@@ -1,5 +1,5 @@
 // BlastHole Leyes · service worker (funciona sin internet)
-const CACHE = 'bhl-40-1792108882';
+const CACHE = 'bhl-41-1792109945';
 const FONTS = 'bhl-fuentes';
 const BASE = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'favicon-32.png'];
 
