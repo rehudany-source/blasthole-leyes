@@ -142,6 +142,7 @@ td.empty, td.empty:first-child { white-space: normal; font-family: var(--f-body)
 td.acts .btn { display: inline-flex; }
 .btn.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
 .warnc { color: var(--warn); }
+.errc { color: var(--bad, #c0392b); font-weight: 600; }
 .msg.warn { color: var(--warn); }
 tr.cur td { background: color-mix(in srgb, #40e0f0 10%, transparent); }
 tr.tot td { font-weight: 600; border-top: 2px solid var(--line); }
@@ -362,7 +363,7 @@ body.app .apptop h1 { flex-shrink: 0; }
 body.app .apptop-r .syncb { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html:has(body.app), body.app { overflow-x: hidden; max-width: 100vw; }
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
-body.app .appbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
 .appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .appbar button[aria-current="page"] { color: var(--accent); }
@@ -735,13 +736,64 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
 body.esbeta { --beta-h: 22px; }
 body.esbeta:not(.app) { padding-top: 26px; }
 body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); }
+.dupbox { border: 1px solid var(--warn, #c48a00); background: color-mix(in srgb, var(--warn, #c48a00) 8%, transparent); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; display: grid; gap: 6px; font-size: .88rem; }
+.dupbox ul { margin: 6px 0; padding-left: 18px; } .dupbox code { font-size: .8rem; }
+.dlgsub.conf { border: 1px solid var(--bad, #c0392b); border-radius: 10px; padding: 10px 12px; background: color-mix(in srgb, var(--bad, #c0392b) 6%, transparent); }
+.conf-it { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); } .conf-it small { color: var(--muted); }
+.conf-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: .82rem; }
+.syncb[data-estado=conflicto] { background: #e03131; color: #fff; border-color: #e03131; }
+.estw { color: #c21fc2; font-weight: 700; }
+.desli { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 4px 6px; font-size: .8rem; border-top: 1px dashed var(--line); }
+.desli .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.desli .seg button { border: 0; background: transparent; padding: 3px 8px; font: 600 .75rem var(--f-body); color: var(--muted); cursor: pointer; }
+.desli .seg button[aria-pressed=true] { background: #8a5a2b; color: #fff; }
+.desli .seg button.no[aria-pressed=true] { background: var(--ink, #1b2120); }
+.desli i { font-style: normal; color: #8a5a2b; font-weight: 700; }
+.dilt { color: #8a5a2b; font-weight: 700; }
+.gps-btn { display: none; }
+body.app .gps-btn { display: flex; position: absolute; right: 12px; bottom: 132px; z-index: 6; width: 48px; height: 48px; border-radius: 50%; border: 0; align-items: center; justify-content: center; font-size: 22px; background: var(--panel, #fff); box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
+body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
+.cadwrap.full .gps-btn { bottom: calc(var(--sb, 0px) + 150px); }
+.gps-card { position: absolute; left: 10px; right: 70px; top: 64px; z-index: 6; background: var(--panel, #fff); color: var(--ink); border-radius: 14px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.22); display: grid; gap: 6px; font-size: .85rem; max-width: 420px; }
+.gps-card[hidden] { display: none; }
+.gps-h { display: flex; justify-content: space-between; align-items: center; } .gps-h button { border: 0; background: none; font-size: 18px; color: var(--muted); }
+.gps-bt { display: flex; gap: 6px; flex-wrap: wrap; } .gps-bt [aria-pressed=true] { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+.gps-cerca { font-size: .8rem; } .gps-nota { display: flex; gap: 6px; } .gps-nota input { flex: 1; min-width: 0; }
+.cadwrap.full .gps-card { top: calc(var(--tb, 64px) + 8px); }
+@media (max-width: 520px) { .gps-card { font-size: .76rem; padding: 8px 10px; gap: 4px; right: 66px; } .gps-card .btn.small { padding: 4px 9px; font-size: .74rem; min-height: 30px; } }
+.gps-card.min #gpsInfo > :not(:nth-child(3)), .gps-card.min .gps-bt, .gps-card.min .gps-nota { display: none; }
+.gps-h b { cursor: pointer; }
+.topo-pop { position: absolute; left: 10px; top: 52px; z-index: 7; width: min(380px, calc(100% - 20px)); background: var(--panel, #fff); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); display: grid; gap: 8px; font-size: .85rem; max-height: calc(100% - 64px); overflow: auto; }
+.topo-pop[hidden] { display: none; }
+.topo-h { display: flex; justify-content: space-between; align-items: center; } .topo-h button { border: 0; background: none; font-size: 17px; color: var(--muted); cursor: pointer; }
+.topo-lista { display: grid; gap: 4px; max-height: 220px; overflow: auto; }
+.topo-it { display: grid; grid-template-columns: 2.6em 2.6em 1fr auto; justify-items: start; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
+.topo-it small { color: var(--muted); } .topo-it .q { border: 0; background: none; color: var(--muted); cursor: pointer; }
+.topo-it > small:nth-child(-n+2), .topo-it label { justify-self: center; } .topo-it label { display: flex; gap: 3px; align-items: center; font-size: .75rem; }
+#tab3 { padding-top: 10px; }
+.v3d-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 10px; font-size: .85rem; }
+.v3d-bar .chk { display: flex; gap: 5px; align-items: center; }
+.v3d-topo { font-weight: 700; color: var(--accent, #b4532a); }
+.v3d-wrap { position: relative; height: min(74vh, 860px); min-height: 360px; border-radius: 12px; overflow: hidden; background: #171c21; border: 1px solid var(--line); touch-action: none; }
+.v3d-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#v3dTxt { pointer-events: none; }
+.v3d-info { position: absolute; left: 10px; top: 10px; background: rgba(20,24,28,.92); color: #eef0f2; padding: 8px 11px; border-radius: 10px; font-size: .85rem; line-height: 1.4; pointer-events: none; max-width: 75%; }
+body.app #tab3 { padding: 0 12px; }
+body.app .v3d-wrap { height: calc(100vh - 290px); height: calc(100dvh - 290px); }
+body.app .v3d-bar { font-size: .8rem; }
+.v3d-capas > summary { display: none; } .v3d-capas-in { display: contents; } .v3d-capas { display: contents; }
+body.app .v3d-capas { display: block; width: 100%; } body.app .v3d-capas > summary { display: list-item; cursor: pointer; font-weight: 600; }
+body.app .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 6px; }
+body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.small { padding: 6px 10px; font-size: .78rem; }
+body.app #tab3 .note { display: none; }
+body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v43</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v52</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -758,6 +810,7 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button role="tab" id="tabBtn1" aria-selected="true" aria-controls="tab1">1 · Proyectos</button>
       <button role="tab" id="tabBtn2" aria-selected="false" aria-controls="tab2">2 · Promedios por avance</button>
+      <button role="tab" id="tabBtn3" aria-selected="false" aria-controls="tab3">3 · Vista 3D</button>
     </nav>
     </div>
   </header>
@@ -998,6 +1051,14 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
+          <details class="idw" id="desBox" open>
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
+            <div class="grid2">
+              <label class="f">Fe del desmonte (%)<input type="number" id="desFe" step="0.5" min="0" max="40" value="16.5"></label>
+              <label class="f">Densidad del desmonte<input type="number" id="desDens" step="0.01" min="1.5" max="5" placeholder="automática"></label>
+            </div>
+            <p class="note">Los polígonos de límite <b>sin taladros</b> se toman como desmonte: si el avance entra en ellos, esa parte suma tonelaje con esta ley (FeO, S y demás salen del promedio de tu base para ese Fe) y diluye el promedio. Densidad vacía = la de tu fórmula con ese Fe. Confirma o cambia cada polígono en «Límites».</p>
+          </details>
           <details class="idw" id="idwBox">
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn"> Estimar taladros sin ley (inverso a la distancia)</label></summary>
             <div class="grid2">
@@ -1098,8 +1159,16 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
             </select>
             <select id="letraSel" title="Tamaño de letra de las leyes" aria-label="Tamaño de letra de las leyes"><option value="0">Aa</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24">24</option></select>
             <select id="limWSel" title="Grosor de las líneas de los límites" aria-label="Grosor de los límites"><option value="0.6">Límites: muy fina</option><option value="1">Límites: fina</option><option value="2">Límites: media</option><option value="3.5">Límites: gruesa</option></select>
+            <button type="button" class="anl-b" id="topoBtn" title="Topografía de MinePlan (.msr): relieve, taladros ya minados y avance entre dos fechas" aria-pressed="false" aria-haspopup="dialog">⛰ Topo</button>
             <button type="button" class="anl-b" id="supBtn" title="Ver las leyes del nivel superior (banco de 12 m arriba) proyectadas sobre este nivel" aria-pressed="false">↑ Nivel sup.</button>
           </label>
+          <div class="topo-pop" id="topoPop" hidden>
+            <div class="topo-h"><b>⛰ Topografía</b><button type="button" id="topoCerrar" aria-label="Cerrar">✕</button></div>
+            <div id="topoLista" class="topo-lista"></div>
+            <label class="chk"><input type="checkbox" id="topoVer" checked> Ver relieve en el plano</label>
+            <div class="btnrow"><button type="button" class="btn small" id="topoAvance">Avance entre las dos fechas</button><label class="btn sec small">Subir .msr<input type="file" id="topoFile" accept=".msr" hidden></label></div>
+            <p class="msg" id="topoMsg"></p>
+          </div>
           <div class="coords" id="coords2"></div>
         </div>
         <div class="legend" id="anLegend"></div>
@@ -1130,11 +1199,32 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
       <div class="hcards" id="histCards"></div>
     </div>
   </section>
+  <section class="tab" id="tab3" hidden>
+    <div class="v3d-bar">
+      <span class="v3d-topo" id="v3dTopo"></span>
+      <details class="v3d-capas" id="v3dCapas" open><summary>Capas y altura</summary><div class="v3d-capas-in">
+      <label class="chk"><input type="checkbox" id="v3d_tal" checked> Taladros</label>
+      <label class="chk"><input type="checkbox" id="v3d_av" checked> Avances</label>
+      <label class="chk"><input type="checkbox" id="v3d_lim" checked> Límites</label>
+      <label class="chk"><input type="checkbox" id="v3d_dif" checked> Minado entre fechas</label>
+      <label class="chk"><input type="checkbox" id="v3d_gps" checked> GPS</label>
+      <label class="chk"><input type="checkbox" id="v3dFull"> Toda la topografía</label>
+      <label>Altura <select id="v3dEx"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label>
+      </div></details>
+      <button type="button" class="btn sec small" id="v3dArriba">Vista de planta</button>
+      <button type="button" class="btn sec small" id="v3dIrMi">📍 Ir a mi ubicación</button>
+      <button type="button" class="btn sec small" id="v3dReset">Reiniciar vista</button>
+    </div>
+    <div class="v3d-wrap" id="v3dWrap"><canvas id="v3dCv"></canvas><canvas id="v3dTxt"></canvas><div class="v3d-info" id="v3dInfo" hidden></div></div>
+    <p class="msg" id="v3dMsg"></p>
+    <p class="note">Gira arrastrando con un dedo o el mouse · mueve con dos dedos (o clic derecho / Shift + arrastrar) · zoom pellizcando o con la rueda · toca un taladro para ver su ley. Se ven los proyectos marcados en la pestaña 2, coloreados con la ley elegida en «Ver ley», sobre la topografía «Hoy» de ⛰ Topo; lo minado entre «Antes» y «Hoy» sale en naranja después de calcular el avance entre fechas.</p>
+  </section>
 </div>
 
 <nav class="appbar" id="appBar" aria-label="Secciones de la app">
   <button type="button" data-at="avance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span>Avance</span></button>
   <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
+  <button type="button" data-at="3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>3D</span></button>
   <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
@@ -1151,7 +1241,7 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
   <div class="carga-box">
     <div class="carga-top"><b id="cargaTit">📂 Cargar archivos</b><button type="button" id="cargaCerrar" aria-label="Cerrar">✕</button></div>
     <label class="carga-drop" id="cargaDrop">
-      <input type="file" id="cargaFile" multiple hidden accept=".csv,.txt,.xlsx,.xls,.dxf,.dwg,text/csv">
+      <input type="file" id="cargaFile" multiple hidden accept=".csv,.txt,.xlsx,.xls,.dxf,.dwg,.msr,text/csv">
       <span class="ic">⬆</span>
       <span class="t1">Suelta aquí tus archivos, todos juntos</span>
       <span class="t2">o toca para elegirlos</span>
@@ -1228,6 +1318,7 @@ body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px
       <p class="note">En esta versión (Claude, iPad) la sincronización usa tu conector de Supabase. La primera vez Claude te pide permiso.</p>
       <div class="btnrow"><button class="btn small" id="syncConectar" type="button">Conectar y sincronizar</button></div>
     </div>
+    <div id="syncConf" class="dlgsub conf" hidden></div>
     <div id="syncOn" class="dlgsec" hidden>
       <p id="syncWho"></p>
       <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Cerrar sesión</button></div>
@@ -1284,6 +1375,28 @@ function parseCSV(text) {
   return tableFromRows(rows, sep);
 }
 
+// V44 (C-01): separador DECIMAL detectado por los datos, independiente del separador de columnas.
+// Cuenta celdas tipo 50,1 contra 50.1 (sin contar miles como 1,234,567).
+function detectDecimal(rows) {
+  let coma = 0, punto = 0;
+  const lim = Math.min(rows.length, 800);
+  for (let i = 0; i < lim; i++) {
+    const r = rows[i]; if (!r) continue;
+    for (const v0 of r) {
+      const v = String(v0 == null ? '' : v0).trim();
+      if (!v || v.length > 20) continue;
+      if (/^[-+]?\d{1,3}(,\d{3}){2,}(\.\d+)?$/.test(v) || /^[-+]?\d{1,3}(\.\d{3}){2,}(,\d+)?$/.test(v)) continue; // miles
+      if (/^[-+]?\d*,\d+$/.test(v)) coma++;
+      else if (/^[-+]?\d*\.\d+$/.test(v)) punto++;
+      else if (/^[-+]?\d{1,3}(\.\d{3})+,\d+$/.test(v)) coma++;
+      else if (/^[-+]?\d{1,3}(,\d{3})+\.\d+$/.test(v)) punto++;
+    }
+  }
+  return coma > punto ? ',' : '.';
+}
+// Separador que se pasa a toNum según el decimal detectado (';' = la coma es decimal)
+function numSep(csv) { return csv && csv.dec === ',' ? ';' : csv && csv.dec === '.' ? ',' : (csv ? csv.sep : ','); }
+
 // Filas de una hoja Excel (SheetJS) -> misma estructura que un CSV
 function parseSheetRows(rows) {
   const clean = rows.map(r => (r || []).map(c => (c == null ? '' : String(c).trim()))).filter(r => r.some(c => c !== ''));
@@ -1337,11 +1450,11 @@ function tableFromRows(rows, sep) {
   if (hi < 0 && rows.length && rows[0].some(c => c !== '' && toNum(c, sep) == null) && rows[0].filter(c => toNum(c, sep) != null).length < 2) hi = 0;
   const header = hi >= 0 ? rows[hi] : [];
   const data = rows.slice(hi + 1).filter(r => r.some(c => c !== ''));
-  return { header, rows: data, sep, headerLine: hi + 1 };
+  return { header, rows: data, sep, headerLine: hi + 1, dec: detectDecimal(data) };
 }
 
 function colStats(csv, i) {
-  const v = csv.rows.slice(0, 200).map(r => toNum(r[i], csv.sep)).filter(x => x != null);
+  const v = csv.rows.slice(0, 200).map(r => toNum(r[i], numSep(csv))).filter(x => x != null);
   if (!v.length) return { n: 0, med: null, frac: 0 };
   v.sort((a, b) => a - b);
   return { n: v.length, med: v[Math.floor(v.length / 2)], frac: v.length / Math.min(csv.rows.length, 200), min: v[0], max: v[v.length - 1] };
@@ -1406,12 +1519,12 @@ function readBlastholes(csv, override) {
   if (m.x < 0 || m.y < 0) return { holes: out, bad, map: m, auto, dupIds, missing: true };
   csv.rows.forEach((r, i) => {
     const idv = (r[m.id] || '').trim();
-    const x = toNum(r[m.x], csv.sep), y = toNum(r[m.y], csv.sep), z = m.z >= 0 ? toNum(r[m.z], csv.sep) : null;
-    const depth = m.depth >= 0 ? toNum(r[m.depth], csv.sep) : null;
+    const x = toNum(r[m.x], numSep(csv)), y = toNum(r[m.y], numSep(csv)), z = m.z >= 0 ? toNum(r[m.z], numSep(csv)) : null;
+    const depth = m.depth >= 0 ? toNum(r[m.depth], numSep(csv)) : null;
     if (!idv || x == null || y == null) { bad.push(i + 1 + csv.headerLine); return; }
     const key = keyOf(idv);
     if (seen.has(key)) dupIds.push(idv); else seen.set(key, true);
-    out.push({ id: idv, key, x, y, z: z == null ? 0 : z, depth: depth != null && depth > 0 ? depth : null });
+    out.push({ id: idv, key, x, y, z: z == null ? 0 : z, depth: depth != null && depth > 0 ? depth : null, row: i + 1 + csv.headerLine });
   });
   return { holes: out, bad, map: m, auto, dupIds: [...new Set(dupIds)] };
 }
@@ -1434,7 +1547,7 @@ function readLeyes(csv) {
   csv.rows.forEach((r, i) => {
     if (!r[0] || !r[0].trim()) { bad.push(i + 1 + csv.headerLine); return; }
     const rec = { grupo: r[0].trim(), key: keyOf(r[0]), line: i + 1 + csv.headerLine };
-    LEY_FIELDS.forEach(f => { rec[f.k] = toNum(r[cols[f.k]], csv.sep); });
+    LEY_FIELDS.forEach(f => { rec[f.k] = toNum(r[cols[f.k]], numSep(csv)); });
     out.push(rec);
   });
   return { leyes: out, bad };
@@ -1466,17 +1579,31 @@ function colorFe(v) {
   return null; // BYLAYER
 }
 
+// V44 (C-03): taladros con el mismo ID en un archivo/proyecto. Devuelve Map clave -> [taladros].
+function dupHoleGroups(holes, keyOf2) {
+  const g = new Map();
+  (holes || []).forEach(h => { const k = keyOf2 ? keyOf2(h) : h.key; if (!g.has(k)) g.set(k, []); g.get(k).push(h); });
+  const out = new Map(); g.forEach((arr, k) => { if (arr.length > 1) out.set(k, arr); });
+  return out;
+}
+// Texto del aviso: ID, repeticiones, coordenadas y filas
+function dupHoleTxt(groups, max) {
+  const items = [...groups.values()].slice(0, max || 12).map(arr => `ID ${arr[0].id} × ${arr.length}: ` + arr.map(h => `(E ${Number(h.x).toFixed(1)}, N ${Number(h.y).toFixed(1)}${h.row ? ', fila ' + h.row : ''})`).join(' · '));
+  return items.join(' | ') + (groups.size > (max || 12) ? ` … y ${groups.size - (max || 12)} más` : '');
+}
 function merge(holes, leyes) {
   const byKey = new Map();
   holes.forEach(h => byKey.set(h.key, h));
+  // V44 (C-03): un ID repetido NO recibe ley en ninguno de sus puntos hasta que se resuelva
+  const dupG = dupHoleGroups(holes);
   const last = new Map(), dupCount = new Map();
   leyes.forEach(l => { last.set(l.key, l); dupCount.set(l.key, (dupCount.get(l.key) || 0) + 1); });
   const dups = [...dupCount].filter(([, c]) => c > 1).map(([k, c]) => ({ grupo: last.get(k).grupo, count: c, lines: leyes.filter(l => l.key === k).map(l => l.line) }));
   const orphans = [...last.values()].filter(l => !byKey.has(l.key));
   const matched = new Map();
-  last.forEach((l, k) => { if (byKey.has(k)) matched.set(k, l); });
+  last.forEach((l, k) => { if (byKey.has(k) && !dupG.has(k)) matched.set(k, l); });
   const noLey = holes.filter(h => !matched.has(h.key));
-  return { matched, dups, orphans, noLey };
+  return { matched, dups, orphans, noLey, dupHoles: dupG };
 }
 
 // Ancho aproximado de un texto Arial de altura h (AutoCAD)
@@ -1733,7 +1860,8 @@ function checkProject(bhP, leyP, merged, nLeyes) {
 function parseQuotedCSV(text) {
   text = text.replace(/^﻿/, '');
   const first = text.slice(0, text.indexOf('\n') + 1 || text.length);
-  const sep = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',';
+  const nSc = (first.match(/;/g) || []).length, nCo = (first.match(/,/g) || []).length, nTab = (first.match(/\t/g) || []).length;
+  const sep = nTab > nSc && nTab > nCo ? '\t' : nSc > nCo ? ';' : ',';
   const rows = []; let row = [], cell = '', q = false, i = 0; const n = text.length;
   while (i < n) {
     const c = text[i];
@@ -1747,7 +1875,8 @@ function parseQuotedCSV(text) {
     cell += c; i++;
   }
   row.push(cell.trim()); if (row.some(v => v !== '')) rows.push(row);
-  return { header: rows[0] || [], rows: rows.slice(1), sep, headerLine: 1 };
+  const data = rows.slice(1);
+  return { header: rows[0] || [], rows: data, sep, headerLine: 1, dec: detectDecimal(data) };
 }
 
 function isBaseTable(csv) {
@@ -1784,6 +1913,9 @@ function buildBase(csv) {
   const cols = {};
   BASE_FIELDS.forEach(f => { let i = -1; for (const re of f.re) { i = n.findIndex(c => re.test(c)); if (i >= 0) break; } cols[f.k] = i; });
   const projects = new Map();
+  // V44 (C-01): antes se asumía siempre coma = miles (50,1 -> 501)
+  if (!csv.dec) csv.dec = detectDecimal(csv.rows);
+  const ns = numSep(csv);
   csv.rows.forEach((r, idx) => {
     let key;
     if (cMina >= 0 && cBanco >= 0 && cNro >= 0 && r[cMina]) key = codeKey(r[cMina], r[cBanco], r[cNro]);
@@ -1793,19 +1925,43 @@ function buildBase(csv) {
     if (!p) { p = { key, label: cProy >= 0 && r[cProy] ? r[cProy] : key, rows: [] }; projects.set(key, p); }
     const rec = { grupo: g, key: keyOf(g), line: cId >= 0 ? r[cId] : idx + 2, order: cId >= 0 ? (parseFloat(r[cId]) || idx) : idx, fecha: cFecha >= 0 ? r[cFecha] : '', type: cType >= 0 ? r[cType] : '' };
     let any = false;
-    BASE_FIELDS.forEach(f => { rec[f.k] = cols[f.k] >= 0 ? toNum(r[cols[f.k]], ',') : null; if (rec[f.k] != null) any = true; });
+    BASE_FIELDS.forEach(f => { rec[f.k] = cols[f.k] >= 0 ? toNum(r[cols[f.k]], ns) : null; if (rec[f.k] != null) any = true; });
     rec.hasData = any;
-    rec.density = cDens >= 0 ? toNum(r[cDens], ',') : null;
+    rec.density = cDens >= 0 ? toNum(r[cDens], ns) : null;
     p.rows.push(rec);
   });
   const header = k => (cols[k] >= 0 ? csv.header[cols[k]] : null);
   return { projects, nRows: csv.rows.length, cols: Object.fromEntries(BASE_FIELDS.map(f => [f.k, header(f.k)])) };
 }
 
+// V44 (C-01): revisa que la base tenga sentido antes de usarla.
+// Devuelve {total, malos, pct, ejemplos}; si más del 5 % de los valores son imposibles, la base no se carga.
+function validarBase(B) {
+  let total = 0, malos = 0; const ej = [];
+  B.projects.forEach(p => p.rows.forEach(r => {
+    QC_RULES.forEach(R => { const v = r[R.k]; if (v == null || isNaN(v)) return; total++; if (R.bad(v)) { malos++; if (ej.length < 5) ej.push(`${p.label} grupo ${r.grupo}: ${QC_LABEL[R.k] || R.k} = ${v}`); } });
+  }));
+  return { total, malos, pct: total ? 100 * malos / total : 0, ejemplos: ej };
+}
+
 // Elige el proyecto de la base para un archivo de taladros.
 // Prueba el código exacto; si no está o casi no coincide, busca el mismo banco y número en otra mina
 // (p. ej. el 14A se registra como mina 22) y se queda con el que más grupos comparte con los taladros.
 const MINA_ALIAS = { '14A': '22' };
+// V44 (A-01): identificador canónico del proyecto. La base registra el 14A como mina 22: ambos son el mismo proyecto.
+const MINA_CANON = { '22': '14A' };
+function canonCode(code) {
+  if (!code) return null;
+  const mina = String(code.mina || '').toUpperCase().trim();
+  return `${MINA_CANON[mina] || mina}-${normBanco(code.nivel)}-${normNro(code.nro)}`;
+}
+function canonOfProject(p) {
+  if (!p) return null;
+  const c = parseProjectCode(p.name) || parseProjectCode(p.fileName) || parseProjectCode(String(p.id || '').replace(/^[A-Z]:/, ''));
+  if (c) return canonCode(c);
+  if (p.baseKey) { const m = String(p.baseKey).match(/^([^-]+)-([^-]+)-(.+)$/); if (m) return canonCode({ mina: m[1], nivel: m[2], nro: m[3] }); }
+  return null;
+}
 
 function findBaseProject(base, code, holes, manualKey) {
   if (!base) return null;
@@ -2037,12 +2193,18 @@ function parseDXFPolylines(text) {
 // CSV: columnas polígono/id, Este/X, Norte/Y (una fila por vértice, en orden)
 function parseCSVPolylines(csv) {
   const n = csv.header.map(norm);
-  const ci = n.findIndex(c => /^(poligono|polygon|poly|id|nombre|name|limite|zona|bloque|sub|subdivision)/.test(c));
+  // V52: primero la columna del bloque/polígono (MinePlan: ID es el número de vértice, BLOCK el nombre del bloque)
+  let ci = n.findIndex(c => /^(block|blockname|bloque|blocker|poligono|polygon|poly|limite|zona|sub|subdivision)$/.test(c));
+  if (ci < 0) ci = n.findIndex(c => /^(poligono|polygon|poly|id|nombre|name|limite|zona|bloque|sub|subdivision)/.test(c));
+  const esBloque = ci >= 0 && /^(block|blockname|bloque|blocker)$/.test(n[ci]);
   const m = mapHoleCols(csv);
   if (m.x < 0 || m.y < 0) return [];
   const by = new Map();
-  csv.rows.forEach(r => { const k = ci >= 0 ? (r[ci] || '').trim() || '1' : '1'; const x = toNum(r[m.x], csv.sep), y = toNum(r[m.y], csv.sep); if (x == null || y == null) return; if (!by.has(k)) by.set(k, []); by.get(k).push({ x, y }); });
-  return [...by].filter(([, pts]) => pts.length >= 3).map(([k, pts]) => ({ layer: k, pts, closed: true }));
+  csv.rows.forEach(r => { const k = ci >= 0 ? (r[ci] || '').trim() || '1' : '1'; const x = toNum(r[m.x], numSep(csv)), y = toNum(r[m.y], numSep(csv)); if (x == null || y == null) return; if (!by.has(k)) by.set(k, []); by.get(k).push({ x, y }); });
+  return [...by].filter(([, pts]) => pts.length >= 3).map(([k, pts]) => {
+    if (pts.length > 3 && Math.abs(pts[0].x - pts[pts.length - 1].x) < 1e-6 && Math.abs(pts[0].y - pts[pts.length - 1].y) < 1e-6) pts = pts.slice(0, -1);
+    return esBloque ? { layer: 'BLOQUES', name: k, pts, closed: true } : { layer: k, pts, closed: true };
+  });
 }
 function polyArea(pts) { let a = 0; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y); return Math.abs(a / 2); }
 
@@ -2490,6 +2652,91 @@ function printPlotSVG(r) {
   setTimeout(() => { window.print(); setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60);
 }
 
+// ===== Topografía MinePlan (.msr) =====
+// Formato leído del archivo real (MinePlan / MineSight): origen en dobles al inicio; datos en páginas de 1 MB
+// precedidas por la marca 13 10 00 03 en posiciones múltiplos de 1024. Primero vienen los vértices
+// (float32 relativos al origen, en orden Este, Cota, Norte) y luego los triángulos (registros 3, i, j, k en int32).
+function leerMSR(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), L = u8.length;
+  let org = null;
+  for (let o = 0; o < Math.min(1000, L - 24); o++) {
+    const e = dv.getFloat64(o, true), n = dv.getFloat64(o + 8, true), z = dv.getFloat64(o + 16, true);
+    if (e > 1e5 && e < 1e6 && n > 1e6 && n < 1e7 && z > -1000 && z < 7000 && Math.abs(e - Math.round(e * 100) / 100) < 1e-6) { org = [e, n, z]; break; }
+  }
+  if (!org) throw new Error('No encontré el origen de coordenadas: ¿es una topografía (.msr) de MinePlan?');
+  // cabecera de bloque (4 bytes, en múltiplos de 1024): 0x13 y luego la longitud en 24 bits (big endian) con 3 en el último medio byte
+  // longitud = valor − 3 (bloques llenos: 10 00 03 → 1 MB; el último bloque de cada sección puede no ser múltiplo de 16)
+  const lenB = p => {
+    if (p + 4 > L || u8[p] !== 0x13) return 0;
+    const n = ((u8[p + 1] << 16) | (u8[p + 2] << 8) | u8[p + 3]) - 3; if (n <= 0) return 0;
+    if ((u8[p + 3] & 0xF) === 3) return n;
+    const sig = Math.ceil((p + 4 + n) / 1024) * 1024; return (sig >= L || u8[sig] === 0x13) ? n : 0;
+  };
+  const vBlocks = [], fBlocks = [];
+  const esCara = s => s + 48 <= L && dv.getInt32(s, true) === 3 && dv.getInt32(s + 16, true) === 3 && dv.getInt32(s + 32, true) === 3;
+  let enCaras = false;
+  for (let p = 1024; p + 4 <= L;) {
+    const n = lenB(p);
+    if (!n || n > 1048576) { p += 1024; continue; }
+    const s = p + 4, e = Math.min(L, s + n);
+    if (!enCaras && esCara(s)) enCaras = true;
+    (enCaras ? fBlocks : vBlocks).push([s, e]);
+    p = Math.ceil(e / 1024) * 1024;
+  }
+  // caras
+  let nf = 0; fBlocks.forEach(([s, e]) => { nf += Math.floor((e - s) / 16); });
+  const F = new Int32Array(nf * 3); let k = 0, vmax = -1;
+  for (const [s, e] of fBlocks) {
+    for (let o = s; o + 16 <= e; o += 16) {
+      if (dv.getInt32(o, true) !== 3) break;
+      const a = dv.getInt32(o + 4, true), b = dv.getInt32(o + 8, true), c = dv.getInt32(o + 12, true);
+      F[k++] = a; F[k++] = b; F[k++] = c; if (a > vmax) vmax = a; if (b > vmax) vmax = b; if (c > vmax) vmax = c;
+    }
+  }
+  const nT = k / 3, nV = vmax + 1;
+  // vértices: se juntan los bytes de todas las páginas (un vértice puede quedar partido entre dos páginas)
+  let tot = 0; vBlocks.forEach(([s, e]) => { tot += e - s; });
+  if (tot < nV * 12) throw new Error('El archivo de topografía está incompleto.');
+  const vb = new Uint8Array(nV * 12); let w = 0;
+  for (const [s, e] of vBlocks) { const n = Math.min(e - s, nV * 12 - w); if (n <= 0) break; vb.set(u8.subarray(s, s + n), w); w += n; }
+  const vdv = new DataView(vb.buffer), V = new Float64Array(nV * 3);
+  for (let i = 0, o = 0; i < nV; i++, o += 12) { V[i * 3] = org[0] + vdv.getFloat32(o, true); V[i * 3 + 1] = org[1] + vdv.getFloat32(o + 8, true); V[i * 3 + 2] = org[2] + vdv.getFloat32(o + 4, true); }
+  return { org, V, F: F.subarray(0, k), nV, nT };
+}
+// Superficie -> grilla de cotas (DEM). Cada celda = cota de la superficie en su centro.
+function msrADem(t, cel, caja) {
+  const V = t.V, F = t.F;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  if (caja) { x0 = caja.x0; y0 = caja.y0; x1 = caja.x1; y1 = caja.y1; }
+  else for (let i = 0; i < t.nV; i++) { const x = V[i * 3], y = V[i * 3 + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const W = Math.ceil((x1 - x0) / cel) + 1, H = Math.ceil((y1 - y0) / cel) + 1;
+  const Z = new Float32Array(W * H).fill(NaN);
+  for (let f = 0; f < F.length; f += 3) {
+    const a = F[f] * 3, b = F[f + 1] * 3, c = F[f + 2] * 3;
+    const ax = V[a], ay = V[a + 1], az = V[a + 2], bx = V[b], by = V[b + 1], bz = V[b + 2], cx = V[c], cy = V[c + 1], cz = V[c + 2];
+    let i0 = Math.ceil((Math.min(ax, bx, cx) - x0) / cel - 0.5), i1 = Math.floor((Math.max(ax, bx, cx) - x0) / cel - 0.5);
+    let j0 = Math.ceil((Math.min(ay, by, cy) - y0) / cel - 0.5), j1 = Math.floor((Math.max(ay, by, cy) - y0) / cel - 0.5);
+    if (i1 < 0 || j1 < 0 || i0 >= W || j0 >= H) continue;
+    if (i0 > i1 || j0 > j1) { // triángulo más chico que una celda: su centro
+      const i = Math.floor(((ax + bx + cx) / 3 - x0) / cel), j = Math.floor(((ay + by + cy) / 3 - y0) / cel);
+      if (i >= 0 && j >= 0 && i < W && j < H) { const q = j * W + i, zz = (az + bz + cz) / 3; if (!(Z[q] >= zz)) Z[q] = zz; }
+      continue;
+    }
+    i0 = Math.max(0, i0); j0 = Math.max(0, j0); i1 = Math.min(W - 1, i1); j1 = Math.min(H - 1, j1);
+    const d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy); if (Math.abs(d) < 1e-12) continue;
+    for (let j = j0; j <= j1; j++) { const py = y0 + (j + 0.5) * cel;
+      for (let i = i0; i <= i1; i++) { const px = x0 + (i + 0.5) * cel;
+        const l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / d, l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / d, l3 = 1 - l1 - l2;
+        if (l1 < -1e-9 || l2 < -1e-9 || l3 < -1e-9) continue;
+        const zz = l1 * az + l2 * bz + l3 * cz, q = j * W + i; if (!(Z[q] >= zz)) Z[q] = zz;
+      } }
+  }
+  return { x0, y0, cel, W, H, Z };
+}
+function demZ(dem, x, y) { const i = Math.floor((x - dem.x0) / dem.cel), j = Math.floor((y - dem.y0) / dem.cel); if (i < 0 || j < 0 || i >= dem.W || j >= dem.H) return null; const z = dem.Z[j * dem.W + i]; if (!isNaN(z)) return z; // vecino más cercano con dato
+  for (let r = 1; r <= 3; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= dem.W || jj >= dem.H) continue; const v = dem.Z[jj * dem.W + ii]; if (!isNaN(v)) return v; } return null; }
+if (typeof module !== 'undefined' && module.exports) module.exports = { leerMSR, msrADem, demZ };
+
 </script>
 <script>
 const SAMPLE_BH = null;
@@ -2544,12 +2791,20 @@ async function idbGet(k) { const db = await idb(); if (!db) return null; return 
 async function idbDel(k) { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete(k); } catch (e) {} }
 
 function setBase(csv, name, savedAt) {
-  state.base = buildBase(csv); try { fitDensModel(state.base); } catch (e) {} state.baseName = name; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
+  const B = buildBase(csv);
+  // V44 (C-01): no usar en silencio una base que salió con valores imposibles (formato decimal mal leído)
+  const v = validarBase(B);
+  if (v.total >= 20 && v.pct > 5) {
+    const e = new Error(`Se detectó un posible problema con el formato decimal del archivo. Revise el separador decimal y el separador de columnas antes de continuar. (${v.malos.toLocaleString('es-PE')} de ${v.total.toLocaleString('es-PE')} valores, ${v.pct.toFixed(1)} %, son imposibles; por ejemplo ${v.ejemplos.slice(0, 3).join('; ')}). La base anterior se mantiene.`);
+    e.validacion = v; throw e;
+  }
+  state.base = B; try { fitDensModel(state.base); } catch (e) {} state.baseName = name; state.baseDec = csv.dec; state.baseSep = csv.sep; state.baseSaved = savedAt || new Date().toISOString(); state.projManual = null; state.confirmed = false;
   const labels = [...state.base.projects.values()].map(p => p.label).sort();
   $('projList').innerHTML = labels.map(l => `<option value="${esc(l)}"></option>`).join('');
 }
 async function loadBaseFile(f) {
   const msg = $('loadMsg'); msg.className = 'msg'; msg.textContent = 'Leyendo base de leyes…';
+  let ok = false;
   try {
     let csv, text = null;
     if (/\.xlsx?$/i.test(f.name)) {
@@ -2565,10 +2820,12 @@ async function loadBaseFile(f) {
     const saved = text ? await idbSet('base', { name: f.name, text, savedAt: state.baseSaved }) : false;
     msg.className = 'msg ok';
     msg.textContent = `Base cargada: ${state.base.projects.size.toLocaleString('es-PE')} proyectos.` + (saved ? ' Queda guardada en este navegador.' : '');
+    ok = true;
   } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
   recompute(true);
   await loadLibrary();
-  refrescarCopias();
+  if (ok) refrescarCopias();
+  return ok;
 }
 async function restoreBase() {
   const v = await idbGet('base');
@@ -2768,7 +3025,8 @@ function renderReport(rb, badLEY) {
     it('info', 'Columnas', `ID ${nm(mp.id)} · Este ${nm(mp.x)} · Norte ${nm(mp.y)} · Cota ${mp.z >= 0 ? nm(mp.z) : 'no encontrada (Z = 0)'}` + (state.mapOverride ? ' · ajustado a mano' : ''));
     (rb.auto.notes || []).forEach(t => it('warn', 'Revisar', esc(t)));
   }
-  if (rb.dupIds && rb.dupIds.length) it('warn', 'ID repetido', `Estos taladros aparecen más de una vez en el archivo de ubicación: <code>${rb.dupIds.map(esc).join(', ')}</code>. Las leyes se colocan en el último.`);
+  if (m && m.dupHoles && m.dupHoles.size) it('bad', 'ID duplicado', `Se encontraron IDs de taladro duplicados (${m.dupHoles.size}). Estos taladros <b>no reciben ley</b> en el plano, el PDF, el DXF ni el CSV, y el proyecto no se puede guardar hasta corregir el archivo de taladros: <code>${esc(dupHoleTxt(m.dupHoles))}</code>`);
+  else if (rb.dupIds && rb.dupIds.length) it('bad', 'ID duplicado', `Se encontraron IDs de taladro duplicados: <code>${rb.dupIds.map(esc).join(', ')}</code>. No reciben ley hasta corregir el archivo.`);
   if (state.bh && !state.ley && !state.base) it('info', 'Sin leyes', 'Solo se dibujan los taladros con su ID. Sube el CSV de leyes cuando lo tengas.');
   m.dups.forEach(d => it('warn', 'Repetido', `El grupo <code>${esc(d.grupo)}</code> aparece ${d.count} veces (filas ${d.lines.join(', ')}). Se usó la <b>última</b> fila. Corrige el CSV si debía ser otra.`));
   if (m.orphans.length) it('bad', 'Sin taladro', `Estos grupos de leyes no tienen taladro con el mismo ID y no se dibujaron: <code>${m.orphans.map(o => esc(o.grupo)).join(', ')}</code>`);
@@ -3149,24 +3407,30 @@ function normAvance(a) {
 
 // ===== Pestañas =====
 function showTab(n) {
-  [1, 2].forEach(i => { $('tab' + i).hidden = i !== n; $('tabBtn' + i).setAttribute('aria-selected', String(i === n)); });
+  [1, 2, 3].forEach(i => { if (!$('tab' + i)) return; $('tab' + i).hidden = i !== n; $('tabBtn' + i).setAttribute('aria-selected', String(i === n)); });
   try { localStorage.setItem('bhl-tab', String(n)); } catch (e) {}
   if (n === 1) { resize(); }
+  if (n === 3) { try { v3Mostrar(); } catch (e) {} }
   if (n === 2) { pv.resize(); if (t2.holes.length && !t2.fitted) { pv.fit(t2Bounds()); t2.fitted = true; } pv.draw(); }
 }
 $('tabBtn1').addEventListener('click', () => showTab(1));
 $('tabBtn2').addEventListener('click', () => showTab(2));
+$('tabBtn3').addEventListener('click', () => showTab(3));
 
 // ===== Pestaña 1: guardar proyecto =====
+// V44 (A-01): si ya existe un proyecto propio con el mismo código canónico (14A = 22), se usa SU id
 function projectIdFor(code, found, fileName) {
-  if (found) return 'B:' + found.p.key;
-  if (code) return 'C:' + code.text;
+  const ck = code ? canonCode(code) : found ? canonOfProject({ baseKey: found.p.key }) : null;
+  if (ck) { const ya = (lib.projects || []).find(p => !p.ro && canonOfProject(p) === ck); if (ya) return ya.id; }
+  if (found) return 'B:' + (ck || found.p.key);
+  if (code) return 'C:' + (ck || code.text);
   return 'F:' + fileName.replace(/\.[^.]+$/, '');
 }
+function nombreCanon(code) { if (!code) return null; const m = MINA_CANON[String(code.mina).toUpperCase()]; return m ? `${m}-${code.nivel}-${code.nro}` : code.text; }
 function buildProjectRecord(csv, fileName, holes, code, found, leyesSnapshot) {
   return {
     id: projectIdFor(code, found, fileName),
-    name: code ? code.text : fileName.replace(/\.[^.]+$/, ''),
+    name: code ? nombreCanon(code) : fileName.replace(/\.[^.]+$/, ''),
     baseKey: found ? found.p.key : null,
     baseLabel: found ? found.p.label : null,
     fileName, savedAt: new Date().toISOString(),
@@ -3202,6 +3466,9 @@ function unirTaladros(prev, rec) {
   return { holes, resumen: r };
 }
 async function saveProjectRecord(rec) {
+  // V44 (C-03): un archivo con IDs de taladro repetidos no se guarda hasta corregirlo
+  const dg = dupHoleGroups(rec.holes);
+  if (dg.size) return { ok: false, motivo: `no se guardó: se encontraron IDs de taladro duplicados (${dupHoleTxt(dg, 5)}). Corrige el archivo de taladros y vuelve a cargarlo.` };
   const prev = lib.projects.find(p => p.id === rec.id);
   if (prev) rec.createdAt = prev.createdAt || prev.savedAt; else rec.createdAt = rec.savedAt;
   rec.tipo = rec.tipo || tipoArchivo(rec.fileName);
@@ -3226,6 +3493,7 @@ $('btnSaveProj').addEventListener('click', async () => {
   const snap = state.src === 'file' ? state.leyes.map(l => Object.assign({}, l)) : null;
   const rec = buildProjectRecord(state.bh, fname, state.holes, code, state.found, snap);
   const r = await saveProjectRecord(rec);
+  if (r.motivo) { msg.className = 'msg err'; msg.textContent = `Proyecto ${rec.name}: ${r.motivo}`; return; }
   msg.className = r.ok ? 'msg ok' : 'msg err';
   msg.textContent = r.ok ? `Proyecto ${rec.name} (${TIPO_TXT[tipoArchivo(fname)]}) ${r.updated ? 'actualizado: ' + r.resumen + '. Sus avances se mantienen' : 'guardado'}. Ya puedes sacar sus promedios en la pestaña 2.` : 'No se pudo guardar en esta PC. Revisa que el navegador permita guardar datos.';
 });
@@ -3245,6 +3513,7 @@ async function batchSave(files) {
       const found = state.base ? findBaseProject(state.base, code, rb.holes, null) : null;
       if (found && found.how === 'alias') { out.push(`${f.name}: no se guardó; el proyecto en la base no es seguro (${found.p.label}). Ábrelo en la pestaña 1 para confirmarlo.`); continue; }
       const r = await saveProjectRecord(buildProjectRecord(t.csv, f.name, rb.holes, code, found, null));
+      if (r.motivo) { out.push(`${f.name}: ${r.motivo}`); continue; }
       out.push(`${f.name}: ${r.ok ? `${TIPO_TXT[tipoArchivo(f.name)]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'}` : 'error al guardar'}${found ? ` · leyes de ${found.p.label}` : state.base ? ' · no está en la base todavía' : ''}`);
     } catch (e) { out.push(`${f.name}: ${e.message}`); }
   }
@@ -3299,7 +3568,67 @@ async function refrescarCopias() {
 
 const fmtDate = s => { if (!s) return ''; const [y, m, d] = String(s).slice(0, 10).split('-'); return d ? `${d}/${m}/${y}` : s; };
 let libFiltro = '';
+// ===== V44 (A-01): proyectos duplicados por la equivalencia 14A = mina 22 (u otro id para el mismo código) =====
+function gruposDuplicados() {
+  const g = new Map();
+  lib.projects.filter(p => !p.ro).forEach(p => { const k = canonOfProject(p); if (!k) return; if (!g.has(k)) g.set(k, []); g.get(k).push(p); });
+  return [...g.entries()].filter(([, arr]) => arr.length > 1).map(([k, arr]) => {
+    const nAv = p => lib.avances.filter(a => a.projectIds.includes(p.id)).length;
+    // se conserva el que tiene más avances; luego el de tipo más avanzado; luego el id C:
+    const orden = arr.slice().sort((a, b) => nAv(b) - nAv(a) || TIPO_RANGO[b.tipo || tipoArchivo(b.fileName)] - TIPO_RANGO[a.tipo || tipoArchivo(a.fileName)] || (a.id.startsWith('C:') ? -1 : 1));
+    return { canon: k, queda: orden[0], otros: orden.slice(1), nAv };
+  });
+}
+function pintarDuplicados() {
+  let box = $('libDupBox');
+  const gs = gruposDuplicados();
+  if (!gs.length) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement('div'); box.id = 'libDupBox'; box.className = 'dupbox'; $('libRes').before(box); }
+  const det = gs.map(g => `<li><b>${esc(g.canon)}</b>: se conserva <code>${esc(g.queda.id)}</code> (${g.queda.holes.length} taladros, ${g.nAv(g.queda)} avances) y se le unen ${g.otros.map(o => `<code>${esc(o.id)}</code> (${o.holes.length} taladros, ${g.nAv(o)} avances)`).join(', ')}</li>`).join('');
+  box.innerHTML = `<b>⚠ ${gs.length} proyecto${gs.length > 1 ? 's' : ''} guardado${gs.length > 1 ? 's' : ''} dos veces</b> (por la equivalencia 14A = mina 22 o por otro identificador). Sus avances pueden estar repartidos.<details><summary>Ver cuáles se unirán</summary><ul>${det}</ul><p class="note">Al unir: los taladros se juntan (el archivo final manda sobre la malla), todos los avances pasan al proyecto que se conserva y nada se pierde. El proyecto unido queda marcado como borrado en la nube, recuperable por el administrador.</p></details><div class="btnrow"><button class="btn small" type="button" id="btnUnirDup">Unir duplicados</button></div><p class="msg" id="dupMsg"></p>`;
+  $('btnUnirDup').onclick = async () => {
+    const b = $('btnUnirDup');
+    if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Unir ahora? Toca otra vez'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Unir duplicados'; b.classList.remove('danger'); } }, 5000); return; }
+    b.disabled = true;
+    const res = await unirDuplicados(gruposDuplicados());
+    await loadLibrary();
+    const m = $('dupMsg') || $('libMsg'); m.className = 'msg ok'; m.textContent = res;
+  };
+}
+async function unirDuplicados(gs) {
+  const out = [];
+  for (const g of gs) {
+    let keep = Object.assign({}, g.queda);
+    for (const o of g.otros) {
+      // taladros: el de tipo más avanzado manda sobre las coordenadas
+      const rk = p => TIPO_RANGO[p.tipo || tipoArchivo(p.fileName)];
+      const [base, nuevo] = rk(o) > rk(keep) ? [keep, Object.assign({}, o, { tipo: o.tipo || tipoArchivo(o.fileName) })] : [Object.assign({}, o), Object.assign({}, keep, { tipo: keep.tipo || tipoArchivo(keep.fileName) })];
+      const u = unirTaladros(base, nuevo);
+      keep.holes = u.holes;
+      if (rk(o) > rk(keep)) keep.tipo = o.tipo || tipoArchivo(o.fileName);
+      if (!keep.leyes && o.leyes) keep.leyes = o.leyes;
+      if (!keep.leyesBase && o.leyesBase) { keep.leyesBase = o.leyesBase; keep.leyesBaseLabel = o.leyesBaseLabel; keep.leyesBaseFecha = o.leyesBaseFecha; }
+      if (!keep.baseKey && o.baseKey) { keep.baseKey = o.baseKey; keep.baseLabel = o.baseLabel; }
+      keep.archivos = Object.assign({}, o.archivos, keep.archivos);
+      keep.unidoDe = (keep.unidoDe || []).concat([o.id]);
+      // avances: pasan al proyecto que queda (ids y claves "proyecto|taladro")
+      let nA = 0;
+      for (const a of (await dbAll('avances')).map(normAvance).filter(a => a.projectIds.includes(o.id))) {
+        const pids = [...new Set(a.projectIds.map(id => (id === o.id ? keep.id : id)))];
+        const keys = [...new Set(a.keys.map(k => (k.startsWith(o.id + '|') ? keep.id + '|' + k.slice(o.id.length + 1) : k)))];
+        const names = [...new Set(pids.map(id => (id === keep.id ? keep.name : (lib.projects.find(p => p.id === id) || {}).name || id)))];
+        await dbSave('avances', Object.assign({}, a, { projectIds: pids, keys, projectNames: names, _mod: undefined }));
+        nA++;
+      }
+      await dbSave('projects', Object.assign({}, keep, { _mod: undefined }));
+      await dbRemove('projects', o.id);
+      out.push(`${g.canon}: ${o.id} unido a ${keep.id} (${nA} avance${nA === 1 ? '' : 's'} trasladado${nA === 1 ? '' : 's'})`);
+    }
+  }
+  return out.length ? 'Listo. ' + out.join(' · ') : 'No había duplicados.';
+}
 function renderLibRes() {
+  try { pintarDuplicados(); } catch (e) { console.warn(e); }
   const box = $('libRes'); if (!box) return;
   const n = lib.projects.length, c = { final: 0, avance: 0, malla: 0 };
   lib.projects.forEach(p => { c[p.tipo || tipoArchivo(p.fileName)]++; });
@@ -3407,7 +3736,9 @@ class PlanView {
     for (let x = Math.floor(this.wx(0) / step) * step; x < this.wx(this.W); x += step) { const p = Math.round(this.sx(x)) + .5; ctx.moveTo(p, 0); ctx.lineTo(p, this.H); }
     for (let y = Math.floor(this.wy(this.H) / step) * step; y < this.wy(0); y += step) { const p = Math.round(this.sy(y)) + .5; ctx.moveTo(0, p); ctx.lineTo(this.W, p); }
     ctx.stroke();
+    if (this.before) { try { this.before(ctx, this); } catch (e) {} }
     this.render(ctx, this);
+    if (this.after) { try { this.after(ctx, this); } catch (e) {} }
   }
 }
 
@@ -3469,6 +3800,7 @@ try { const l = localStorage.getItem('bhl-letra'); if (l) { $('letraSel').value 
 $('letraSel').addEventListener('change', () => { t2.letra = parseFloat($('letraSel').value) || 0; try { localStorage.setItem('bhl-letra', $('letraSel').value); } catch (e) {} pv.draw(); });
 
 // ---- Cargar los proyectos elegidos en el plano ----
+function topoRefrescar() { try { if (topo.act && topo.dems.has(topo.act)) { topoCalcMinados(); topoInfo(); } else topo.minados = null; } catch (e) {} }
 function refreshT2() {
   fillFilters(); renderProjectList();
   try { localStorage.setItem('bhl-sel', JSON.stringify([...t2.selIds])); } catch (e) {}
@@ -3478,15 +3810,18 @@ function refreshT2() {
   paintFsFiltro();
   t2.holes = []; t2.holeBy = new Map(); t2.leyBy = new Map(); t2.supData = null;
   const errs = [];
+  t2.dupTxt = [];
   t2.projs.forEach(p => {
     const L = leyesForProject(p);
     if (L.err) errs.push(L.err);
     const lmap = new Map((L.leyes || []).map(l => [l.key, l]));
+    const dg = dupHoleGroups(p.holes); // V44 (C-03): IDs repetidos sin ley y fuera de los promedios
+    if (dg.size) t2.dupTxt.push(`${p.name}: ${dupHoleTxt(dg, 6)}`);
     p.holes.forEach(h => {
       const ck = p.id + '|' + h.key;
-      const hh = { ck, key: h.key, id: h.id, x: h.x, y: h.y, depth: h.depth, pid: p.id, pname: p.name };
-      t2.holes.push(hh); t2.holeBy.set(ck, hh);
-      const l = lmap.get(h.key); if (l) t2.leyBy.set(ck, l);
+      const hh = { ck, key: h.key, id: h.id, x: h.x, y: h.y, z: h.z, depth: h.depth, pid: p.id, pname: p.name, dup: dg.has(h.key) };
+      t2.holes.push(hh); if (!hh.dup) t2.holeBy.set(ck, hh);
+      const l = lmap.get(h.key); if (l && !hh.dup) t2.leyBy.set(ck, l);
     });
   });
   const ids = new Set(t2.projs.map(p => p.id));
@@ -3502,6 +3837,7 @@ function refreshT2() {
   if (!t2.projs.length) info.innerHTML = (lib.projects.length ? 'Marca uno o varios proyectos para verlos en el plano.' : '') + ocult;
   else info.innerHTML = `${t2.projs.length} proyecto${t2.projs.length > 1 ? 's' : ''} · ${t2.holes.length} taladros · ${withRes} con resultados · ${t2.avs.length} avance${t2.avs.length === 1 ? '' : 's'}` +
     (errs.length ? `<br><span class="warnc">${esc([...new Set(errs)].join(' '))}</span>` : '') +
+    (t2.dupTxt.length ? `<br><span class="errc">Se encontraron IDs de taladro duplicados; no entran en el avance ni reciben ley hasta corregir el proyecto: ${esc(t2.dupTxt.join(' · '))}</span>` : '') +
     (noDepth.length ? `<br><span class="warnc">Sin profundidad (se pondera solo por densidad): ${esc(noDepth.join(', '))}.</span>` : '') + ocult;
   if (!pv.W) pv.resize();
   if (!t2.fitted && pv.W && t2.holes.length) { pv.fit(t2Bounds()); t2.fitted = true; }
@@ -3510,6 +3846,7 @@ function refreshT2() {
   try { t1BarRender(); } catch (e) {}
   try { t2Resumen(); } catch (e) {}
   if (t2.sup) { supCalc(); $('supBtn').setAttribute('aria-pressed', 'true'); pv.draw(); }
+  topoRefrescar();
 }
 
 function t2Bounds() {
@@ -3570,6 +3907,8 @@ function renderPlan2(ctx, v) {
     });
   }
   drawLimits(ctx, v);
+  // V44 (C-03): taladros con ID repetido, marcados en rojo (sin ley)
+  t2.holes.forEach(h => { if (!h.dup) return; const x = v.sx(h.x), y = v.sy(h.y); if (x < -30 || x > v.W + 30 || y < -30 || y > v.H + 30) return; ctx.save(); ctx.strokeStyle = '#e03131'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(6, Math.min(12, v.v.s * 0.5)), 0, Math.PI * 2); ctx.stroke(); if (v.v.s > 4) { ctx.fillStyle = '#e03131'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('ID repetido ' + h.id, x + 8, y - 6); } ctx.restore(); });
   t2.avs.forEach(a => {
     const shapes = avShapes(a); if (!shapes.length) return;
     const cur = viewing && viewing.id === a.id;
@@ -3614,10 +3953,10 @@ function renderPlan2(ctx, v) {
     ctx.font = `${fs}px Arial, sans-serif`; ctx.textAlign = 'center';
     if (TODAS) return;
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
-    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? SUP_COLOR : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
+    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? (le.des ? '#a0682f' : SUP_COLOR) : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
     const qs = has ? qcLey(l) : null;
     if (qs && qs.length) qcMarca(ctx, x, y, r, qs);
-    if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
+    if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
   });
   if (t2.sup) drawSup(ctx, v, F, br);
   if (TODAS) drawTodas(ctx, v);
@@ -3661,7 +4000,7 @@ function shapeKeys(s) {
   const excl = $('avExcl').checked, P = s.pts;
   const pid = s.pid && t2.projs.some(p => p.id === s.pid) ? s.pid : '';
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
-  const dentro = t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !t2.manOff.has(h.ck));
+  const dentro = t2.holes.filter(h => (!pid || h.pid === pid) && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1 && pointInPoly(h.x, h.y, P) && !t2.manOff.has(h.ck) && !h.dup);
   s._prev = excl ? dentro.filter(h => t2.prevKey.has(h.ck)).length : 0;
   return dentro.filter(h => !(excl && t2.prevKey.has(h.ck))).map(h => h.ck);
 }
@@ -3775,10 +4114,138 @@ function labelsFor(keys) {
   return hs.sort((a, b) => String(a.pname).localeCompare(String(b.pname)) || sortNum(a.id, b.id)).map(h => (multi ? `${h.pname}:${h.id}` : h.id));
 }
 
+// ===== Desmonte sin taladros = dilución =====
+// Un polígono de límite cerrado y visible SIN ningún taladro dentro se propone como desmonte (no se muestrea).
+// El usuario lo confirma o lo descarta (L.mat = 'desmonte' | 'no'); queda guardado en el límite y se comparte.
+function desCfg() {
+  const fe = parseFloat($('desFe') && $('desFe').value), d = parseFloat($('desDens') && $('desDens').value);
+  return { on: !$('desOn') || $('desOn').checked, fe: isNaN(fe) ? 16.5 : fe, dens: !isNaN(d) && d > 1 ? d : null };
+}
+function marcarSinTaladros() {
+  const hs = [], conLey = []; lib.projects.forEach(p => { let ks = null; try { ks = new Set(((leyesForProject(p) || {}).leyes || []).filter(l => l.hasData !== false).map(l => l.key)); } catch (e) { ks = new Set(); } (p.holes || []).forEach(h => { hs.push(h); if (ks.has(h.key)) conLey.push(h); }); });
+  const firma = hs.length + ':' + conLey.length + ':' + (t2.lims || []).length + ':' + lib.projects.length;
+  if (t2._sinTalFirma === firma) return; t2._sinTalFirma = firma;
+  (t2.lims || []).forEach(L => {
+    if (!L.closed || !L.pts || L.pts.length < 3) { L._sinTal = false; return; }
+    const b = L.bb || bboxOf(L.pts);
+    const den = h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts);
+    L._sinTal = !hs.some(den);
+    L._sinLey = !L._sinTal && !conLey.some(den); // V51: tiene taladros pero ninguno con ley
+  });
+  // V52: un polígono sin datos del modelo que es el mismo contorno de un bloque del modelo (p. ej. el _C.dxf) sigue al modelo
+  const conMod = (t2.lims || []).filter(L => L.modelo && L.closed);
+  (t2.lims || []).forEach(L => {
+    L._cubierto = false; if (L.modelo || !L.closed || !L.pts || L.pts.length < 3 || !conMod.length) return;
+    const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length, a = polyArea(L.pts);
+    L._cubierto = conMod.some(M => { const am = polyArea(M.pts); return am > 0 && a / am > 0.6 && a / am < 1.6 && pointInPoly(cx, cy, M.pts); });
+  });
+}
+function esDesmonte(L) { return !!L && L.closed && L._sinTal && !L._cubierto && L.mat !== 'no' && !t2.limOff.has(L.layer) && limVisible(L); }
+// V51: polígonos cerrados con taladros pero ninguno con ley → desmonte; sus taladros sin ley toman la ley del desmonte
+function taladrosDesmonte(keys) {
+  const by = new Map(), items = [], pols = new Set(), fes = [], c = desCfg();
+  if (!c.on || !keys.length) return { by, items, pols: [], fe: c.fe };
+  marcarSinTaladros();
+  const cand = (t2.lims || []).filter(L => L.closed && L.pts && L.pts.length >= 3 && !L._cubierto && !t2.limOff.has(L.layer) && limVisible(L)).sort((a, b) => (a.area || polyArea(a.pts)) - (b.area || polyArea(b.pts)));
+  if (!cand.length) return { by, items, pols: [], fe: c.fe };
+  const dentro = (L, h) => { const b = L.bb || bboxOf(L.pts); return h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts); };
+  const conLey = h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false; };
+  const esDes = new Map();
+  const polDe = h => cand.find(L => dentro(L, h)) || null; // el más chico que lo contiene
+  keys.forEach(k => {
+    const h = t2.holeBy.get(k); if (!h) return;
+    const L = polDe(h); if (!L) return;
+    if (!esDes.has(L)) esDes.set(L, L.mat !== 'no' && (L._sinLey || !t2.holes.some(o => conLey(o) && polDe(o) === L)));
+    if (!esDes.get(L)) return;
+    const P = perfilDe(L, c);
+    const l = Object.assign({ key: h.key, grupo: h.id, des: true }, Object.fromEntries(AVG_FIELDS.map(F => [F.k, P.v[F.k]])), { fe: P.fe, density: P.dens });
+    by.set(k, l); items.push({ hole: h, ley: l }); pols.add(L.name || L.layer || 'polígono'); fes.push(P.fe);
+  });
+  const feTxt = [...new Set(fes.map(x => +(+x).toFixed(2)))].join(' / ');
+  return { by, items, pols: [...pols].slice(0, 4), fe: feTxt || c.fe };
+}
+function poligonosDesmonte() { marcarSinTaladros(); return (t2.lims || []).filter(esDesmonte); }
+// Área de los polígonos del avance que cae en desmonte (por cuadrícula fina; sin contar dos veces lo que se superpone)
+function areaEnDesmontePor(shapes, des) {
+  const out = new Map(); if (!shapes.length || !des.length) return out;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  shapes.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }));
+  const cand = des.filter(L => { const b = L.bb || bboxOf(L.pts); return !(b.x1 < x0 || b.x0 > x1 || b.y1 < y0 || b.y0 > y1); });
+  if (!cand.length) return out;
+  const W = x1 - x0, H = y1 - y0, cell = Math.max(0.2, Math.sqrt(W * H / 90000));
+  for (let y = y0 + cell / 2; y < y1; y += cell) for (let x = x0 + cell / 2; x < x1; x += cell) {
+    if (!shapes.some(P => pointInPoly(x, y, P))) continue;
+    const L = cand.find(L => pointInPoly(x, y, L.pts)); if (L) out.set(L, (out.get(L) || 0) + cell * cell);
+  }
+  return out;
+}
+function areaEnDesmonte(shapes, des) {
+  if (!shapes.length || !des.length) return 0;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  shapes.forEach(P => P.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }));
+  const cand = des.filter(L => { const b = L.bb || bboxOf(L.pts); return !(b.x1 < x0 || b.x0 > x1 || b.y1 < y0 || b.y0 > y1); });
+  if (!cand.length) return 0;
+  const W = x1 - x0, H = y1 - y0, cell = Math.max(0.2, Math.sqrt(W * H / 90000));
+  let n = 0;
+  for (let y = y0 + cell / 2; y < y1; y += cell) for (let x = x0 + cell / 2; x < x1; x += cell) {
+    if (!shapes.some(P => pointInPoly(x, y, P))) continue;
+    if (cand.some(L => pointInPoly(x, y, L.pts))) n++;
+  }
+  return n * cell * cell;
+}
+// Leyes típicas del desmonte: promedio de tus leyes con Fe cercano al Fe elegido (± 1.5); el Fe es el elegido
+function perfilDesmonte(fe) {
+  const k = fe + ':' + lib.projects.length;
+  if (t2._perfil && t2._perfil.k === k) return t2._perfil.v;
+  const acc = {}; let n = 0;
+  lib.projects.forEach(p => { const L = leyesForProject(p); (L.leyes || []).forEach(l => { if (l.hasData === false || l.fe == null || Math.abs(l.fe - fe) > 1.5) return; const q = qcLimpia(l, qcLey(l)); n++; AVG_FIELDS.forEach(F => { const v = q[F.k]; if (v == null) return; acc[F.k] = acc[F.k] || [0, 0]; acc[F.k][0] += v; acc[F.k][1]++; }); }); });
+  const v = { n }; AVG_FIELDS.forEach(F => { v[F.k] = acc[F.k] ? acc[F.k][0] / acc[F.k][1] : null; }); v.fe = fe;
+  t2._perfil = { k, v }; return v;
+}
+// Mezcla el mineral (lo medido) con el desmonte (área × banco × densidad) ponderando por tonelaje
+function aplicarDilucion(r, shapes, banco, area, densProm) {
+  const c = desCfg(); if (!c.on) return r;
+  const des = poligonosDesmonte(); if (!des.length) return r;
+  const porPol = areaEnDesmontePor(shapes, des), aDes = [...porPol.values()].reduce((s, a) => s + a, 0); if (!(aDes > 0.5)) return r;
+  // cada polígono con su ley: la del modelo de MinePlan si la tiene, si no la del desmonte elegido
+  let tDes = 0; const acc = {}; let feW = 0;
+  porPol.forEach((a, L) => { const P = perfilDe(L, c), t = a * banco * P.dens; tDes += t; feW += t * P.fe; AVG_FIELDS.forEach(F => { const v = P.v[F.k]; if (v == null) return; acc[F.k] = acc[F.k] || [0, 0]; acc[F.k][0] += t * v; acc[F.k][1] += t; }); });
+  const prof = { n: [...porPol.keys()].some(L => L.modelo) ? 'modelo' : perfilDesmonte(c.fe).n }; AVG_FIELDS.forEach(F => { prof[F.k] = acc[F.k] ? acc[F.k][0] / acc[F.k][1] : null; });
+  const dDes = Math.round(tDes / (aDes * banco) * 1000) / 1000, feDes = Math.round(feW / tDes * 100) / 100;
+  let tMin = null;
+  if (r.tonMetodo === 'area' && densProm) tMin = Math.max(0, (area - aDes)) * banco * densProm;
+  else if (r.tonnage) tMin = r.tonnage;
+  if (tMin == null) { r.dil = { area: aDes, t: tDes, sinTon: true, fe: feDes }; return r; }
+  const tot = tMin + tDes;
+  AVG_FIELDS.forEach(F => { const x = r.fields[F.k]; const vd = prof[F.k]; if (!x) return; if (x.mean == null) { if (vd != null && r.n === 0) x.mean = vd; return; } if (vd == null) return; x.sinDil = x.mean; x.mean = (x.mean * tMin + vd * tDes) / tot; });
+  r.dil = { area: aDes, t: tDes, tMin, pct: 100 * tDes / tot, fe: feDes, dens: dDes, perfilN: prof.n, n: des.length };
+  r.tonnage = tot;
+  return r;
+}
+(() => {
+  const ids = ['desOn', 'desFe', 'desDens'];
+  try { const g = JSON.parse(localStorage.getItem('bhl-des') || 'null'); if (g) ids.forEach(id => { if (g[id] != null && $(id)) { if (id === 'desOn') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
+  const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'desOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-des', JSON.stringify(o)); } catch (e) {} t2._perfil = null; computeT2(); pv.draw(); };
+  ids.forEach(id => $(id) && $(id).addEventListener('change', upd));
+})();
 function computeT2() {
   t2.result = null;
   const tiles = $('t2Tiles');
   if (t2.viewing) { const a = t2.avs.find(a => a.id === t2.viewing); renderTiles(a.result, `${fmtDate(a.fecha)}${a.nombre ? ' · ' + a.nombre : ''}`); setMsg('t2Msg', '', `Viendo el avance guardado (${a.projectNames.join(' + ')}). Toca el plano para volver al avance nuevo.`); $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = false; paintPanel(); return; }
+  if (t2.holes.length && !t2.sel.size && t2.shapes.length && desCfg().on) {
+    // avance solo en desmonte (sin taladros): tonelaje y ley del desmonte
+    const banco = num('avBanco') || 12, shapes = t2.shapes.map(s => s.pts), area = shapes.reduce((s, P) => s + polyArea(P), 0);
+    const base = { n: 0, nEst: 0, estPct: 0, keys: [], rows: [], projectIds: t2.projs.map(p => p.id), projectNames: t2.projs.map(p => p.name), tonnage: null, tonMetodo: null, wsum: 0, area, banco, fields: Object.fromEntries(AVG_FIELDS.map(F => [F.k, { mean: null, n: 0 }])) };
+    const r = aplicarDilucion(base, shapes, banco, area, null);
+    if (r.dil && r.dil.t) {
+      // solo desmonte: el tonelaje es el del desmonte y la ley la del desmonte
+      const prof = perfilDesmonte(r.dil.fe); AVG_FIELDS.forEach(F => { r.fields[F.k].mean = prof[F.k]; });
+      r.tonnage = r.dil.t; r.dil.pct = 100; r.dil.tMin = 0;
+      t2.result = r; renderTiles(r, 'Avance nuevo · solo desmonte');
+      setMsg('t2Msg', 'warn', `Este avance cae solo en desmonte (polígonos sin taladros): ${Math.round(r.dil.t).toLocaleString('es-PE')} t con Fe ${r.dil.fe} supuesto.`);
+      $('btnSaveAv').disabled = false; $('btnCopyAv').disabled = false; paintPanel(); return;
+    }
+  }
   if (!t2.holes.length || !t2.sel.size) { tiles.innerHTML = ''; $('btnSaveAv').disabled = true; $('btnCopyAv').disabled = true; setMsg('t2Msg', '', t2.holes.length && !t2.shapes.length ? 'Dibuja el polígono del avance en el plano.' : t2.shapes.length ? 'Los polígonos no tienen taladros de los proyectos marcados.' : ''); paintPanel(); return; }
   const keys = [...t2.sel];
   const items = [], pending = [], noLey = [], repeated = [];
@@ -3795,10 +4262,13 @@ function computeT2() {
   const conDens = i => { const r = densDe(i.ley); dens[r.src]++; if (r.src !== 'medida' && r.d != null) i.ley = Object.assign({}, i.ley, { density: r.d, densSrc: r.src }); return i; };
   items.forEach(conDens);
   // Taladros sin ley: estimación por inverso a la distancia (si está activada)
-  const est = idwEstimar(noLey.concat(pending));
-  t2.estBy = est.by;
+  // V51: taladros sin ley dentro de un polígono de desmonte (ningún taladro con ley adentro): toman la ley del desmonte
+  const desH = taladrosDesmonte(noLey.concat(pending)), nReales = items.length;
+  desH.items.forEach(i => items.push(i));
+  const est = idwEstimar(noLey.concat(pending).filter(k => !desH.by.has(k)), nReales);
+  t2.estBy = desH.by.size ? new Map([...est.by, ...desH.by]) : est.by;
   est.items.forEach(i => { if (i.ley.fe != null) i.ley.density = Math.round(densFe(i.ley.fe) * 1000) / 1000; items.push(i); });
-  const noEst = noLey.concat(pending).filter(k => !est.by.has(k));
+  const noEst = noLey.concat(pending).filter(k => !est.by.has(k) && !desH.by.has(k));
   // Misma profundidad para todos los taladros: el peso de cada uno es su densidad (× B × E × H para el tonelaje)
   const H = num('avH'), B = H ? num('avB') : null, E = H ? num('avE') : null;
   const uni = arr => arr.map(i => ({ hole: Object.assign({}, i.hole, { depth: H || 1 }), ley: i.ley }));
@@ -3844,15 +4314,21 @@ function computeT2() {
   }
   const pids = [...new Set(items.map(i => i.hole.pid))];
   const wEst = w.rows.filter(r => r.ley.est).reduce((s, r) => s + r.w, 0);
-  t2.result = { dens, tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est ? { est: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  t2.result = { dens, tonMetodo, area: area || null, banco, densProm, qc: qcBad.length || qcWarn.length ? { bad: qcBad, warn: qcWarn } : null, nEst: est.items.length, estPct: w.wsum ? 100 * wEst / w.wsum : 0, idw: est.items.length ? idwCfg() : null, n: items.length, keys: items.map(i => i.hole.ck), projectIds: pids, projectNames: pids.map(id => (t2.projs.find(p => p.id === id) || {}).name), tonnage: w.tonnage, wsum: w.wsum, B, E, H, profUnica: true, fields, groups, weighted, depthDef: w.depthDef, densDef: w.densDef, rows: w.rows.map(r => Object.assign({ ck: r.hole.ck, id: r.hole.id, pname: r.hole.pname, depth: r.depth, density: r.density, w: r.w }, r.ley.est || r.ley.des ? { [r.ley.des ? 'des' : 'est']: 1, ley: Object.fromEntries(AVG_FIELDS.map(F => [F.k, r.ley[F.k]]).filter(x => x[1] != null)), estN: r.ley.estN, estD: r.ley.estD } : {})) };
+  aplicarDilucion(t2.result, t2.shapes.map(s => s.pts), banco, area, densProm);
+  if (t2.result.dil && !t2.result.dil.sinTon) t2.result.tonMetodo = (t2.result.tonMetodo || 'area') + '+desmonte';
   renderTiles(t2.result, (pids.length > 1 ? `Avance nuevo · ${pids.length} proyectos` : 'Avance nuevo') + (weighted ? ' · con pesos' : ''));
   const notes = [];
   if (pids.length > 1) notes.push(`Incluye ${t2.result.projectNames.join(' + ')}.`);
+  { const d = t2.result.dil; if (d && !d.sinTon) notes.push(`Dilución: ${Math.round(d.t).toLocaleString('es-PE')} t de desmonte (${d.pct.toFixed(0)} % del tonelaje, ${Math.round(d.area).toLocaleString('es-PE')} m² en polígonos sin taladros) con Fe ${d.fe} y densidad ${d.dens}${d.perfilN === 'modelo' ? '; leyes del bloque del modelo de MinePlan' : d.perfilN ? `; FeO, S y demás del promedio de ${d.perfilN} muestras de tu base con ese Fe` : '; sin muestras parecidas en tu base: solo se diluye el Fe'}.`); else if (d && d.sinTon) notes.push(`El avance entra ${Math.round(d.area)} m² en desmonte, pero falta el tonelaje del mineral para calcular la dilución.`); }
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
   if (qcWarn.length) notes.push(`Revisar (poco común): ${qcWarn.slice(0, 6).join(' · ')}${qcWarn.length > 6 ? ` y ${qcWarn.length - 6} más` : ''}.`);
-  if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado).`);
+  if (desH.items.length) notes.push(`${desH.items.length} taladro(s) sin ley dentro de polígonos de desmonte (${desH.pols.join(', ')}): entran con la ley del desmonte, Fe ${desH.fe} (marcados con *).`);
+  if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado). Solo con vecinos del mismo límite.`);
+  if (t2.result.estPct > 50) notes.unshift(`⚠ CUIDADO: el ${t2.result.estPct.toFixed(0)} % de este promedio es ESTIMADO, no medido. Revisa que la zona sea la misma (mineral o desmonte) antes de guardar.`);
+  if (t2.idwInfo && t2.idwInfo.sinReales && noLey.concat(pending).length) notes.unshift('Este avance no tiene ninguna ley real y no hay límites cargados que separen mineral de desmonte: no se estima nada. Carga los límites (DXF) para que la estimación use solo vecinos de la misma zona.');
   const pendR = pending.filter(k => noEst.includes(k)), noLeyR = noLey.filter(k => noEst.includes(k));
   if (pendR.length) notes.push(`${pendR.length} taladro(s) sin resultados de laboratorio (no entran): ${lista(pendR)}.`);
   if (noLeyR.length) notes.push(`${noLeyR.length} taladro(s) sin muestra en la base (no entran).`);
@@ -3861,7 +4337,7 @@ function computeT2() {
   if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · ${densTxt()}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
-  setMsg('t2Msg', pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
+  setMsg('t2Msg', t2.result.estPct > 50 ? 'err' : pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
   t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: !H };
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
@@ -3873,15 +4349,45 @@ function sortIds(ids) { return ids.slice().sort(sortNum); }
 
 function renderTiles(r, title) {
   const f = (v, d) => fmt(v, d, '—');
-  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
+  $('t2Tiles').innerHTML = `<div class="t head"><span class="k">Taladros${r.dil && r.dil.t ? ` · <b class="dilt">desmonte ${Math.round(r.dil.pct || 0)} %</b>` : ''}${r.nEst ? ` · <b class="estw">${r.nEst} estimado${r.nEst > 1 ? 's' : ''} (${Math.round(r.estPct)} %)</b>` : ''}</span><span class="v">${r.n}</span><span class="n">${esc(title)}</span></div>` +
     `<div class="t head"><span class="k">${r.tonnage ? 'Tonelaje' : 'Peso'}</span><span class="v">${r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') : r.wsum ? Math.round(r.wsum).toLocaleString('es-PE') : '—'}</span><span class="n">${r.tonnage ? (r.tonMetodo === 'area' ? `t · ${Math.round(r.area).toLocaleString('es-PE')} m² × ${r.banco} m × ${r.densProm.toFixed(2)}` : 't · dens × B × E × prof') : 'densidad · misma prof. para todos'}</span></div>` +
     AVG_FIELDS.map(F => { const x = r.fields[F.k] || { n: 0 }; return `<div class="t"><span class="k">${F.label}</span><span class="v">${f(x.mean, F.dec)}</span><span class="n">${x.n ? `n ${x.n} · simple ${f(x.simple, F.dec)}` : 'sin datos'}</span></div>`; }).join('');
 }
 
+// V44 (C-02): un solo guardado a la vez. Bandera lógica + botón desactivado; el segundo clic se rechaza.
+let guardandoAvance = false;
+function bloquearGuardarAv(on) {
+  ['btnSaveAv', 'fsSave', 'mSave'].forEach(id => { const b = document.getElementById(id); if (b) { if (on) { b.dataset.guardando = '1'; b.disabled = true; } else { delete b.dataset.guardando; } } });
+  if (!on) { const hay = !!(t2.result && t2.sel && t2.sel.size && !t2.viewing); ['btnSaveAv', 'fsSave', 'mSave'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !hay; }); try { paintPanel(); } catch (e) {} }
+}
 $('btnSaveAv').addEventListener('click', async () => {
+  if (guardandoAvance) { setMsg('t2Msg', 'err', 'Ya se está guardando este avance. Espera un momento.'); return; }
   if (!t2.result) return;
+  const b0 = $('btnSaveAv');
+  if (t2.result.estPct > 50 && b0.dataset.estOk !== '1') {
+    b0.dataset.estOk = '1'; setTimeout(() => { delete b0.dataset.estOk; }, 8000);
+    setMsg('t2Msg', 'err', `⚠ El ${t2.result.estPct.toFixed(0)} % de este avance es ESTIMADO por inverso a la distancia, no medido. Si la zona es de otro material (por ejemplo desmonte), apaga la estimación. Para guardar así, toca «Guardar avance» otra vez.`);
+    flashHint(`⚠ ${t2.result.estPct.toFixed(0)} % estimado. Toca Guardar otra vez para confirmar.`, false);
+    return;
+  }
+  delete b0.dataset.estOk;
+  guardandoAvance = true; bloquearGuardarAv(true);
+  try { await guardarAvanceSeguro(); } finally { guardandoAvance = false; bloquearGuardarAv(false); }
+});
+async function guardarAvanceSeguro() {
   const fecha = $('avFecha').value || todayISO();
   const rec = { id: 'A' + Date.now() + Math.random().toString(36).slice(2, 6), projectIds: t2.result.projectIds, projectNames: t2.result.projectNames, fecha, nombre: $('avNombre').value.trim(), polys: currentShapes(), shapes: t2.shapes.map(s => ({ pts: s.pts, pid: s.pid || '', w: s.w, lim: s.lim || null })), tipo: $('avTipo').value.trim(), tipoMat: matAuto(t2.result), obs: $('avObs').value.trim(), poly: [], keys: t2.result.keys, result: t2.result, createdAt: Date.now() };
+  // Segunda protección: justo antes de escribir, revisar contra lo que está guardado AHORA (no contra lo calculado antes)
+  const guardados = ((await dbAll('avances')) || []).map(normAvance);
+  const mios = new Set(rec.keys);
+  const igual = guardados.find(a => a.keys.length === rec.keys.length && a.keys.every(k => mios.has(k)));
+  if (igual) { setMsg('t2Msg', 'err', 'Este avance ya fue registrado. No se realizará un segundo guardado.'); flashHint('Este avance ya fue registrado. No se realizará un segundo guardado.', false); return; }
+  const choques = guardados.filter(a => a.keys.some(k => mios.has(k)));
+  if (choques.length) {
+    const n = rec.keys.filter(k => choques.some(a => a.keys.includes(k))).length;
+    setMsg('t2Msg', 'err', `No se guardó: ${n} taladro(s) ya están en otro avance (${choques.map(a => fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : '')).join(', ')}). Un taladro no puede contarse dos veces. Vuelve a dibujar el avance sin esos taladros.`);
+    return;
+  }
   const ok = await dbSave('avances', rec);
   if (!ok) { setMsg('t2Msg', 'err', 'No se pudo guardar el avance en esta PC.'); return; }
   t2.shapes = []; t2.draft = []; t2.manOn = new Set(); t2.manOff = new Set(); t2.sel = new Set(); t2.groups = [];
@@ -3889,7 +4395,7 @@ $('btnSaveAv').addEventListener('click', async () => {
   await loadLibrary();
   const okTxt = `Avance del ${fmtDate(fecha)} guardado con ${rec.result.n} taladros (${rec.projectNames.join(' + ')}).`;
   setMsg('t2Msg', 'ok', okTxt); paintPanel(); flashHint('✓ ' + okTxt, true);
-});
+}
 
 function summaryText(r, fecha, nombre, names) {
   const f = (v, d) => fmt(v, d, '-');
@@ -3978,8 +4484,8 @@ $('btnHistXlsx').addEventListener('click', async () => {
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true }))];
   t2.avs.forEach(a => (a.result.rows || []).forEach(x => {
     const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id));
-    const l = x.est ? x.ley : (t2.leyBy.get(ck) || {});
-    det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id + (x.est ? ' (estimado)' : ''), { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }].concat(AVG_FIELDS.map(F => numCell(l[F.k], F.dec))));
+    const l = x.est || x.des ? x.ley : (t2.leyBy.get(ck) || {});
+    det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id + (x.est ? ' (estimado)' : x.des ? ' (desmonte)' : ''), { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }].concat(AVG_FIELDS.map(F => numCell(l[F.k], F.dec))));
   }));
   const blob = await makeXlsx([{ name: 'Avances', rows: sh1 }, { name: 'Detalle por taladro', rows: det }]);
   save(`Avances_${exportName()}.xlsx`, blob, $('histMsg'));
@@ -4032,7 +4538,7 @@ $('btnReporte').addEventListener('click', async () => {
   }
   const det = [['Fecha', 'Avance', 'Proyecto', 'Taladro', 'Profundidad (m)', 'Densidad', 'Tonelaje (t) / peso'].concat(AVG_FIELDS.map(F => F.label)).map(h => ({ v: h, bold: true, fill: AZ, border: true, align: 'center' }))];
   avs.forEach(a => (a.result.rows || []).forEach(x => {
-    const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id)); const l = x.est ? x.ley : (t2.leyBy.get(ck) || {});
+    const ck = x.ck || (a.projectIds[0] + '|' + keyOf(x.id)); const l = x.est || x.des ? x.ley : (t2.leyBy.get(ck) || {});
     det.push([fmtDate(a.fecha), a.nombre || '', x.pname || a.projectNames[0], x.id, { v: Number(x.depth.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.density.toFixed(2)), t: 'n', dec: 2 }, { v: Number(x.w.toFixed(2)), t: 'n', dec: 2 }]
       .concat(AVG_FIELDS.map(F => (l[F.k] == null ? '' : F.dec === 'c3' ? { v: Number(fmt(l[F.k], 'c3', '')), t: 'n', dec: (fmt(l[F.k], 'c3', '').split('.')[1] || '').length } : { v: Number(l[F.k].toFixed(F.dec)), t: 'n', dec: F.dec }))));
   }));
@@ -4081,7 +4587,20 @@ function limVisible(L) {
   const c = limMinaNivel(L); if (!c) return true;
   return (!fm || c.mina === fm) && (!fn || c.nivel === fn);
 }
+function drawDesmonte(ctx, v) {
+  if (!desCfg().on) return;
+  poligonosDesmonte().forEach(L => {
+    const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
+    ctx.save(); ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath();
+    ctx.fillStyle = L.mat === 'desmonte' ? 'rgba(138,90,43,.22)' : 'rgba(138,90,43,.12)'; ctx.fill(); ctx.clip();
+    ctx.strokeStyle = 'rgba(138,90,43,.45)'; ctx.lineWidth = 1; const sx0 = v.sx(b.x0), sx1 = v.sx(b.x1), sy0 = v.sy(b.y1), sy1 = v.sy(b.y0);
+    for (let d = sx0 - (sy1 - sy0); d < sx1; d += 9) { ctx.beginPath(); ctx.moveTo(d, sy1); ctx.lineTo(d + (sy1 - sy0), sy0); ctx.stroke(); }
+    ctx.restore();
+    if (v.v.s > 1.2 && !L.modelo) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = '#8a5a2b'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(L.mat === 'desmonte' ? 'DESMONTE' : 'DESMONTE?', v.sx(cx), v.sy(cy) + 12); }
+  });
+}
 function drawLimits(ctx, v) {
+  try { drawDesmonte(ctx, v); } catch (e) {}
   const isMain = L => /rotura|limite|límite/i.test(L.layer);
   // subdivisiones primero; el límite de rotura encima
   t2.lims.slice().sort((a, b) => isMain(a) - isMain(b)).forEach(L => {
@@ -4090,7 +4609,7 @@ function drawLimits(ctx, v) {
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
     ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); if (L.closed) ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
-    if (L.name && v.v.s > 2.5) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
+    if (L.name && v.v.s > 2.5) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; if (L.modelo) { const des = L.mat === 'desmonte', col = des ? '#b07a45' : limColor(L.layer); ctx.globalAlpha = 1; ctx.font = '800 15px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--model').trim() || '#1c2126'; ctx.strokeText(L.name, v.sx(cx), v.sy(cy) - 7); ctx.fillStyle = col; ctx.fillText(L.name, v.sx(cx), v.sy(cy) - 7); if (v.v.s > 3.5) { ctx.font = '600 10.5px system-ui, sans-serif'; const tx = modeloEtiqueta(L.modelo); ctx.strokeText(tx, v.sx(cx), v.sy(cy) + 8); ctx.fillText(tx, v.sx(cx), v.sy(cy) + 8); } } else ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
   });
 }
 function bboxOf(pts) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }); return { x0, y0, x1, y1 }; }
@@ -4100,6 +4619,7 @@ async function loadLimits() {
   const comp = ((await idbGet('limites-comp')) || []).filter(l => !ownFiles.has(l.file));
   const arr = own.concat(comp);
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
+  t2._sinTalFirma = null;
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
 }
@@ -4114,7 +4634,10 @@ function renderLimList() {
     const de = ls[0].compDe;
     const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
       : `<span class="pn">${esc(f)}<small class="limde">👥 lo ve todo el equipo</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
-    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` +
+    marcarSinTaladros();
+    const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
+    const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
+    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
 }
@@ -4130,6 +4653,14 @@ $('limList').addEventListener('click', async e => {
     const arr = prev.map(l => l.compartido ? l : Object.assign({}, l, { compartido: true, _mod: now, _dirty: true }));
     await saveLimites(arr, prev); await loadLimits();
     const m = $('limMsg'); m.className = 'msg ok'; m.textContent = 'Todos tus límites quedan compartidos. Los demás usuarios los verán al sincronizar.';
+    return;
+  }
+  const dm = e.target.closest('button[data-desmat]');
+  if (dm) {
+    const prev = (await idbGet('limites')) || [];
+    const arr = prev.map(l => l.id === dm.dataset.desmat ? Object.assign({}, l, { mat: dm.dataset.v, _mod: undefined, _dirty: true }) : l);
+    arr.forEach(l => { if (l.id === dm.dataset.desmat) l._mod = (typeof ahora === 'function' ? ahora() : Date.now()); });
+    await saveLimites(arr, prev); await loadLimits(); t2._sinTalFirma = null; computeT2(); pv.draw();
     return;
   }
   const sb = e.target.closest('button[data-share]');
@@ -4159,7 +4690,9 @@ async function addLimitFiles(files) {
       else { const tabs = await readTables(f); for (const tb of tabs) { polys = parseCSVPolylines(tb.csv); if (polys.length) break; } }
       if (!polys.length) { errs.push(`${f.name}: no encontré polilíneas (en DXF deben ser polilíneas de 3 o más vértices).`); continue; }
       const keep = arr.filter(l => l.file !== f.name); arr.length = 0; arr.push(...keep);
-      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.layer, name: /\.dxf$/i.test(f.name) ? '' : p.layer, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
+      const proyM = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+      polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.name ? p.layer + (proyM ? ' ' + proyM.replace(/^S\d{2}-/, '') : '') : p.layer, name: /\.dxf$/i.test(f.name) ? '' : (p.name || p.layer), proyM: p.name ? proyM : undefined, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
+      await modeloAplicar(arr);
       added.push(`${f.name}: ${polys.length} polígono(s) en ${new Set(polys.map(p => p.layer)).size} capa(s)`);
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
@@ -4391,7 +4924,7 @@ const ES_APP = (() => {
     return ios || (tactil && (matchMedia('(display-mode: standalone)').matches || innerWidth < 1100));
   } catch (e) { return false; }
 })();
-const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', ajustes: 'Ajustes' };
+const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', ajustes: 'Ajustes' };
 function appTab(at) {
   if (!APP_TIT[at]) at = 'avance';
   document.body.dataset.apptab = at;
@@ -4399,8 +4932,8 @@ function appTab(at) {
   document.querySelectorAll('#appBar button').forEach(b => b.setAttribute('aria-current', b.dataset.at === at ? 'page' : 'false'));
   const aj = at === 'ajustes';
   $('appAjustes').hidden = !aj;
-  if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; pintarAjustes(); }
-  else showTab(at === 'proy' ? 1 : 2);
+  if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; pintarAjustes(); }
+  else showTab(at === 'proy' ? 1 : at === '3d' ? 3 : 2);
   try { localStorage.setItem('bhl-apptab', at); } catch (e) {}
   window.scrollTo(0, 0);
 }
@@ -4486,18 +5019,21 @@ function recomputeLib(refit) {
   const projs = lib.projects.filter(p => V.ids.includes(p.id));
   const clip = vlClipPolys(V.clip);
   const holes = [], matched = new Map(), errs = [];
+  const dupAll = new Map();
   projs.forEach(p => {
     const L = leyesForProject(p); if (L.err) errs.push(L.err);
     const lm = new Map((L.leyes || []).map(l => [l.key, l]));
+    const dg = dupHoleGroups(p.holes); // V44 (C-03)
+    dg.forEach((arr, k) => dupAll.set(p.id + '|' + k, arr.map(h => Object.assign({}, h, { id: p.name + ' ' + h.id }))));
     p.holes.forEach(h => {
       if (clip && !clip.some(P => pointInPoly(h.x, h.y, P))) return;
       const k = p.id + '|' + h.key;
       holes.push(Object.assign({}, h, { key: k, z: h.z || 0 }));
-      const l = lm.get(h.key); if (l) matched.set(k, l);
+      const l = lm.get(h.key); if (l && !dg.has(h.key)) matched.set(k, l);
     });
   });
   state.rb = { holes, bad: [], dupIds: [] }; state.holes = holes; state.leyes = [...matched.values()];
-  state.m = { matched, dups: [], orphans: [], noLey: holes.filter(h => !matched.has(h.key)) };
+  state.m = { matched, dups: [], orphans: [], noLey: holes.filter(h => !matched.has(h.key)), dupHoles: dupAll };
   state.P = layout(holes, matched, opts()); state.pc = null; state.vlErrs = [...new Set(errs)];
   state.vlClipPolys = clip;
   state.vlSup = null;
@@ -4748,14 +5284,29 @@ function idwFuentes(c) {
   if (c.src !== 'nivel') { if (!t2.supData) supCalc(); (t2.supData.holes || []).forEach(h => { if (h.l) pts.push({ x: h.x, y: h.y, l: qcLimpia(h.l, qcLey(h.l)), sup: true }); }); }
   return pts;
 }
-function idwEstimar(keys) {
+// Dominio geológico de un punto = el límite cerrado visible más chico que lo contiene ('' = fuera de todos).
+// La estimación NUNCA mezcla taladros de dominios distintos (mineral con desmonte, una subdivisión con otra).
+function limDominios() {
+  return (t2.lims || []).filter(L => L.closed && L.pts && L.pts.length >= 3 && !t2.limOff.has(L.layer) && limVisible(L)).sort((a, b) => a.area - b.area);
+}
+function dominioDe(x, y, doms) {
+  for (const L of doms) { const b = L.bb; if (b && (x < b.x0 || x > b.x1 || y < b.y0 || y > b.y1)) continue; if (pointInPoly(x, y, L.pts)) return String(L.id); }
+  return '';
+}
+function idwEstimar(keys, reales) {
   const c = idwCfg(), by = new Map(), items = [];
+  t2.idwInfo = { cruces: 0, sinReales: false };
   if (!c.on || !keys.length) return { by, items };
+  const doms = limDominios();
+  // Sin ninguna ley real en el avance y sin límites que separen mineral de desmonte, no se estima:
+  // no hay forma de saber si los vecinos son del mismo material.
+  if (reales != null && reales === 0 && !doms.length) { t2.idwInfo.sinReales = true; return { by, items }; }
   const pts = idwFuentes(c), R2 = c.r * c.r, RS2 = c.rs * c.rs;
+  const domCache = new Map(); const dom = (x, y) => { const k = x + ',' + y; if (!domCache.has(k)) domCache.set(k, dominioDe(x, y, doms)); return domCache.get(k); };
   keys.forEach(k => {
     const h = t2.holeBy.get(k); if (!h) return;
-    const near = [];
-    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 <= (q.sup ? RS2 : R2)) near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
+    const near = []; const dh = doms.length ? dom(h.x, h.y) : '';
+    pts.forEach(q => { const dx = q.x - h.x, dy = q.y - h.y, d2 = dx * dx + dy * dy; if (d2 > (q.sup ? RS2 : R2)) return; if (doms.length && dom(q.x, q.y) !== dh) { t2.idwInfo.cruces++; return; } near.push({ q, d: Math.max(0.5, Math.sqrt(d2)) }); });
     near.sort((a, b) => a.d - b.d); const use = near.slice(0, c.max);
     if (use.length < c.min) return;
     const l = { key: h.key, grupo: h.id, est: true, estN: use.length, estD: +use[use.length - 1].d.toFixed(1) };
@@ -4785,7 +5336,7 @@ function qcMarca(ctx, x, y, r, qs) {
 function leyesNuevas(a) {
   const shapes = avShapes(a); if (!shapes.length) return { n: 0, est: 0 };
   const own = new Set(a.keys), otros = new Set(); lib.avances.forEach(x => { if (x.id !== a.id) x.keys.forEach(k => otros.add(k)); });
-  const estK = new Set((a.result.rows || []).filter(r => r.est).map(r => r.ck));
+  const estK = new Set((a.result.rows || []).filter(r => r.est || r.des).map(r => r.ck));
   let n = 0, est = 0;
   t2.holes.forEach(h => {
     if (!a.projectIds.includes(h.pid) || otros.has(h.ck)) return;
@@ -4913,13 +5464,15 @@ async function cargarTodo(files) {
   const res = $('cargaRes'), filas = [];
   const fila = (ic, nombre, txt, err) => { filas.push(`<div class="r${err ? ' err' : ''}"><span>${ic}</span><div><b>${esc(nombre)}</b><small>${txt}</small></div></div>`); res.innerHTML = filas.join(''); };
   res.innerHTML = '<div class="r"><span>⏳</span><div><b>Leyendo archivos…</b></div></div>';
-  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [] };
+  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [], topo: [], mod: [] };
   for (const f of files) {
     try {
+      if (/\.msr$/i.test(f.name)) { grupos.topo.push(f); continue; }
       if (/\.(dxf|dwg)$/i.test(f.name)) { grupos.lim.push(f); continue; }
       if (!/\.xlsx?$/i.test(f.name)) { const head = decodeBytes(await f.slice(0, 4000).arrayBuffer()); if (isBaseTable(parseQuotedCSV(head.slice(0, head.lastIndexOf('\n') + 1 || head.length)))) { grupos.base.push(f); continue; } }
       const tabs = await readTables(f);
       if (tabs.some(t => isBaseTable(t.csv))) { grupos.base.push(f); continue; }
+      if (tabs.some(t => esResModelo(t.csv))) { grupos.mod.push(f); continue; }
       const t = tabs.find(t => detectRole(t.csv));
       const role = t ? detectRole(t.csv) : null;
       if (role === 'bh') { if (pareceLimite(f, t.csv)) grupos.lim.push(f); else grupos.bh.push(f); }
@@ -4928,7 +5481,7 @@ async function cargarTodo(files) {
     } catch (e) { grupos.mal.push(f); }
   }
   filas.length = 0; res.innerHTML = '';
-  for (const f of grupos.base) { await loadBaseFile(f); fila(state.base ? '📊' : '⚠️', f.name, state.base ? `Base de leyes cargada · ${state.base.projects.size.toLocaleString('es-PE')} proyectos. Se actualizaron las leyes de tus proyectos guardados.` : esc($('loadMsg').textContent), !state.base); }
+  for (const f of grupos.base) { const okB = await loadBaseFile(f); fila(okB ? '📊' : '⚠️', f.name, okB ? `Base de leyes cargada · ${state.base.projects.size.toLocaleString('es-PE')} proyectos. Se actualizaron las leyes de tus proyectos guardados.` : esc($('loadMsg').textContent), !okB); }
   const nuevos = [];
   if (grupos.bh.length) {
     const antes = new Set(lib.projects.map(p => p.id));
@@ -4940,6 +5493,8 @@ async function cargarTodo(files) {
   }
   if (grupos.ley.length) { await handleFiles(grupos.ley, 'ley'); grupos.ley.forEach(f => fila('🧪', f.name, 'Leyes de un proyecto: se abrieron en la pestaña 1 junto con sus taladros. Pulsa «Guardar proyecto» allí para guardarlas.')); }
   if (grupos.lim.length) { await addLimitFiles(grupos.lim); const m = $('limMsg').textContent; grupos.lim.forEach(f => { const part = m.split(' · ').find(x => x.startsWith(f.name)) || ''; const err = /no se puede|error|sin polígonos|no encontré/i.test(part); fila(err ? '⚠️' : '📐', f.name, esc(part.replace(f.name + ': ', '') || 'Límites cargados'), err); }); }
+  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _P.csv (polígonos de los bloques) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
+  for (const f of grupos.topo) { try { const r = await cargarTopo(f); fila('⛰', f.name, `Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos). Mírala en la pestaña 2 con «⛰ Topo».`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   grupos.mal.forEach(f => fila('❓', f.name, 'No reconocí este archivo. Debe ser una base de leyes, un CSV/Excel de taladros (ID, Este, Norte, Cota), un CSV de leyes o un DXF de límites.', true));
   if (state.base) refrescarCopias();
   cargaEstado();
@@ -5210,6 +5765,7 @@ $('ctrlTraer').addEventListener('click', async () => {
       const rec = buildProjectRecord(null, fname, holes, code, found && found.how !== 'alias' ? found : null, null);
       rec.tipo = ctrlTipo(p); rec.origen = 'BlastHole Control';
       const r = await saveProjectRecord(rec);
+      if (r.motivo) { out.push(`${p.project_code}: ${r.motivo}`); continue; }
       out.push(`${p.project_code}: ${TIPO_TXT[rec.tipo]} · ${r.updated ? 'actualizado (' + r.resumen + ')' : 'guardado'} · ${holes.length} taladros`);
       nuevos.push(rec.id);
     } catch (e) { out.push(`${p.project_code}: ${e.message}`); }
@@ -5324,6 +5880,681 @@ async function respaldoAviso() {
 }
 setTimeout(() => { try { respaldoAviso(); } catch (e) {} }, 3000);
 
+
+// ===== GPS en el frente (solo iPhone / iPad) =====
+// WGS84 -> UTM (zona por longitud; hemisferio sur con 10 000 000 m). Calibración opcional con un punto conocido.
+function wgsAUtm(lat, lon) {
+  const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996, e2 = f * (2 - f), ep2 = e2 / (1 - e2);
+  const zona = Math.floor((lon + 180) / 6) + 1, lon0 = ((zona - 1) * 6 - 180 + 3) * Math.PI / 180;
+  const φ = lat * Math.PI / 180, λ = lon * Math.PI / 180;
+  const N = a / Math.sqrt(1 - e2 * Math.sin(φ) ** 2), T = Math.tan(φ) ** 2, C = ep2 * Math.cos(φ) ** 2, A = Math.cos(φ) * (λ - lon0);
+  const M = a * ((1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * φ - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * φ) + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * φ) - (35 * e2 ** 3 / 3072) * Math.sin(6 * φ));
+  const x = k0 * N * (A + (1 - T + C) * A ** 3 / 6 + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * A ** 5 / 120) + 500000;
+  let y = k0 * (M + N * Math.tan(φ) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A ** 4 / 24 + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * A ** 6 / 720));
+  if (lat < 0) y += 10000000;
+  return { x, y, zona };
+}
+const gps = { on: false, watch: null, pos: null, seguir: true, calib: false, cal: null, notas: [] };
+try { gps.cal = JSON.parse(localStorage.getItem('bhl-gps-cal') || 'null'); } catch (e) {}
+(async () => { try { gps.notas = (await idbGet('bhl-notas')) || []; } catch (e) {} })();
+function gpsXY() { if (!gps.pos) return null; const u = wgsAUtm(gps.pos.lat, gps.pos.lon); return { x: u.x + (gps.cal ? gps.cal.dx : 0), y: u.y + (gps.cal ? gps.cal.dy : 0), acc: gps.pos.acc, zona: u.zona }; }
+function gpsDonde(p) {
+  if (!p) return '';
+  const doms = limDominios ? limDominios() : [];
+  const L = doms.find(L => pointInPoly(p.x, p.y, L.pts));
+  const zona = L ? ((typeof esDesmonte === 'function' && esDesmonte(L)) ? 'DESMONTE' : (L.name || L.layer)) : 'fuera de los límites';
+  const proj = t2.projs.find(q => { const b = q.holes.reduce((m, h) => ({ x0: Math.min(m.x0, h.x), x1: Math.max(m.x1, h.x), y0: Math.min(m.y0, h.y), y1: Math.max(m.y1, h.y) }), { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }); return p.x >= b.x0 - 10 && p.x <= b.x1 + 10 && p.y >= b.y0 - 10 && p.y <= b.y1 + 10; });
+  const cerca = t2.holes.map(h => ({ h, d: Math.hypot(h.x - p.x, h.y - p.y) })).filter(o => o.d <= Math.max(15, p.acc || 0)).sort((a, b) => a.d - b.d).slice(0, 4)
+    .map(o => { const l = t2.leyBy.get(o.h.ck); return `<b>${esc(o.h.id)}</b> ${l && l.fe != null ? 'Fe ' + fmt(l.fe, 'c3', '') : 'sin ley'} · ${o.d.toFixed(0)} m`; });
+  return `<div>Zona: <b>${esc(zona)}</b>${proj ? ` · proyecto <b>${esc(proj.name)}</b>` : ''}</div>` + (cerca.length ? `<div class="gps-cerca">Cerca: ${cerca.join(' · ')}</div>` : '<div class="note">Sin taladros a menos de 15 m.</div>');
+}
+function gpsPintar() {
+  const c = $('gpsCard'); if (!c) return;
+  c.hidden = !gps.on;
+  if (!gps.on) return;
+  const p = gpsXY();
+  $('gpsInfo').innerHTML = !gps.pos ? 'Buscando señal GPS… (sal a cielo abierto)' :
+    `<div>Precisión <b>± ${Math.round(gps.pos.acc)} m</b>${gps.cal ? ' · calibrado' : ' · sin calibrar'}${gps.pos.acc > 15 ? ' <span class="warnc">(baja: espera unos segundos)</span>' : ''}</div><div class="note">E ${p.x.toFixed(1)} · N ${p.y.toFixed(1)}</div>` + gpsDonde(p);
+  $('gpsCalBtn').textContent = gps.calib ? 'Toca el plano donde estás…' : gps.cal ? 'Recalibrar' : 'Calibrar';
+  $('gpsSeguir').setAttribute('aria-pressed', String(gps.seguir));
+}
+function gpsIniciar() {
+  if (!('geolocation' in navigator)) { flashHint('Este equipo no tiene GPS disponible.'); return; }
+  gps.on = true; gpsPintar();
+  gps.watch = navigator.geolocation.watchPosition(pos => {
+    gps.pos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: pos.timestamp };
+    const p = gpsXY();
+    if (gps.seguir && p && pv.W) { pv.v.ox = p.x - pv.W / 2 / pv.v.s; pv.v.oy = p.y + pv.H / 2 / pv.v.s; if (pv.v.s < 4) pv.v.s = 6; pv.v.ox = p.x - pv.W / 2 / pv.v.s; pv.v.oy = p.y + pv.H / 2 / pv.v.s; }
+    gpsPintar(); pv.draw();
+  }, err => {
+    $('gpsInfo').innerHTML = `<span class="errc">${err.code === 1 ? 'Diste «No permitir» a la ubicación. Actívala en Ajustes del iPhone → Privacidad → Localización → Safari (o la app) → «Al usar la app».' : 'No se pudo leer el GPS: ' + esc(err.message)}</span>`;
+  }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+  $('gpsBtn').setAttribute('aria-pressed', 'true');
+}
+function gpsParar() { if (gps.watch != null) navigator.geolocation.clearWatch(gps.watch); gps.watch = null; gps.on = false; gps.calib = false; $('gpsBtn').setAttribute('aria-pressed', 'false'); gpsPintar(); pv.draw(); }
+pv.after = (ctx, v) => {
+  // notas de campo
+  (gps.notas || []).forEach(n => { const x = v.sx(n.x), y = v.sy(n.y); if (x < -20 || x > v.W + 20 || y < -20 || y > v.H + 20) return; ctx.save(); ctx.fillStyle = n.mat === 'Desmonte' ? '#8a5a2b' : '#0e8fb0'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 18); ctx.lineTo(x + 12, y - 14); ctx.lineTo(x, y - 10); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 18); ctx.stroke(); if (v.v.s > 2) { ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(`${n.mat}${n.txt ? ' · ' + n.txt : ''} (${fmtDate(n.fecha)})`, x + 14, y - 14); } ctx.restore(); });
+  if (!gps.on || !gps.pos) return;
+  const p = gpsXY(); const x = v.sx(p.x), y = v.sy(p.y), r = Math.max(8, p.acc * v.v.s);
+  ctx.save(); ctx.fillStyle = 'rgba(10,132,255,.15)'; ctx.strokeStyle = 'rgba(10,132,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#0a84ff'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+};
+(() => {
+  const wrap = $('cad2wrap'); if (!wrap) return;
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'gpsBtn'; b.className = 'gps-btn'; b.setAttribute('aria-pressed', 'false'); b.title = 'Mi ubicación (GPS)'; b.textContent = '📍';
+  wrap.appendChild(b);
+  const c = document.createElement('div'); c.id = 'gpsCard'; c.className = 'gps-card'; c.hidden = true;
+  c.innerHTML = `<div class="gps-h"><b title="Toca para achicar o agrandar">📍 Estoy aquí ▾</b><button type="button" id="gpsCerrar" aria-label="Apagar GPS">✕</button></div><div id="gpsInfo"></div>
+    <div class="gps-bt"><button type="button" class="btn sec small" id="gpsSeguir" aria-pressed="true">Seguirme</button><button type="button" class="btn sec small" id="gpsCalBtn">Calibrar</button><button type="button" class="btn small" id="gpsNotaBtn">Anotar aquí</button></div>
+    <div class="gps-nota" id="gpsNota" hidden><select id="gpsMat"><option>M1</option><option>M2</option><option>M3</option><option>M4</option><option>M5</option><option>Desmonte</option><option>Mezcla</option></select><input type="text" id="gpsTxt" placeholder="qué ves (opcional)" maxlength="80"><button type="button" class="btn small" id="gpsNotaOk">Guardar</button></div>`;
+  wrap.appendChild(c);
+  b.onclick = () => (gps.on ? gpsParar() : gpsIniciar());
+  $('gpsCerrar').onclick = gpsParar;
+  c.querySelector('.gps-h b').onclick = () => c.classList.toggle('min');
+  $('gpsSeguir').onclick = () => { gps.seguir = !gps.seguir; gpsPintar(); };
+  $('gpsCalBtn').onclick = () => {
+    if (!gps.pos) { flashHint('Espera la señal GPS para calibrar.'); return; }
+    gps.calib = !gps.calib; gps.seguir = false; gpsPintar();
+    if (gps.calib) flashHint('Párate sobre un punto que veas en el plano (un taladro o estaca) y tócalo en el plano.', true);
+  };
+  $('gpsNotaBtn').onclick = () => { if (!gps.pos) { flashHint('Espera la señal GPS para anotar.'); return; } $('gpsNota').hidden = !$('gpsNota').hidden; };
+  $('gpsNotaOk').onclick = async () => {
+    const p = gpsXY(); if (!p) return;
+    gps.notas.push({ id: 'N' + Date.now(), x: p.x, y: p.y, acc: Math.round(p.acc), fecha: todayISO(), hora: new Date().toTimeString().slice(0, 5), mat: $('gpsMat').value, txt: $('gpsTxt').value.trim() });
+    await idbSet('bhl-notas', gps.notas); $('gpsTxt').value = ''; $('gpsNota').hidden = true; flashHint('Nota guardada en el plano.', true); pv.draw();
+  };
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => {
+    if (gps.calib && gps.pos) {
+      const u = wgsAUtm(gps.pos.lat, gps.pos.lon);
+      // si tocó cerca de un taladro, se usa la coordenada exacta del taladro
+      const h = t2.holes.map(h => ({ h, d: Math.hypot(h.x - x, h.y - y) })).sort((a, b) => a.d - b.d)[0];
+      const px = h && h.d * pv.v.s < 20 ? h.h.x : x, py = h && h.d * pv.v.s < 20 ? h.h.y : y;
+      gps.cal = { dx: px - u.x, dy: py - u.y, fecha: new Date().toISOString() };
+      try { localStorage.setItem('bhl-gps-cal', JSON.stringify(gps.cal)); } catch (e) {}
+      gps.calib = false; gps.seguir = true; gpsPintar(); pv.draw();
+      flashHint(`Calibrado (corrección ${Math.round(Math.hypot(gps.cal.dx, gps.cal.dy))} m${h && h.d * pv.v.s < 20 ? ', sobre el taladro ' + h.h.id : ''}).`, true);
+      return;
+    }
+    return tap0(x, y);
+  };
+})();
+
+/* ===== V48: topografía de MinePlan (.msr) ===== */
+const topo = { lista: [], act: '', ant: '', ver: true, dems: new Map(), img: new Map(), dif: null, minados: null };
+const TOPO_MAX = 6, TOPO_POR_MINA = 4, TOPO_CEL = 2, TOPO_BAJA = 1.5;
+// V52: mina desde el nombre (TOPO_M14A_15_10_26, TOPO M14 15.10.26 → 14A, 14)
+function topoMina(nombre) { const m = String(nombre || '').toUpperCase().match(/(?:^|[^A-Z0-9])M(?:INA)?[\s_.-]*0*(\d{1,2}[A-Z]?)(?=[^0-9A-Z]|$)/); return m ? m[1] : ''; }
+const minaDe = t => t.mina || topoMina(t.nombre);
+// deja solo las 4 topografías más nuevas de cada mina en este equipo
+async function topoRecortar() {
+  topo.lista.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  const cuenta = {}, fuera = [];
+  topo.lista.forEach(t => { const k = minaDe(t) || '?'; cuenta[k] = (cuenta[k] || 0) + 1; if (cuenta[k] > TOPO_POR_MINA) fuera.push(t); });
+  for (const q of fuera) { topo.lista = topo.lista.filter(x => x.id !== q.id); await idbSet('topo:' + q.id, null); topo.dems.delete(q.id); topo.img.delete(q.id); }
+  return fuera;
+}
+function topoFecha(nombre, lastMod) {
+  const m = [...String(nombre).matchAll(/(?:^|[^\d])(\d{1,2})[-_.](\d{1,2})[-_.](\d{4}|\d{2})(?!\d)/g)].pop();
+  if (m) { const d = +m[1], mo = +m[2], y = m[3].length === 2 ? 2000 + +m[3] : +m[3]; if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+  return new Date(lastMod || Date.now()).toISOString().slice(0, 10);
+}
+async function topoInit() {
+  topo.lista = ((await idbGet('topos')) || []).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  try { const s = JSON.parse(localStorage.getItem('bhl-topo-sel') || '{}'); topo.act = s.act || ''; topo.ant = s.ant || ''; topo.ver = s.ver !== false; } catch (e) {}
+  topoDefaults();
+}
+function topoDefaults() {
+  const ids = topo.lista.map(t => t.id);
+  if (!ids.includes(topo.act)) topo.act = ids[0] || '';
+  const ma = minaDe(topo.lista.find(t => t.id === topo.act) || {});
+  if (!ids.includes(topo.ant) || topo.ant === topo.act) topo.ant = (topo.lista.find(t => t.id !== topo.act && minaDe(t) === ma) || topo.lista.find(t => t.id !== topo.act) || {}).id || '';
+  try { localStorage.setItem('bhl-topo-sel', JSON.stringify({ act: topo.act, ant: topo.ant, ver: topo.ver })); } catch (e) {}
+}
+async function topoDem(id) {
+  if (!id) return null; if (topo.dems.has(id)) return topo.dems.get(id);
+  const meta = topo.lista.find(t => t.id === id); if (!meta) return null;
+  const Z = await idbGet('topo:' + id); if (!Z) return null;
+  const dem = { x0: meta.x0, y0: meta.y0, cel: meta.cel, W: meta.W, H: meta.H, Z: Z instanceof Float32Array ? Z : new Float32Array(Z) };
+  topo.dems.set(id, dem);
+  for (const k of [...topo.dems.keys()]) if (k !== topo.act && k !== topo.ant && k !== id) { topo.dems.delete(k); topo.img.delete(k); }
+  return dem;
+}
+async function cargarTopo(f) {
+  const buf = await f.arrayBuffer();
+  const t = leerMSR(buf);
+  if (!t || !t.nT) throw new Error('No se encontraron triángulos en el archivo. ¿Es una superficie de MinePlan?');
+  const dem = msrADem(t, TOPO_CEL);
+  const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
+  const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
+  const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const meta = { id, nombre, fecha, mina: topoMina(nombre), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
+  if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
+  topo.lista = topo.lista.filter(x => x.id !== id).concat(meta).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  const borradas = await topoRecortar();
+  await idbSet('topos', topo.lista);
+  if (borradas.some(b => b.id === id)) throw new Error(`Ya hay ${TOPO_POR_MINA} topografías más nuevas de la mina ${meta.mina}: esta no se guardó.`);
+  topo.dems.set(id, dem); topo.img.delete(id); topo.dif = null;
+  topo.ant = topo.act && topo.act !== id ? topo.act : topo.ant; topo.act = id; topoDefaults();
+  await topoCalcMinados(); pv.draw(); topoPintar();
+  try { topoNube(); } catch (e) {}
+  return { fecha, nT: t.nT };
+}
+function topoImagen(id, dem) {
+  if (topo.img.has(id)) return topo.img.get(id);
+  const { W, H, Z, cel } = dem; const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d'), im = cx.createImageData(W, H), d = im.data;
+  let zmin = Infinity, zmax = -Infinity; for (let k = 0; k < Z.length; k++) { const z = Z[k]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
+  const az = 315 * Math.PI / 180, alt = 45 * Math.PI / 180, ce = Math.cos(Math.PI / 2 - alt), se = Math.sin(Math.PI / 2 - alt);
+  const g = (i, j) => { i = Math.max(0, Math.min(W - 1, i)); j = Math.max(0, Math.min(H - 1, j)); const z = Z[j * W + i]; return z; };
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const z = Z[j * W + i]; const o = ((H - 1 - j) * W + i) * 4; if (z !== z) { d[o + 3] = 0; continue; }
+    let zl = g(i - 1, j), zr = g(i + 1, j), zd = g(i, j - 1), zu = g(i, j + 1); if (zl !== zl) zl = z; if (zr !== zr) zr = z; if (zd !== zd) zd = z; if (zu !== zu) zu = z;
+    const dx = (zr - zl) / (2 * cel), dy = (zu - zd) / (2 * cel), sl = Math.atan(1.6 * Math.hypot(dx, dy)), asp = Math.atan2(dy, -dx);
+    let sh = ce * Math.cos(sl) + se * Math.sin(sl) * Math.cos(az - Math.PI / 2 + asp); sh = Math.max(0, Math.min(1, sh));
+    const t = (z - zmin) / Math.max(1, zmax - zmin);
+    const r = 90 + 120 * t, gg = 110 + 80 * t, b = 140 - 40 * t, k = 0.35 + 0.65 * sh;
+    d[o] = r * k; d[o + 1] = gg * k; d[o + 2] = b * k; d[o + 3] = 170;
+  }
+  cx.putImageData(im, 0, 0); topo.img.set(id, cv); return cv;
+}
+function topoDifImagen(D) {
+  const cv = document.createElement('canvas'); cv.width = D.W; cv.height = D.H; const cx = cv.getContext('2d'), im = cx.createImageData(D.W, D.H), d = im.data;
+  for (let j = 0; j < D.H; j++) for (let i = 0; i < D.W; i++) { if (!D.M[j * D.W + i]) continue; const o = ((D.H - 1 - j) * D.W + i) * 4; d[o] = 255; d[o + 1] = 120; d[o + 2] = 0; d[o + 3] = 150; }
+  cx.putImageData(im, 0, 0); return cv;
+}
+pv.before = (ctx, v) => {
+  if (!topo.ver || !topo.act) return;
+  const dem = topo.dems.get(topo.act); if (!dem) return;
+  const img = topoImagen(topo.act, dem);
+  const x = v.sx(dem.x0), y = v.sy(dem.y0 + dem.H * dem.cel), w = dem.W * dem.cel * v.v.s, h = dem.H * dem.cel * v.v.s;
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x, y, w, h);
+  if (topo.dif) { if (!topo.dif.img) topo.dif.img = topoDifImagen(topo.dif); const D = topo.dif; ctx.drawImage(D.img, v.sx(D.x0), v.sy(D.y0 + D.H * D.cel), D.W * D.cel * v.v.s, D.H * D.cel * v.v.s); }
+  ctx.restore();
+};
+(() => {
+  const a0 = pv.after;
+  pv.after = (ctx, v) => {
+    if (topo.ver && topo.minados && topo.minados.set.size && v.v.s > 0.6) {
+      ctx.save(); ctx.strokeStyle = '#5c3b1e'; ctx.lineWidth = Math.max(1.5, Math.min(2.5, v.v.s * 0.15)); const r = Math.max(3, Math.min(7, v.v.s * 0.35));
+      t2.holes.forEach(h => { if (!topo.minados.set.has(h.ck)) return; const x = v.sx(h.x), y = v.sy(h.y); if (x < -10 || x > v.W + 10 || y < -10 || y > v.H + 10) return; ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r); ctx.stroke(); });
+      ctx.restore();
+    }
+    if (a0) a0(ctx, v);
+  };
+})();
+async function topoCalcMinados() {
+  topo.minados = null; const dem = await topoDem(topo.act); if (!dem || !t2.holes.length) return;
+  const set = new Set(); let sinCota = 0, fuera = 0, vivos = 0;
+  t2.holes.forEach(h => {
+    if (!h.z) { sinCota++; return; }
+    const z = demZ(dem, h.x, h.y); if (z == null) { fuera++; return; }
+    const umbral = Math.max(1.5, 0.5 * (h.depth || 6));
+    if (z < h.z - umbral) set.add(h.ck); else vivos++;
+  });
+  topo.minados = { set, sinCota, fuera, vivos };
+}
+function topoTrazar(M, W, H) {
+  // bordes de celdas → anillos cerrados (exteriores, sentido antihorario)
+  const seg = new Map(), key = (i, j) => j * (W + 1) + i, add = (a, b) => { const l = seg.get(a); if (l) l.push(b); else seg.set(a, [b]); };
+  const m = (i, j) => i >= 0 && j >= 0 && i < W && j < H && M[j * W + i];
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    if (!M[j * W + i]) continue;
+    if (!m(i, j - 1)) add(key(i, j), key(i + 1, j));
+    if (!m(i + 1, j)) add(key(i + 1, j), key(i + 1, j + 1));
+    if (!m(i, j + 1)) add(key(i + 1, j + 1), key(i, j + 1));
+    if (!m(i - 1, j)) add(key(i, j + 1), key(i, j));
+  }
+  const anillos = [];
+  while (seg.size) {
+    const ini = seg.keys().next().value; const R = []; let p = ini, g = 0;
+    while (seg.has(p) && g++ < 1e6) { R.push(p); const l = seg.get(p), q = l.pop(); if (!l.length) seg.delete(p); p = q; if (p === ini) break; }
+    if (R.length > 3) anillos.push(R.map(k => [k % (W + 1), Math.floor(k / (W + 1))]));
+  }
+  return anillos;
+}
+function topoSimplificar(P, tol) {
+  if (P.length < 4) return P; const keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1; const st = [[0, P.length - 1]];
+  while (st.length) { const [a, b] = st.pop(); let dm = -1, im = -1; const [ax, ay] = P[a], [bx, by] = P[b], L = Math.hypot(bx - ax, by - ay) || 1e-9;
+    for (let i = a + 1; i < b; i++) { const d = Math.abs((bx - ax) * (ay - P[i][1]) - (ax - P[i][0]) * (by - ay)) / L; if (d > dm) { dm = d; im = i; } }
+    if (dm > tol) { keep[im] = 1; st.push([a, im], [im, b]); } }
+  return P.filter((_, i) => keep[i]);
+}
+async function topoAvance() {
+  const A = await topoDem(topo.act), B = await topoDem(topo.ant);
+  if (!A || !B) return { err: 'Necesitas dos topografías cargadas (la de hoy y una anterior).' };
+  const ma = topo.lista.find(t => t.id === topo.act), mb = topo.lista.find(t => t.id === topo.ant);
+  const cel = A.cel, W = A.W, H = A.H, M = new Uint8Array(W * H), dz = new Float32Array(W * H);
+  let n = 0;
+  for (let j = 0; j < H; j++) { const y = A.y0 + (j + 0.5) * cel; for (let i = 0; i < W; i++) { const za = A.Z[j * W + i]; if (za !== za) continue; const x = A.x0 + (i + 0.5) * cel;
+    const bi = Math.floor((x - B.x0) / B.cel), bj = Math.floor((y - B.y0) / B.cel); if (bi < 0 || bj < 0 || bi >= B.W || bj >= B.H) continue; const zb = B.Z[bj * B.W + bi]; if (zb !== zb) continue;
+    const d = zb - za; if (d > TOPO_BAJA) { M[j * W + i] = 1; dz[j * W + i] = d; n++; } } }
+  // limpieza: quita celdas sueltas (ruido de la triangulación)
+  const M2 = new Uint8Array(W * H);
+  for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) { let c = 0; for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) c += M[(j + b) * W + i + a]; M2[j * W + i] = c >= 5 ? 1 : 0; }
+  // zonas conectadas
+  const lab = new Int32Array(W * H), zonas = []; let L = 0;
+  for (let k = 0; k < W * H; k++) { if (!M2[k] || lab[k]) continue; L++; const st = [k]; lab[k] = L; let nc = 0, vol = 0;
+    while (st.length) { const q = st.pop(); nc++; vol += dz[q] * cel * cel; const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (M2[r] && !lab[r]) { lab[r] = L; st.push(r); } }); }
+    zonas.push({ L, area: nc * cel * cel, vol }); }
+  const grandes = zonas.filter(z => z.area >= 100);
+  const Mf = new Uint8Array(W * H), keepL = new Set(grandes.map(z => z.L)); for (let k = 0; k < W * H; k++) if (keepL.has(lab[k])) Mf[k] = 1;
+  const anillo = R => { let f = 0, dm = -1; R.forEach((q, i) => { const d = (q[0] - R[0][0]) ** 2 + (q[1] - R[0][1]) ** 2; if (d > dm) { dm = d; f = i; } }); return topoSimplificar(R.slice(0, f + 1), 0.6).concat(topoSimplificar(R.slice(f).concat([R[0]]), 0.6).slice(1, -1)); };
+  const polys = topoTrazar(Mf, W, H).map(R => anillo(R).map(([i, j]) => ({ x: A.x0 + i * cel, y: A.y0 + j * cel }))).filter(P => P.length >= 3 && polyArea(P) >= 100 && signedArea(P) > 0);
+  topo.dif = { x0: A.x0, y0: A.y0, cel, W, H, M: Mf, img: null };
+  const area = grandes.reduce((s, z) => s + z.area, 0), vol = grandes.reduce((s, z) => s + z.vol, 0);
+  return { polys, area, vol, ma, mb };
+}
+function signedArea(P) { let s = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) s += (P[j].x * P[i].y - P[i].x * P[j].y); return s / 2; }
+function topoPintar() {
+  const box = $('topoLista'); if (!box) return;
+  $('topoBtn').setAttribute('aria-pressed', topo.act && topo.ver ? 'true' : 'false');
+  if (!topo.lista.length) { box.innerHTML = '<small>Aún no hay topografías. Sube el .msr que te envían (MinePlan): queda guardado en este equipo.</small>'; $('topoAvance').disabled = true; topoInfo(); return; }
+  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b>${minaDe(t) ? 'M' + esc(minaDe(t)) + ' · ' : ''}${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
+  $('topoAvance').disabled = !(topo.act && topo.ant && topo.act !== topo.ant);
+  $('topoVer').checked = topo.ver; topoInfo();
+}
+function topoInfo(extra) {
+  const m = topo.minados, el = $('topoMsg'); if (!el) return;
+  let s = '';
+  if (m && t2.holes.length) s = `Con la topografía «Hoy»: <b>${m.set.size}</b> taladro(s) ya minado(s) (marcados con ✕), ${m.vivos} sin minar` + (m.fuera ? `, ${m.fuera} fuera de la topografía` : '') + (m.sinCota ? `, ${m.sinCota} sin cota en la malla` : '') + '.';
+  else if (topo.act && !t2.holes.length) s = 'Marca un proyecto para ver qué taladros ya se minaron.';
+  el.innerHTML = s + (extra ? (s ? '<br>' : '') + extra : '');
+}
+(() => {
+  const b = $('topoBtn'), pop = $('topoPop'); if (!b || !pop) return;
+  b.onclick = async () => { pop.hidden = !pop.hidden; if (!pop.hidden) { topoPintar(); if (topo.act && !topo.dems.has(topo.act)) { await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw(); } } };
+  $('topoCerrar').onclick = () => { pop.hidden = true; };
+  $('topoVer').onchange = e => { topo.ver = e.target.checked; topoDefaults(); topoPintar(); pv.draw(); };
+  pop.addEventListener('change', async e => {
+    if (e.target.name === 'topoAct') { topo.act = e.target.value; if (topo.ant === topo.act) topo.ant = ''; }
+    else if (e.target.name === 'topoAnt') { topo.ant = e.target.value; if (topo.ant === topo.act) topo.act = ''; }
+    else return;
+    topo.dif = null; topoDefaults(); await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw();
+  });
+  pop.addEventListener('click', async e => {
+    const d = e.target.closest('[data-topodel]'); if (!d) return;
+    const t = topo.lista.find(x => x.id === d.dataset.topodel); if (!t) return;
+    if (d.dataset.ok !== '1') { d.dataset.ok = '1'; d.textContent = '¿Quitar?'; setTimeout(() => { d.dataset.ok = ''; d.textContent = '🗑'; }, 3000); return; }
+    let nota = '';
+    if (t.nube) {
+      try { await rest.rpc('bhl_topo_borrar', { p_id: t.id }); nota = 'Quitada de este equipo y de la nube (ya no la verá el equipo).'; }
+      catch (er) { const oc = (await idbGet('topos-ocultas')) || []; oc.push(t.id); await idbSet('topos-ocultas', oc); nota = 'Quitada solo de este equipo: ' + er.message + '.'; }
+    }
+    topo.lista = topo.lista.filter(x => x.id !== t.id); await idbSet('topos', topo.lista); await idbSet('topo:' + t.id, null); topo.dems.delete(t.id); topo.img.delete(t.id); topo.dif = null;
+    if (nota) setTimeout(() => topoInfo(nota), 50);
+    topoDefaults(); await topoCalcMinados(); topoPintar(); pv.draw();
+  });
+  $('topoFile').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    topoInfo('Leyendo la topografía… (unos segundos)'); await new Promise(r => setTimeout(r, 30));
+    try { const r = await cargarTopo(f); topoInfo(`Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos).`); } catch (er) { topoInfo(`<span class="errc">${esc(er.message)}</span>`); }
+  };
+  $('topoAvance').onclick = async () => {
+    topoInfo('Comparando las dos topografías…'); await new Promise(r => setTimeout(r, 30));
+    const r = await topoAvance(); if (r.err) { topoInfo(`<span class="errc">${esc(r.err)}</span>`); return; }
+    const nf = n => Math.round(n).toLocaleString('es-PE');
+    let txt = `Del ${fmtDate(r.mb.fecha)} al ${fmtDate(r.ma.fecha)} se minó <b>${nf(r.area)} m²</b> (≈ ${nf(r.vol)} m³), en naranja en el plano.`;
+    if (r.ma.fecha < r.mb.fecha) txt += ' <span class="errc">Ojo: «Hoy» es más antigua que «Antes».</span>';
+    if (!r.polys.length) { topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.'); pv.draw(); return; }
+    // se usan como avance solo las zonas que tocan los taladros de los proyectos marcados
+    const enMalla = t2.holes.length ? r.polys.filter(P => t2.holes.some(h => pointInPoly(h.x, h.y, P))) : [];
+    if (enMalla.length) { if (t2.shapes.length) t2.shapes = []; enMalla.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null, topo: true })); t2.viewing = null; selectFromShapes(); computeT2(); if (typeof paintTools === 'function') paintTools(); }
+    txt += enMalla.length ? ` Se dibujó como avance la(s) ${enMalla.length} zona(s) que caen sobre la malla: revisa el polígono y las leyes, y guarda el avance como siempre.` : (t2.holes.length ? ' Ninguna zona cae sobre los taladros de los proyectos marcados.' : ' Marca los proyectos de esa zona para convertirla en avance.');
+    topoInfo(txt); pv.draw();
+  };
+  topoInit().then(() => { topoPintar(); });
+})();
+
+/* ---- V51: topografía liviana en la nube (todo el equipo la ve) ---- */
+// grilla de cotas cada 2 m, en decímetros, guardada como diferencias por fila (Int16) y comprimida: ~1 MB en vez de 118 MB
+function b64De(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function b64A(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function topoEmpacar(m, Z) {
+  let zb = Infinity; for (let k = 0; k < Z.length; k++) if (Z[k] === Z[k] && Z[k] < zb) zb = Z[k]; zb = Math.floor(zb === Infinity ? 0 : zb);
+  const q = new Int16Array(m.W * m.H);
+  for (let j = 0; j < m.H; j++) { let prev = 0; for (let i = 0; i < m.W; i++) { const k = j * m.W + i, z = Z[k]; if (z !== z) { q[k] = -32768; continue; } const v = Math.max(-32767, Math.min(32767, Math.round((z - zb) * 10))); q[k] = v - prev; prev = v; } }
+  const raw = new Uint8Array(q.buffer); let comp = null; try { comp = await deflateRaw(raw); } catch (e) {}
+  return { meta: { mina: minaDe(m), x0: m.x0, y0: m.y0, cel: m.cel, W: m.W, H: m.H, zb, nT: m.nT || 0, fmt: comp ? 'd16z' : 'd16' }, data: b64De(comp || raw) };
+}
+async function topoDesempacar(meta, data) {
+  let u = b64A(data); if (meta.fmt === 'd16z') u = await inflateRaw(u);
+  const q = new Int16Array(u.buffer, u.byteOffset, meta.W * meta.H), Z = new Float32Array(meta.W * meta.H);
+  for (let j = 0; j < meta.H; j++) { let prev = 0; for (let i = 0; i < meta.W; i++) { const k = j * meta.W + i, d = q[k]; if (d === -32768) { Z[k] = NaN; continue; } prev += d; Z[k] = meta.zb + prev / 10; } }
+  return Z;
+}
+async function topoNube() {
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || topo.nubeBusy) return;
+  topo.nubeBusy = true; let cambio = false;
+  try {
+    const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
+    const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
+    // 1) las que vinieron de la nube y alguien quitó
+    for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
+    // 2) subir las de este equipo que aún no están
+    for (const m of topo.lista) {
+      if (remIds.has(m.id)) { if (!m.nube) { m.nube = true; cambio = true; } continue; }
+      if (m.nube) continue;
+      // otro usuario ya subió la misma topografía (mismo nombre): se usa la de la nube, sin duplicar
+      const gem = rem.find(r => String(r.nombre).toUpperCase() === String(m.nombre).toUpperCase() && !topo.lista.some(x => x.id === r.id));
+      if (gem) {
+        const Zl = await idbGet('topo:' + m.id); await idbSet('topo:' + gem.id, Zl); await idbSet('topo:' + m.id, null);
+        if (topo.dems.has(m.id)) { topo.dems.set(gem.id, topo.dems.get(m.id)); topo.dems.delete(m.id); } topo.img.delete(m.id);
+        if (topo.act === m.id) topo.act = gem.id; if (topo.ant === m.id) topo.ant = gem.id;
+        m.id = gem.id; m.nube = true; m.de = gem.mio ? '' : gem.de; cambio = true; continue;
+      }
+      const Z = await idbGet('topo:' + m.id); if (!Z) continue;
+      const pk = await topoEmpacar(m, Z instanceof Float32Array ? Z : new Float32Array(Z));
+      await rest.rpc('bhl_topo_subir', { p_id: m.id, p_nombre: m.nombre, p_fecha: m.fecha, p_meta: pk.meta, p_data: pk.data });
+      m.nube = true; m.kb = Math.round(pk.data.length / 1024); cambio = true;
+    }
+    // 3) bajar las más recientes que falten en este equipo
+    const tengo = new Set(topo.lista.map(m => m.id));
+    const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    for (const r of faltan) {
+      const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
+      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
+      const Z = await topoDesempacar(r.meta, data);
+      await idbSet('topo:' + r.id, Z);
+      topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
+      cambio = true;
+    }
+  } catch (e) { console.warn('topos nube', e); }
+  finally {
+    topo.nubeBusy = false;
+    if (cambio) {
+      await topoRecortar();
+      await idbSet('topos', topo.lista); topoDefaults();
+      if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act);
+      await topoCalcMinados(); topoPintar(); pv.draw();
+    }
+  }
+}
+
+/* ===== V52: bloques del modelo de MinePlan (_P.csv polígonos + _R.csv resultados) ===== */
+const MOD_COLS = { fe: 'fe', feo: 'feo', s: 's', cu: 'cu', zn: 'zn', cfe: 'cfe', cs: 'cs', cins: 'ccins' };
+function esResModelo(csv) { const h = csv.header.map(x => String(x).trim().toLowerCase()); return h.includes('blockname') && h.includes('projectid') && (h.includes('tonnes') || h.includes('fe')); }
+async function cargarModelo(f) {
+  const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas PROJECTID y BLOCKNAME.');
+  const h = tb.csv.header.map(x => String(x).trim().toLowerCase()), col = k => h.indexOf(k), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; };
+  const mod = (await idbGet('modelo-bloques')) || {}; const bloques = [];
+  tb.csv.rows.forEach(r => {
+    const proy = String(r[col('projectid')] || '').trim().toUpperCase(), b = String(r[col('blockname')] || '').trim(); if (!proy || !b) return;
+    const m = { proy, bloque: b, t: num(r[col('tonnes')]), vol: num(r[col('volumen')]), density: num(r[col('density')]), material: String(r[col('material')] || '').trim(), oretype: String(r[col('oretype')] || '').trim(), destino: String(r[col('destination')] || '').trim(), lito: String(r[col('litomine')] || '').trim(), zona: String(r[col('ozone')] || '').trim() };
+    Object.entries(MOD_COLS).forEach(([c, k]) => { if (col(c) >= 0) m[k] = num(r[col(c)]); });
+    mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
+  });
+  await idbSet('modelo-bloques', mod);
+  const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
+  const n = await modeloAplicar(arr);
+  if (n) { await saveLimites(arr, prev); await loadLimits(); }
+  return { n: bloques.length, bloques, enPlano: n };
+}
+// pone los resultados del modelo en los polígonos de bloques (mismo proyecto y nombre); el material decide si es desmonte
+async function modeloAplicar(arr) {
+  const mod = (await idbGet('modelo-bloques')) || {}; let n = 0;
+  arr.forEach(l => {
+    const proy = l.proyM || ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+    if (!proy || !l.name) return;
+    const m = mod[proy + '|' + String(l.name).toUpperCase()]; if (!m) return;
+    if (JSON.stringify(l.modelo) === JSON.stringify(m)) return;
+    l.modelo = m; l.mat = /desmonte|waste|est[eé]ril/i.test(m.material + ' ' + m.destino + ' ' + m.oretype) ? 'desmonte' : 'no';
+    l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; n++;
+  });
+  return n;
+}
+function modeloEtiqueta(m) { return [m.material || m.oretype, m.fe != null ? 'Fe ' + m.fe.toFixed(1) : '', m.t != null ? Math.round(m.t).toLocaleString('es-PE') + ' t' : ''].filter(Boolean).join(' · '); }
+function perfilDe(L, c) {
+  if (L && L.modelo && L.modelo.fe != null) { const m = L.modelo, v = { n: 'modelo' }; AVG_FIELDS.forEach(F => { v[F.k] = m[F.k] != null ? m[F.k] : null; }); return { v, dens: m.density || Math.round(densFe(m.fe) * 1000) / 1000, fe: m.fe }; }
+  return { v: perfilDesmonte(c.fe), dens: c.dens || Math.round(densFe(c.fe) * 1000) / 1000, fe: c.fe };
+}
+
+
+/* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
+const v3 = { gl: null, prog: null, built: '', cam: { yaw: -0.6, pitch: 0.75, dist: 600, tx: 0, ty: 0, tz: 0 }, ex: 1, org: [0, 0, 0], buf: {}, full: false,
+  ver: { tal: true, av: true, lim: true, dif: true, gps: true }, sel: null, labels: [], need: false, dem: null };
+const V3_FE = { m50: [1, 0.25, 1], m40: [1, 0.54, 0.12], m30: [0.19, 0.82, 0.35], bajo: [0.95, 0.95, 0.95], sin: [0.55, 0.57, 0.6] };
+const V3_RAMP = ['#5b8cff', '#40e0f0', '#30d158', '#ffd60a', '#ff6b4a'];
+function v3Hex(h) { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+function v3ColorLey(val) {
+  if (val == null) return V3_FE.sin;
+  if (t2.analito === 'fe' || !anField()) { const r = Math.round(val * 10) / 10; return r > 50 ? V3_FE.m50 : r >= 40 ? V3_FE.m40 : r >= 30 ? V3_FE.m30 : V3_FE.bajo; }
+  const br = anBreaks(); if (!br) return V3_FE.bajo;
+  let i = 0; while (i < br.length && val >= br[i]) i++;
+  return v3Hex(V3_RAMP[Math.round(i * (V3_RAMP.length - 1) / br.length)]);
+}
+// ---- matrices 4x4 (columna mayor) ----
+function m4Persp(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2), r = 1 / (n - f); return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (n + f) * r, -1, 0, 0, 2 * n * f * r, 0]; }
+function m4Look(e, c, u) {
+  let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2]; let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+  let xx = u[1] * zz - u[2] * zy, xy = u[2] * zx - u[0] * zz, xz = u[0] * zy - u[1] * zx; l = Math.hypot(xx, xy, xz) || 1; xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1];
+}
+function m4Mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; uniform float lit; varying vec3 vc;
+void main(){ vec3 q = vec3(p.x, p.y, p.z * ex); gl_Position = M * vec4(q, 1.0); gl_PointSize = ps;
+  vec3 nn = normalize(vec3(n.x, n.y, n.z / max(ex, 0.01))); vec3 L = normalize(vec3(-0.5, 0.6, 0.75));
+  float d = max(dot(nn, L), 0.0); vc = mix(c, c * (0.38 + 0.72 * d), lit); }`;
+const V3_FS = `precision mediump float; varying vec3 vc; uniform float al; uniform float pt;
+void main(){ if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; } gl_FragColor = vec4(vc, al); }`;
+function v3Init() {
+  if (v3.gl) return true;
+  const cv = $('v3dCv'); if (!cv) return false;
+  const gl = cv.getContext('webgl', { antialias: true, preserveDrawingBuffer: true }) || cv.getContext('experimental-webgl');
+  if (!gl) { $('v3dMsg').textContent = 'Este equipo no permite gráficos 3D (WebGL).'; return false; }
+  v3.u32 = !!gl.getExtension('OES_element_index_uint');
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, V3_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, V3_FS)); gl.linkProgram(pr);
+  v3.gl = gl; v3.prog = pr;
+  v3.loc = { p: gl.getAttribLocation(pr, 'p'), c: gl.getAttribLocation(pr, 'c'), n: gl.getAttribLocation(pr, 'n'), M: gl.getUniformLocation(pr, 'M'), ex: gl.getUniformLocation(pr, 'ex'), ps: gl.getUniformLocation(pr, 'ps'), lit: gl.getUniformLocation(pr, 'lit'), al: gl.getUniformLocation(pr, 'al'), pt: gl.getUniformLocation(pr, 'pt') };
+  v3Eventos(cv);
+  return true;
+}
+function v3Malla(arrP, arrC, arrN, idx) {
+  const gl = v3.gl, mk = (d, t) => { const b = gl.createBuffer(); gl.bindBuffer(t || gl.ARRAY_BUFFER, b); gl.bufferData(t || gl.ARRAY_BUFFER, d, gl.STATIC_DRAW); return b; };
+  const o = { p: mk(new Float32Array(arrP)), c: mk(new Float32Array(arrC)), n: arrN ? mk(new Float32Array(arrN)) : null, cnt: arrP.length / 3 };
+  if (idx) { const I = v3.u32 ? new Uint32Array(idx) : new Uint16Array(idx); o.i = mk(I, gl.ELEMENT_ARRAY_BUFFER); o.ni = I.length; o.it = v3.u32 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT; }
+  return o;
+}
+function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
+function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
+function v3Region() {
+  const d = v3.dem; let b = null;
+  if (!v3.full && t2.holes.length) { b = t2Bounds(); b = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
+  if (d) { const D = { x0: d.x0, y0: d.y0, x1: d.x0 + d.W * d.cel, y1: d.y0 + d.H * d.cel }; b = b ? { x0: Math.max(b.x0, D.x0), y0: Math.max(b.y0, D.y0), x1: Math.min(b.x1, D.x1), y1: Math.min(b.y1, D.y1) } : D; if (b.x1 <= b.x0 || b.y1 <= b.y0) b = D; }
+  return b;
+}
+async function v3Construir() {
+  if (!v3Init()) return;
+  v3.dem = topo.act ? await topoDem(topo.act) : null;
+  const firma = [topo.act, v3.full, t2.holes.length, t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
+  const R = v3Region();
+  if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
+  if (firma === v3.built) { v3Dibujar(); return; }
+  v3Borrar(); v3.built = firma;
+  const d = v3.dem, cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
+  let zmin = Infinity, zmax = -Infinity;
+  // ---- terreno ----
+  if (d) {
+    const i0 = Math.max(0, Math.floor((R.x0 - d.x0) / d.cel)), i1 = Math.min(d.W - 1, Math.ceil((R.x1 - d.x0) / d.cel));
+    const j0 = Math.max(0, Math.floor((R.y0 - d.y0) / d.cel)), j1 = Math.min(d.H - 1, Math.ceil((R.y1 - d.y0) / d.cel));
+    const lim = v3.u32 ? 520 : 250, st = Math.max(1, Math.ceil(Math.max(i1 - i0, j1 - j0) / lim));
+    const nx = Math.floor((i1 - i0) / st) + 1, ny = Math.floor((j1 - j0) / st) + 1;
+    for (let j = j0; j <= j1; j += st) for (let i = i0; i <= i1; i += st) { const z = d.Z[j * d.W + i]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
+    v3.org = [cx, cy, zmin];
+    const P = new Float32Array(nx * ny * 3), C = new Float32Array(nx * ny * 3), N = new Float32Array(nx * ny * 3), ok = new Uint8Array(nx * ny);
+    const D = topo.dif && v3.ver.dif ? topo.dif : null;
+    for (let b = 0; b < ny; b++) for (let a = 0; a < nx; a++) {
+      const i = i0 + a * st, j = j0 + b * st, k = b * nx + a, z = d.Z[j * d.W + i];
+      const x = d.x0 + (i + 0.5) * d.cel, y = d.y0 + (j + 0.5) * d.cel;
+      P[k * 3] = x - cx; P[k * 3 + 1] = y - cy; P[k * 3 + 2] = (z === z ? z : zmin) - zmin; ok[k] = z === z ? 1 : 0;
+      const t = z === z ? (z - zmin) / Math.max(1, zmax - zmin) : 0;
+      let r = 0.42 + 0.33 * t, g = 0.40 + 0.25 * t, bl = 0.36 + 0.10 * t;
+      if (D) { const di = Math.floor((x - D.x0) / D.cel), dj = Math.floor((y - D.y0) / D.cel); if (di >= 0 && dj >= 0 && di < D.W && dj < D.H && D.M[dj * D.W + di]) { r = 1; g = 0.5; bl = 0.1; } }
+      C[k * 3] = r; C[k * 3 + 1] = g; C[k * 3 + 2] = bl;
+    }
+    const zz = (a, b) => { a = Math.max(0, Math.min(nx - 1, a)); b = Math.max(0, Math.min(ny - 1, b)); return P[(b * nx + a) * 3 + 2]; };
+    const sc = st * d.cel;
+    for (let b = 0; b < ny; b++) for (let a = 0; a < nx; a++) { const k = b * nx + a, dx = (zz(a + 1, b) - zz(a - 1, b)) / (2 * sc), dy = (zz(a, b + 1) - zz(a, b - 1)) / (2 * sc), l = Math.hypot(dx, dy, 1); N[k * 3] = -dx / l; N[k * 3 + 1] = -dy / l; N[k * 3 + 2] = 1 / l; }
+    const I = [];
+    for (let b = 0; b < ny - 1; b++) for (let a = 0; a < nx - 1; a++) { const k = b * nx + a; if (ok[k] && ok[k + 1] && ok[k + nx] && ok[k + nx + 1]) I.push(k, k + 1, k + nx, k + 1, k + nx + 1, k + nx); }
+    if (!v3.u32 && nx * ny > 65535) I.length = 0;
+    v3.buf.ter = v3Malla(P, C, N, I);
+    v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
+  } else {
+    const zs = t2.holes.map(h => h.z).filter(z => z); zmin = zs.length ? Math.min(...zs) - 20 : 0; zmax = zs.length ? Math.max(...zs) : 100;
+    v3.org = [cx, cy, zmin]; v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
+  }
+  const [ox, oy, oz] = v3.org;
+  // ---- taladros: línea collar→fondo y punto en el collar ----
+  const lp = [], lc = [], pp = [], pc = []; v3.hpts = [];
+  const minados = topo.minados ? topo.minados.set : new Set();
+  t2.holes.forEach(h => {
+    const zt = v3Z(h.x, h.y), zc = h.z || zt; if (zc == null) return;
+    const l = t2.leyBy.get(h.ck), F = anField(), has = l && l.hasData !== false;
+    const val = has && F ? l[F.k] : null; let col = has ? v3ColorLey(F ? val : null) : V3_FE.sin;
+    const min = minados.has(h.ck); if (min) col = col.map(c => c * 0.45 + 0.2);
+    const prof = h.depth || 6, x = h.x - ox, y = h.y - oy;
+    lp.push(x, y, zc - oz, x, y, zc - prof - oz); lc.push(...col, ...col.map(c => c * 0.6));
+    pp.push(x, y, zc - oz); pc.push(...col);
+    v3.hpts.push({ h, x, y, z: zc - oz, val, F, min, zt });
+  });
+  if (lp.length) { v3.buf.hl = v3Malla(lp, lc); v3.buf.hp = v3Malla(pp, pc); }
+  // ---- líneas sobre el terreno: límites, avances guardados y polígonos actuales ----
+  const ln = [], lnc = [];
+  const drapar = (pts, col, cerrado, alto) => {
+    const Q = cerrado ? pts.concat([pts[0]]) : pts;
+    for (let i = 0; i < Q.length - 1; i++) {
+      const a = Q[i], b = Q[i + 1], L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / 3));
+      for (let s = 0; s < n; s++) {
+        const p0 = { x: a.x + (b.x - a.x) * s / n, y: a.y + (b.y - a.y) * s / n }, p1 = { x: a.x + (b.x - a.x) * (s + 1) / n, y: a.y + (b.y - a.y) * (s + 1) / n };
+        const z0 = v3Z(p0.x, p0.y), z1 = v3Z(p1.x, p1.y); if (z0 == null || z1 == null) continue;
+        ln.push(p0.x - ox, p0.y - oy, z0 + alto - oz, p1.x - ox, p1.y - oy, z1 + alto - oz); lnc.push(...col, ...col);
+      }
+    }
+  };
+  if (d) {
+    if (v3.ver.lim) (t2.lims || []).forEach(L => { if (t2.limOff.has(L.layer) || !limVisible(L)) return; const b = L.bb; if (b.x1 < R.x0 || b.x0 > R.x1 || b.y1 < R.y0 || b.y0 > R.y1) return; drapar(L.pts, v3Hex(/^#/.test(limColor(L.layer)) ? limColor(L.layer) : '#9aa0a6'), L.closed, 0.8); });
+    if (v3.ver.av) {
+      t2.avs.forEach(a => avShapes(a).forEach(P => drapar(P, [0.75, 0.78, 0.82], true, 1.2)));
+      t2.shapes.forEach((s, i) => drapar(s.pts, v3Hex(SH_D[i % SH_D.length]), true, 1.6));
+    }
+  }
+  if (ln.length) v3.buf.ln = v3Malla(ln, lnc);
+  // etiquetas de proyectos
+  v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
+  v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
+  if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
+  $('v3dMsg').innerHTML = (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
+  v3Dibujar();
+}
+function v3MVP() {
+  const cv = $('v3dCv'), c = v3.cam, W = cv.clientWidth || 1, H = cv.clientHeight || 1;
+  const e = [c.tx + c.dist * Math.cos(c.pitch) * Math.sin(c.yaw), c.ty - c.dist * Math.cos(c.pitch) * Math.cos(c.yaw), c.tz * v3.ex + c.dist * Math.sin(c.pitch)];
+  const P = m4Persp(45 * Math.PI / 180, W / H, Math.max(0.5, c.dist / 500), c.dist * 20 + v3.span * 4);
+  return { M: m4Mul(P, m4Look(e, [c.tx, c.ty, c.tz * v3.ex], [0, 0, 1])), W, H };
+}
+function v3Proy(M, W, H, x, y, z) { const X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], w = M[3] * x + M[7] * y + M[11] * z + M[15]; if (w <= 0) return null; return [(X / w + 1) / 2 * W, (1 - Y / w) / 2 * H]; }
+function v3Dibujar() { if (v3.need) return; v3.need = true; requestAnimationFrame(() => { v3.need = false; v3Pintar(); }); }
+function v3Pintar() {
+  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || $('tab3').hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0.09, 0.11, 0.13, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.useProgram(v3.prog);
+  const { M } = v3MVP(), L = v3.loc;
+  gl.uniformMatrix4fv(L.M, false, new Float32Array(M)); gl.uniform1f(L.ex, v3.ex); gl.uniform1f(L.al, 1);
+  const usar = (o, lit, pt, ps) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, o.p); gl.enableVertexAttribArray(L.p); gl.vertexAttribPointer(L.p, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, o.c); gl.enableVertexAttribArray(L.c); gl.vertexAttribPointer(L.c, 3, gl.FLOAT, false, 0, 0);
+    if (o.n) { gl.bindBuffer(gl.ARRAY_BUFFER, o.n); gl.enableVertexAttribArray(L.n); gl.vertexAttribPointer(L.n, 3, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(L.n); gl.vertexAttrib3f(L.n, 0, 0, 1); }
+    gl.uniform1f(L.lit, lit); gl.uniform1f(L.pt, pt); gl.uniform1f(L.ps, ps || 1);
+  };
+  const B = v3.buf;
+  if (B.ter && B.ter.ni) { usar(B.ter, 1, 0); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, B.ter.i); gl.drawElements(gl.TRIANGLES, B.ter.ni, B.ter.it, 0); gl.disable(gl.POLYGON_OFFSET_FILL); }
+  if (B.ln) { usar(B.ln, 0, 0); gl.drawArrays(gl.LINES, 0, B.ln.cnt); }
+  if (v3.ver.tal && B.hl) { usar(B.hl, 0, 0); gl.drawArrays(gl.LINES, 0, B.hl.cnt); const ps = Math.max(3, Math.min(8, 2200 / v3.cam.dist)) * Math.min(1.5, window.devicePixelRatio || 1); usar(B.hp, 0, 1, ps); gl.drawArrays(gl.POINTS, 0, B.hp.cnt); }
+  // GPS
+  if (v3.ver.gps && typeof gps !== 'undefined' && gps.on && gps.pos) {
+    const p = gpsXY(); const z = p && v3Z(p.x, p.y);
+    if (p && z != null) { const g = v3Malla([p.x - v3.org[0], p.y - v3.org[1], z + 2 - v3.org[2], p.x - v3.org[0], p.y - v3.org[1], z + 2 - v3.org[2] + 25], [0.04, 0.52, 1, 0.04, 0.52, 1]); usar(g, 0, 0); gl.drawArrays(gl.LINES, 0, 2); usar(g, 0, 1, 16 * Math.min(2, window.devicePixelRatio || 1)); gl.drawArrays(gl.POINTS, 0, 1); gl.deleteBuffer(g.p); gl.deleteBuffer(g.c); }
+  }
+  v3Textos(M, W, H);
+}
+function v3Textos(M, W, H) {
+  const cv = $('v3dTxt'), dpr = Math.min(2, window.devicePixelRatio || 1); if (!cv) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const ex = v3.ex;
+  ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)';
+  v3.labels.forEach(l => { const s = v3Proy(M, W, H, l.x, l.y, l.z * ex); if (!s) return; ctx.fillStyle = '#ffb38a'; ctx.strokeText(l.t, s[0], s[1]); ctx.fillText(l.t, s[0], s[1]); });
+  // IDs de taladros si se está cerca
+  if (v3.ver.tal && v3.hpts && v3.cam.dist < 160) { ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = '#e8eaed'; ctx.lineWidth = 2.5; v3.hpts.forEach(p => { const s = v3Proy(M, W, H, p.x, p.y, p.z * ex); if (!s || s[0] < 0 || s[1] < 0 || s[0] > W || s[1] > H) return; ctx.strokeText(p.h.id, s[0], s[1] - 10); ctx.fillText(p.h.id, s[0], s[1] - 10); }); }
+  if (v3.sel) { const p = v3.sel, s = v3Proy(M, W, H, p.x, p.y, p.z * ex); if (s) { ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(s[0], s[1], 10, 0, Math.PI * 2); ctx.stroke(); } }
+  // flecha del norte
+  const c = v3.cam, a = -c.yaw; ctx.save(); ctx.translate(W - 34, 34); ctx.rotate(a); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(7, 8); ctx.lineTo(0, 3); ctx.lineTo(-7, 8); ctx.closePath(); ctx.fill(); ctx.rotate(-a); ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui'; ctx.fillText('N', Math.sin(a) * 26, -Math.cos(a) * 26); ctx.restore();
+}
+function v3Tocar(px, py) {
+  if (!v3.hpts || !v3.ver.tal) return;
+  const { M, W, H } = v3MVP(); let best = null, bd = 22;
+  v3.hpts.forEach(p => { const s = v3Proy(M, W, H, p.x, p.y, p.z * v3.ex); if (!s) return; const dd = Math.hypot(s[0] - px, s[1] - py); if (dd < bd) { bd = dd; best = p; } });
+  v3.sel = best; const el = $('v3dInfo');
+  if (!best) { el.hidden = true; v3Dibujar(); return; }
+  const h = best.h, F = best.F, fmtv = best.val != null && F ? fmt(best.val, F.dec, '') : '—';
+  el.innerHTML = `<b>${esc(h.id)}</b> · ${esc(h.pname)}<br>${F ? esc(F.label) + ': <b>' + fmtv + '</b>' : ''}<br>Collar ${h.z ? h.z.toFixed(1) : '—'} m · Topo ${best.zt != null ? best.zt.toFixed(1) : '—'} m${best.min ? '<br><span class="errc">Ya minado</span>' : ''}`;
+  el.hidden = false; v3Dibujar();
+}
+function v3Eventos(cv) {
+  const P = new Map(); let mov = 0, last = null;
+  const c = v3.cam;
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
+  cv.addEventListener('pointermove', e => {
+    if (!P.has(e.pointerId)) return; const q = P.get(e.pointerId), dx = e.clientX - q.x, dy = e.clientY - q.y; mov += Math.abs(dx) + Math.abs(dy);
+    if (P.size === 1) {
+      if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
+    } else if (P.size === 2) {
+      const [a, b] = [...P.values()], d0 = Math.hypot(a.x - b.x, a.y - b.y), mx0 = (a.x + b.x) / 2, my0 = (a.y + b.y) / 2;
+      q.x = e.clientX; q.y = e.clientY; const [a2, b2] = [...P.values()], d1 = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+      if (d0 > 0 && d1 > 0) c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * d0 / d1));
+      v3Mover((a2.x + b2.x) / 2 - mx0, (a2.y + b2.y) / 2 - my0); v3Dibujar(); return;
+    }
+    q.x = e.clientX; q.y = e.clientY; v3Dibujar();
+  });
+  const fin = e => { if (!P.has(e.pointerId)) return; const one = P.size === 1; P.delete(e.pointerId); if (one && mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => P.delete(e.pointerId));
+  cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
+  window.addEventListener('resize', () => { if (!$('tab3').hidden) v3Dibujar(); });
+}
+function v3Mover(dx, dy) {
+  const c = v3.cam, k = c.dist / ($('v3dCv').clientHeight || 500) * 0.83;
+  const sx = Math.cos(c.yaw), sy = Math.sin(c.yaw), fx = -Math.sin(c.yaw), fy = Math.cos(c.yaw);
+  c.tx += (-dx * sx + dy * fx) * k; c.ty += (-dx * sy + dy * fy) * k;
+}
+async function v3Mostrar() {
+  $('v3dMsg').textContent = 'Preparando la vista 3D…';
+  try { if (typeof refreshT2 === 'function' && !t2.holes.length && t2.selIds && t2.selIds.size) refreshT2(); } catch (e) {}
+  try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; }
+  const tl = $('v3dTopo'); if (tl) tl.textContent = topo.act ? (() => { const m = topo.lista.find(t => t.id === topo.act); return m ? `⛰ ${fmtDate(m.fecha)} · ${m.nombre}` : ''; })() : 'Sin topografía';
+}
+(() => {
+  if (!$('tab3')) return;
+  try { if (document.body.classList.contains('app') && innerWidth < 700) $('v3dCapas').open = false; } catch (e) {}
+  $('v3dReset').onclick = () => { Object.assign(v3.cam, { yaw: -0.6, pitch: 0.75, dist: v3.span * 1.1, tx: 0, ty: 0 }); v3.sel = null; $('v3dInfo').hidden = true; v3Dibujar(); };
+  $('v3dArriba').onclick = () => { Object.assign(v3.cam, { yaw: 0, pitch: 1.55 }); v3Dibujar(); };
+  $('v3dEx').onchange = e => { v3.ex = +e.target.value; v3Dibujar(); };
+  $('v3dFull').onchange = e => { v3.full = e.target.checked; v3.camOk = false; v3Mostrar(); };
+  ['tal', 'av', 'lim', 'dif', 'gps'].forEach(k => { const el = $('v3d_' + k); if (el) el.onchange = e => { v3.ver[k] = e.target.checked; if (k === 'tal' || k === 'gps') v3Dibujar(); else v3Mostrar(); }; });
+  $('v3dIrMi').onclick = () => {
+    if (typeof gps === 'undefined' || !gps.on || !gps.pos) { flashHint('Prende el GPS (📍) en la pestaña 2 y espera la señal.'); return; }
+    const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
+  };
+  setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
+})();
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -5335,9 +6566,20 @@ const SYNC = {
 };
 const sync = { mode: null, session: null, mcp: null, busy: false, again: false, last: null, err: '', timer: null, on: false };
 
+// ---- V44 (A-03): hora corregida con la del servidor ----
+// Cada sincronización mide la diferencia entre el reloj de este equipo y el de la nube; las marcas _mod usan esa hora
+// corregida, así un equipo con la hora atrasada o adelantada no gana ni pierde cambios por error.
+let RELOJ_OFF = 0; try { RELOJ_OFF = parseInt(localStorage.getItem('bhl-reloj') || '0', 10) || 0; } catch (e) {}
+function ahora() { return Date.now() + RELOJ_OFF; }
+function ajustarReloj(serverIso, t0, t1) {
+  const srv = Date.parse(serverIso); if (!srv) return;
+  const off = Math.round(srv - (t0 + t1) / 2);
+  if (Math.abs(off - RELOJ_OFF) > 2000) { RELOJ_OFF = off; try { localStorage.setItem('bhl-reloj', String(off)); } catch (e) {} }
+}
+
 // ---- Escrituras locales que se sincronizan ----
 async function dbSave(store, rec) {
-  rec._mod = Date.now(); rec._dirty = true;
+  rec._mod = Math.max(ahora(), (rec._base || 0) + 1); rec._dirty = true; delete rec._conflicto;
   const ok = await dbPut(store, rec);
   pedirSync();
   return ok;
@@ -5350,14 +6592,14 @@ async function dbRemove(store, id) {
 }
 async function addTombs(list) {
   const t = (await idbGet('bhl-tomb')) || [];
-  list.forEach(x => t.push({ store: x.store, id: x.id, _mod: Date.now() }));
+  list.forEach(x => t.push({ store: x.store, id: x.id, _mod: ahora() }));
   await idbSet('bhl-tomb', t);
 }
 // Límites: se guardan como lista; marcar los nuevos y registrar los quitados
 async function saveLimites(arr, prev) {
   const prevIds = new Set((prev || []).map(l => l.id)), nowIds = new Set(arr.map(l => l.id));
   const removed = (prev || []).filter(l => !nowIds.has(l.id)).map(l => ({ store: 'limites', id: l.id }));
-  arr.forEach(l => { if (!prevIds.has(l.id) || l._dirty) { l._mod = l._mod && prevIds.has(l.id) ? l._mod : Date.now(); l._dirty = true; } });
+  arr.forEach(l => { if (!prevIds.has(l.id) || l._dirty) { l._mod = l._mod && prevIds.has(l.id) ? l._mod : ahora(); l._dirty = true; } });
   if (removed.length) await addTombs(removed);
   await idbSet('limites', arr);
   pedirSync();
@@ -5484,7 +6726,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -5503,7 +6745,51 @@ function pedirSync(ms) {
   clearTimeout(sync.timer);
   sync.timer = setTimeout(sincronizar, ms == null ? 1500 : ms);
 }
-const limpio = r => { const c = Object.assign({}, r); delete c._dirty; delete c.bb; delete c.area; return c; };
+const limpio = r => { const c = Object.assign({}, r); delete c._dirty; delete c.bb; delete c.area; delete c._base; delete c._conflicto; return c; };
+// ---- V44 (A-03): conflictos ----
+// Un conflicto = este equipo tiene un cambio sin subir y la nube recibió otro cambio del mismo registro desde la última
+// sincronización (o la nube rechazó el cambio). No se pierde ninguno: se guardan las dos versiones y el usuario elige.
+const NOMBRE_STORE = { projects: 'Proyecto', avances: 'Avance', limites: 'Límite' };
+const nombreReg = (store, r) => (r && (store === 'avances' ? `${r.fecha || ''}${r.nombre ? ' · ' + r.nombre : ''}${r.projectNames ? ' · ' + r.projectNames.join(' + ') : ''}` : r.name || r.file || r.layer)) || '';
+async function leerConflictos() { return (await idbGet('bhl-conflictos')) || []; }
+async function anotarConflicto(store, local, remoto, remotoBorrado, motivo) {
+  const cs = (await leerConflictos()).filter(c => !(c.store === store && c.id === local.id));
+  cs.push({ store, id: local.id, nombre: nombreReg(store, local) || nombreReg(store, remoto) || local.id, local: limpio(local), remoto: remoto ? limpio(remoto) : null, remotoBorrado: !!remotoBorrado, motivo, at: new Date().toISOString() });
+  await idbSet('bhl-conflictos', cs);
+}
+async function marcarEnConflicto(store, id, on) {
+  if (store === 'limites') { const L = (await idbGet('limites')) || []; L.forEach(l => { if (l.id === id) { if (on) l._conflicto = true; else delete l._conflicto; } }); await idbSet('limites', L); return; }
+  const r = (await dbAll(store)).find(x => x.id === id); if (!r) return;
+  if (on) r._conflicto = true; else delete r._conflicto; await dbPut(store, r);
+}
+// Resolver: 'local' = queda la versión de este equipo (se vuelve a subir, gana); 'nube' = queda la de la nube
+async function resolverConflicto(store, id, cual) {
+  const cs = await leerConflictos(); const c = cs.find(x => x.store === store && x.id === id); if (!c) return;
+  const remMod = (c.remoto && c.remoto._mod) || 0;
+  if (cual === 'local') {
+    const rec = Object.assign({}, c.local, { _base: remMod });
+    rec._mod = Math.max(ahora(), remMod + 1); rec._dirty = true;
+    if (store === 'limites') { const L = (await idbGet('limites')) || []; const i = L.findIndex(l => l.id === id); if (i >= 0) L[i] = rec; else L.push(rec); await idbSet('limites', L); }
+    else await dbPut(store, rec);
+  } else {
+    if (!c.remoto && !c.remotoBorrado) return 'espera';
+    if (c.remotoBorrado) { if (store === 'limites') await idbSet('limites', ((await idbGet('limites')) || []).filter(l => l.id !== id)); else await dbDel(store, id); }
+    else { const rec = Object.assign({}, c.remoto, { _dirty: false, _base: remMod }); if (store === 'limites') { const L = (await idbGet('limites')) || []; const i = L.findIndex(l => l.id === id); if (i >= 0) L[i] = rec; else L.push(rec); await idbSet('limites', L); } else await dbPut(store, rec); }
+  }
+  await idbSet('bhl-conflictos', cs.filter(x => x !== c));
+  await loadLibrary(); await loadLimits(); pedirSync(100);
+}
+// Respuesta de bhl_push: número de filas que la nube aceptó (null si no se sabe)
+const aceptadas = r => (typeof r === 'number' ? r : r != null && !isNaN(parseInt(r, 10)) ? parseInt(r, 10) : null);
+// Sube un lote y devuelve los registros que la nube NO aceptó
+async function subirLote(T, store, part) {
+  const n = aceptadas(await T.push(SYNC.tables[store], part.map(r => ({ id: r.id, data: limpio(r) }))));
+  if (n == null || n >= part.length) return [];
+  // alguno fue rechazado: se sube de a uno para saber cuál
+  const rech = [];
+  for (const r of part) { const k = aceptadas(await T.push(SYNC.tables[store], [{ id: r.id, data: limpio(r) }])); if (k === 0) rech.push(r); }
+  return rech;
+}
 async function sincronizar() {
   if (!sync.on) return;
   if (sync.busy) { sync.again = true; return; }
@@ -5511,19 +6797,71 @@ async function sincronizar() {
   sync.busy = true; pintarSync('busy');
   const T = transporte();
   try {
-    // 1) subir cambios locales
+    let cambios = 0, nuevosConf = 0;
+    // 1) V44: PRIMERO bajar lo de los otros equipos y detectar conflictos con lo que este equipo aún no subió
+    const since = (await idbGet('bhl-since')) || '1970-01-01T00:00:00Z';
+    const desde = new Date(new Date(since).getTime() - 5000).toISOString();
+    const t0 = Date.now(); const res = await T.pull(desde); const t1 = Date.now();
+    if (res.now) ajustarReloj(res.now, t0, t1);
+    // ¿hay conflicto? local con cambios sin subir + la nube cambió desde la versión que este equipo conocía
+    const choca = (loc, rm) => loc && loc._dirty && (loc._base != null ? rm !== loc._base : rm > (loc._mod || 0));
     for (const store of ['projects', 'avances']) {
-      const dirty = (await dbAll(store)).filter(r => r._dirty);
+      const locales = new Map((await dbAll(store)).map(r => [r.id, r]));
+      for (const row of res[SYNC.tables[store].replace('bhl_', '')] || []) {
+        const loc = locales.get(row.id), rm = (row.data && row.data._mod) || 0;
+        if (loc && loc._base === rm && !row.deleted && !loc._dirty) continue; // ya la tengo
+        if (loc && (loc._conflicto || choca(loc, rm))) {
+          if (loc._base === rm && !row.deleted) continue;
+          await anotarConflicto(store, loc, row.deleted ? null : row.data, row.deleted, 'Este equipo y la nube cambiaron el mismo registro.');
+          if (!loc._conflicto) { await marcarEnConflicto(store, row.id, true); nuevosConf++; }
+          continue;
+        }
+        if (row.deleted) { if (loc && !loc._dirty) { await dbDel(store, row.id); cambios++; } continue; }
+        if (!loc || !loc._dirty) { await dbPut(store, Object.assign({}, row.data, { _dirty: false, _base: rm })); cambios++; }
+      }
+    }
+    const remLim = res.limites || [];
+    if (remLim.length) {
+      const lims0 = (await idbGet('limites')) || [];
+      const by = new Map(lims0.map(l => [l.id, l]));
+      for (const row of remLim) {
+        const loc = by.get(row.id), rm = (row.data && row.data._mod) || 0;
+        if (loc && loc._base === rm && !row.deleted && !loc._dirty) continue;
+        if (loc && (loc._conflicto || choca(loc, rm))) {
+          if (loc._base === rm && !row.deleted) continue;
+          await anotarConflicto('limites', loc, row.deleted ? null : row.data, row.deleted, 'Este equipo y la nube cambiaron el mismo límite.');
+          if (!loc._conflicto) { loc._conflicto = true; nuevosConf++; }
+          continue;
+        }
+        if (row.deleted) { if (loc && !loc._dirty) { by.delete(row.id); cambios++; } continue; }
+        if (!loc || !loc._dirty) { by.set(row.id, Object.assign({}, row.data, { _dirty: false, _base: rm })); cambios++; }
+      }
+      await idbSet('limites', [...by.values()]);
+    }
+    // 2) subir lo de este equipo (sin los registros en conflicto) y comprobar qué aceptó la nube
+    for (const store of ['projects', 'avances']) {
+      const dirty = (await dbAll(store)).filter(r => r._dirty && !r._conflicto);
       for (let i = 0; i < dirty.length; i += 25) {
         const part = dirty.slice(i, i + 25);
-        await T.push(SYNC.tables[store], part.map(r => ({ id: r.id, data: limpio(r) })));
-        for (const r of part) { const cur = (await dbAll(store)).find(x => x.id === r.id); if (cur && cur._mod === r._mod) { cur._dirty = false; await dbPut(store, cur); } }
+        const rech = await subirLote(T, store, part);
+        for (const r of part) {
+          const cur = (await dbAll(store)).find(x => x.id === r.id);
+          if (!cur || cur._mod !== r._mod) continue; // se volvió a editar mientras subía: queda pendiente
+          if (rech.some(x => x.id === r.id)) { await anotarConflicto(store, cur, null, false, 'La nube no aceptó el cambio porque tiene una versión más nueva.'); cur._conflicto = true; await dbPut(store, cur); nuevosConf++; sync.forzarPull = true; continue; }
+          cur._dirty = false; cur._base = cur._mod; await dbPut(store, cur);
+        }
       }
     }
     let lims = (await idbGet('limites')) || [];
-    const ld = lims.filter(l => l._dirty);
-    for (let i = 0; i < ld.length; i += 25) await T.push(SYNC.tables.limites, ld.slice(i, i + 25).map(l => ({ id: l.id, data: limpio(l) })));
-    if (ld.length) { lims = (await idbGet('limites')) || []; const ids = new Set(ld.map(l => l.id + '@' + l._mod)); lims.forEach(l => { if (ids.has(l.id + '@' + l._mod)) l._dirty = false; }); await idbSet('limites', lims); }
+    const ld = lims.filter(l => l._dirty && !l._conflicto);
+    let rechL = [];
+    for (let i = 0; i < ld.length; i += 25) rechL = rechL.concat(await subirLote(T, 'limites', ld.slice(i, i + 25)));
+    if (ld.length) {
+      lims = (await idbGet('limites')) || [];
+      const ids = new Set(ld.map(l => l.id + '@' + l._mod)), rj = new Set(rechL.map(l => l.id));
+      for (const l of lims) { if (!ids.has(l.id + '@' + l._mod)) continue; if (rj.has(l.id)) { await anotarConflicto('limites', l, null, false, 'La nube no aceptó el cambio porque tiene una versión más nueva.'); l._conflicto = true; nuevosConf++; sync.forzarPull = true; } else { l._dirty = false; l._base = l._mod; } }
+      await idbSet('limites', lims);
+    }
     const tombs = (await idbGet('bhl-tomb')) || [];
     if (tombs.length) {
       for (const store of ['projects', 'avances', 'limites']) {
@@ -5533,36 +6871,18 @@ async function sincronizar() {
       const rest2 = ((await idbGet('bhl-tomb')) || []).filter(x => !tombs.some(y => y.store === x.store && y.id === x.id && y._mod === x._mod));
       await idbSet('bhl-tomb', rest2);
     }
-    // 2) bajar cambios de los otros equipos
-    const since = (await idbGet('bhl-since')) || '1970-01-01T00:00:00Z';
-    const desde = new Date(new Date(since).getTime() - 5000).toISOString();
-    const res = await T.pull(desde);
-    let cambios = 0;
-    for (const store of ['projects', 'avances']) {
-      const locales = new Map((await dbAll(store)).map(r => [r.id, r]));
-      for (const row of res[SYNC.tables[store].replace('bhl_', '')] || []) {
-        const loc = locales.get(row.id), rm = (row.data && row.data._mod) || 0;
-        if (row.deleted) { if (loc && (loc._mod || 0) <= rm) { await dbDel(store, row.id); cambios++; } continue; }
-        if (!loc || (!loc._dirty && (loc._mod || 0) !== rm) || (loc._dirty && (loc._mod || 0) < rm)) { await dbPut(store, Object.assign({}, row.data, { _dirty: false })); cambios++; }
-      }
-    }
-    const remLim = res.limites || [];
-    if (remLim.length) {
-      lims = (await idbGet('limites')) || [];
-      const by = new Map(lims.map(l => [l.id, l]));
-      remLim.forEach(row => {
-        const loc = by.get(row.id), rm = (row.data && row.data._mod) || 0;
-        if (row.deleted) { if (loc && (loc._mod || 0) <= rm) { by.delete(row.id); cambios++; } return; }
-        if (!loc || (!loc._dirty && (loc._mod || 0) !== rm) || (loc._dirty && (loc._mod || 0) < rm)) { by.set(row.id, Object.assign({}, row.data, { _dirty: false })); cambios++; }
-      });
-      await idbSet('limites', [...by.values()]);
-    }
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
+    try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
     sync.compForzar = false;
-    if (res.now) await idbSet('bhl-since', res.now);
+    // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
+    if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
+    else if (res.now) await idbSet('bhl-since', res.now);
     sync.last = new Date(); sync.err = '';
-    if (cambios) { await loadLibrary(); await loadLimits(); }
-    pintarSync('ok', cambios);
+    if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
+    const nConf = (await leerConflictos()).length;
+    sync.conflictos = nConf;
+    pintarSync(nConf ? 'conflicto' : 'ok', cambios);
+    if (nuevosConf) pedirSync(1500);
   } catch (e) {
     sync.err = e.message || String(e);
     pintarSync(e.code === 'login' ? 'login' : /conexión|fetch/i.test(sync.err) ? 'offline' : 'error');
@@ -5578,17 +6898,18 @@ function pintarSync(estado, cambios) {
   b.hidden = false;
   b.dataset.estado = estado;
   const hora = sync.last ? sync.last.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
-  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar' }[estado] || 'Sincronizar';
+  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar', conflicto: `Conflicto (${sync.conflictos || 1})` }[estado] || 'Sincronizar';
   b.innerHTML = `<span class="sy-i">☁</span><span class="sy-t"> ${txt}</span>`; b.setAttribute('aria-label', txt);
   const at = document.getElementById('appSyncTxt');
   if (at) {
     const quien = sync.session ? nombreDe(sync.session.email) : '';
-    at.textContent = estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
-    at.style.color = estado === 'login' || estado === 'error' ? 'var(--bad, #c0392b)' : '';
+    at.textContent = estado === 'conflicto' ? `${quien} · conflicto de sincronización` : estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
+    at.style.color = estado === 'login' || estado === 'error' || estado === 'conflicto' ? 'var(--bad, #c0392b)' : '';
     const bt = document.getElementById('appSyncBtn');
     if (bt) bt.firstChild.textContent = sync.session ? 'Cuenta, contraseña y usuarios' : 'Iniciar sesión';
   }
-  b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
+  if (estado === 'conflicto') b.title = 'Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Toca para revisarlo.';
+  else b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
 }
 function abrirPanelSync() {
   const d = $('dlgSync');
@@ -5604,6 +6925,7 @@ function abrirPanelSync() {
   $('syncMsg').textContent = ''; $('syncMsg').className = 'msg';
   $('syncCuenta').hidden = !(conectado && sync.mode === 'rest');
   $('syncWipeL').hidden = sync.mode !== 'rest';
+  pintarConflictos();
   $('syncAdmin').hidden = !(conectado && esAdmin());
   // versión de pruebas: solo el administrador, en la app web (la PC recibe su instalador de pruebas aparte)
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
@@ -5635,7 +6957,17 @@ async function conectarMcp() {
   } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
 }
 function activarSync() { sync.on = true; pedirSync(100); }
+// V44 (A-03): los registros ya sincronizados (sin cambios pendientes) toman su versión de nube = su _mod
+async function migrarBases() {
+  try {
+    if (localStorage.getItem('bhl-base-v44')) return;
+    for (const st of ['projects', 'avances']) for (const r of await dbAll(st)) if (!r._dirty && r._base == null && r._mod) { r._base = r._mod; await dbPut(st, r); }
+    const L = (await idbGet('limites')) || []; let ch = false; L.forEach(l => { if (!l._dirty && l._base == null && l._mod) { l._base = l._mod; ch = true; } }); if (ch) await idbSet('limites', L);
+    localStorage.setItem('bhl-base-v44', '1');
+  } catch (e) {}
+}
 async function iniciarSync() {
+  await migrarBases();
   const enClaude = !!(window.claude && window.claude.use) && typeof window.bhlVersion !== 'function';
   if (enClaude) {
     sync.mode = 'mcp';
@@ -5751,6 +7083,29 @@ $('dlgSync').addEventListener('click', e => { if (e.target === $('dlgSync')) $('
   document.body.appendChild(d);
   setInterval(() => { if (sync.session && !esAdmin()) location.replace('../'); }, 3000);
 })();
+
+// ---- V44 (A-03): lista de conflictos en la ventana de la cuenta ----
+async function pintarConflictos() {
+  const box = document.getElementById('syncConf'); if (!box) return;
+  const cs = await leerConflictos();
+  sync.conflictos = cs.length;
+  if (!cs.length) { box.hidden = true; box.innerHTML = ''; return; }
+  const f = d => { try { return new Date(d).toLocaleString('es-PE'); } catch (e) { return ''; } };
+  box.hidden = false;
+  box.innerHTML = `<h3>⚠ Conflictos de sincronización (${cs.length})</h3><p class="note">Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Nada se borró: elige cuál versión queda.</p>` +
+    cs.map(c => `<div class="conf-it"><b>${esc(NOMBRE_STORE[c.store] || c.store)}: ${esc(c.nombre)}</b><small>${esc(c.motivo || '')}</small>` +
+      `<div class="conf-v"><span>Este equipo: ${c.local && c.local._mod ? f(c.local._mod) : '—'}${c.store !== 'limites' && c.local && c.local.holes ? ' · ' + c.local.holes.length + ' taladros' : ''}${c.local && c.local.result ? ' · ' + c.local.result.n + ' taladros' : ''}</span>` +
+      `<span>Nube: ${c.remotoBorrado ? 'borrado en otro equipo' : c.remoto ? f(c.remoto._mod) + (c.remoto.holes ? ' · ' + c.remoto.holes.length + ' taladros' : '') + (c.remoto.result ? ' · ' + c.remoto.result.n + ' taladros' : '') : 'trayendo la versión de la nube…'}</span></div>` +
+      `<div class="btnrow"><button class="btn small" type="button" data-conf="local" data-st="${esc(c.store)}" data-id="${esc(c.id)}">Quedarme con la de este equipo</button><button class="btn sec small" type="button" data-conf="nube" data-st="${esc(c.store)}" data-id="${esc(c.id)}" ${!c.remoto && !c.remotoBorrado ? 'disabled' : ''}>Quedarme con la de la nube</button></div></div>`).join('');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-conf]'); if (!b) return;
+  b.disabled = true;
+  await resolverConflicto(b.dataset.st, b.dataset.id, b.dataset.conf);
+  await pintarConflictos();
+  const n = (await leerConflictos()).length; sync.conflictos = n;
+  pintarSync(n ? 'conflicto' : 'ok');
+});
 
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
