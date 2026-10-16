@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BH Leyes">
+<script>window.BHL_CANAL = 'normal';</script>
 <meta name="theme-color" content="#1c2126">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -184,6 +185,11 @@ body.enfull { overflow: hidden; }
 @media (max-width: 900px) { .fs-fil { display: none; } }
 .fs-anl .anl { position: static; background: transparent; border: 0; padding: 0; font-size: .9rem; }
 .fs-anl .anl select { font-size: .95rem; padding: 6px 8px; min-height: 36px; }
+.fs-anl { flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.fs-anl::-webkit-scrollbar { display: none; }
+.fs-anl .anl { flex-wrap: nowrap; white-space: nowrap; }
+.fs-filbtn { flex-shrink: 0; }
+.cadwrap.full .fs-exit { flex-shrink: 0; order: 99; }
 .fs-exit { font: 600 .95rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 0 14px; min-height: 40px; cursor: pointer; }
 .cadwrap.full .fs-rail { display: flex; flex-direction: column; align-items: stretch; gap: 4px; position: absolute; left: 10px; top: calc(var(--tb) + 12px); padding: 6px; background: rgba(20,24,28,.95); border: 1px solid #333b42; border-radius: 14px; z-index: 3; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-height: calc(100% - var(--tb) - 24px - var(--sb)); overflow-y: auto; }
 .fs-rail button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 64px; min-height: 52px; padding: 6px 2px; border: 0; border-radius: 10px; background: transparent; color: #c9d1d9; font: 600 .7rem var(--f-body); cursor: pointer; }
@@ -351,7 +357,10 @@ body.app header { display: none; }
 body.app .wrap { max-width: none; padding-inline: 12px; padding-block: 0 calc(96px + env(safe-area-inset-bottom, 0px)); gap: 12px; }
 body.app .apptop { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; z-index: 40; margin-inline: -12px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px; background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 body.app .apptop h1 { margin: 0; font: 700 1.75rem/1.1 var(--f-display); letter-spacing: .01em; color: var(--ink); }
-body.app .apptop-r { display: flex; gap: 8px; align-items: center; }
+body.app .apptop-r { display: flex; gap: 8px; align-items: center; min-width: 0; flex-shrink: 1; }
+body.app .apptop h1 { flex-shrink: 0; }
+body.app .apptop-r .syncb { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html:has(body.app), body.app { overflow-x: hidden; max-width: 100vw; }
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
 body.app .appbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
@@ -443,10 +452,13 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
   body.app .cadwrap.full .fs-anl .anl select { font-size: 15px; }
   body.app .cadwrap.full .fs-top { gap: 8px; padding-inline: 10px; }
   body.app .cadwrap.full .fs-exit span { display: none; }
+  body.app .cadwrap.full .fs-exit { min-width: 44px; min-height: 44px; padding: 0; font-size: 1.15rem; background: #e0774c; border-color: #e0774c; color: #1a0f0a; }
+  body.app .cadwrap.full .fs-title { display: none; }
   .cadwrap.full .fs-rail { display: grid !important; grid-auto-flow: column; grid-auto-columns: 1fr; overflow: visible; }
   .cadwrap.full:not(.nopanel) .fs-rail { display: none !important; }
   .cadwrap.full .fs-rail button { width: auto; min-width: 0; }
   .cadwrap.full .fs-rail #fsZin, .cadwrap.full .fs-rail #fsZout, .cadwrap.full .fs-rail .sep { display: none; }
+  .cadwrap.full .fs-rail #fsFit { display: none; }
 }
 .cadwrap.full.sheet .fs-hint { display: none !important; }
 .btnrow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -578,7 +590,7 @@ body.t2pc #tab2 > .main, body.t2app #tab2 > .main { display: block; }
 @media (max-width: 760px) {
   .t2arow { flex-direction: column; }
   .t2rail { flex-direction: row; flex: none; }
-  .t2rail button { flex: 1; flex-direction: row; justify-content: center; gap: 6px; padding: 10px 6px; }
+  .t2rail button { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-direction: row; justify-content: center; gap: 6px; padding: 10px 6px; }
   .t2rail button small { display: none; }
   .t2drawer { flex: none; max-height: none; }
   .t2mini { top: auto; bottom: 74px; left: 10px; right: 10px; max-width: none; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 8px 10px; }
@@ -706,13 +718,30 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
 @media (max-width: 560px) { .grid3 { grid-template-columns: 1fr 1fr; } .grid3 > :last-child { grid-column: 1 / -1; } }
 .adm-pw { display: flex; gap: 6px; margin-top: 6px; } .adm-pw input { flex: 1; min-width: 0; }
 .adm-u .adm-bt { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (min-width: 761px) { .fs-railexit { display: none !important; } }
+@media (max-width: 520px) {
+  body.app .apptop { gap: 8px; padding-inline: 12px; }
+  body.app .apptop h1 { font-size: 1.45rem; }
+  body.app .apptop-r { gap: 6px; }
+  body.app .apptop-r .btn { padding-inline: 10px; font-size: .82rem; }
+  body.app .apptop-r .syncb { max-width: 40px; width: 40px; padding-inline: 0; justify-content: center; }
+  body.app .apptop-r .syncb .sy-t { display: none; }
+  body.app .apptop-r .syncb[data-estado=login], body.app .apptop-r .syncb[data-estado=error] { background: #e0774c; color: #1a0f0a; border-color: #e0774c; }
+}
+.adm-beta { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 12px; border: 1px dashed #8a3ffc; border-radius: 10px; background: color-mix(in srgb, #8a3ffc 7%, transparent); font-size: .85rem; }
+.adm-beta a { justify-self: start; text-decoration: none; }
+.betaban { position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; align-items: center; justify-content: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 3px) 10px 3px; background: #8a3ffc; color: #fff; font: 700 .75rem var(--f-body); letter-spacing: .04em; pointer-events: none; }
+.betaban a { pointer-events: auto; color: #fff; background: rgba(255,255,255,.2); border-radius: 6px; padding: 2px 8px; text-decoration: none; font-weight: 600; letter-spacing: 0; }
+body.esbeta { --beta-h: 22px; }
+body.esbeta:not(.app) { padding-top: 26px; }
+body.esbeta.app .apptop { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v42</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v43</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1028,6 +1057,7 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
             <button type="button" id="fsZout" title="Alejar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21M7.5 10.5h6"/></svg></button>
             <button type="button" id="fsFit" title="Ajustar a la vista"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
             <i class="sep"></i>
+            <button type="button" class="fs-railexit" id="fsExit2" title="Salir de pantalla completa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Salir</span></button>
             <label class="fs-libre" title="El dedo también dibuja a mano alzada"><input type="checkbox" id="fsLibre"><span>Dedo<br>dibuja</span></label>
           </div>
           <div class="fs-hint" id="fsHint" aria-live="polite"></div>
@@ -1209,6 +1239,7 @@ body.t2app .respban { right: auto; left: 12px; top: calc(64px + env(safe-area-in
         <p class="msg" id="syncPwMsg"></p>
       </div>
       <div id="syncAdmin" class="dlgsub" hidden>
+        <div class="adm-beta" id="admBeta" hidden><b>🧪 Versión de pruebas</b><span>Solo tú la ves. Prueba las mejoras aquí; cuando estén sin errores se publican para todos.</span><a class="btn sec small" id="admBetaIr" href="beta/">Abrir versión de pruebas</a></div>
         <h3>Usuarios del programa</h3>
         <p class="note">Cada usuario ve solo sus proyectos y avances. Los <b>límites</b>, los <b>proyectos FINAL</b> y los <b>polígonos de los avances</b> los ven todos.</p>
         <div class="adm-lista" id="admLista"></div>
@@ -4302,6 +4333,7 @@ $('fsClear').addEventListener('click', e => {
 $('fsExit').addEventListener('click', () => setFull(false));
 $('fsHide').addEventListener('click', () => { $('cad2wrap').classList.add('nopanel'); requestAnimationFrame(() => { fitFull(); pv.draw(); }); try { localStorage.setItem('bhl-nopanel', '1'); } catch (e) {} });
 $('fsShow').addEventListener('click', () => { $('cad2wrap').classList.remove('nopanel'); try { localStorage.removeItem('bhl-nopanel'); } catch (e) {} });
+$('fsExit2').addEventListener('click', () => setFull(false));
 $('z2full').addEventListener('click', () => { setFull(!enFull); if (enFull) setTool('pan'); });
 paintTools(); paintPanel();
 
@@ -4374,7 +4406,7 @@ function appTab(at) {
 }
 function pintarAjustes() {
   $('appVer').textContent = $('verBadge').textContent;
-  $('appSyncTxt').textContent = (typeof sync !== 'undefined' && sync.session && sync.session.email) || ($('btnSync').textContent || '').replace('☁', '').trim() || '—';
+  try { pintarSync($('btnSync').dataset.estado || (sync.session ? 'ok' : 'login')); } catch (e) {}
 }
 if (ES_APP) {
   document.body.classList.add('app');
@@ -5546,7 +5578,8 @@ function pintarSync(estado, cambios) {
   b.hidden = false;
   b.dataset.estado = estado;
   const hora = sync.last ? sync.last.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
-  b.textContent = { off: '☁ Sincronizar', login: '☁ Iniciar sesión', busy: '☁ Sincronizando…', ok: `☁ Sincronizado ${hora}`, offline: '☁ Sin internet', error: '☁ Error al sincronizar' }[estado] || '☁ Sincronizar';
+  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar' }[estado] || 'Sincronizar';
+  b.innerHTML = `<span class="sy-i">☁</span><span class="sy-t"> ${txt}</span>`; b.setAttribute('aria-label', txt);
   const at = document.getElementById('appSyncTxt');
   if (at) {
     const quien = sync.session ? nombreDe(sync.session.email) : '';
@@ -5572,6 +5605,10 @@ function abrirPanelSync() {
   $('syncCuenta').hidden = !(conectado && sync.mode === 'rest');
   $('syncWipeL').hidden = sync.mode !== 'rest';
   $('syncAdmin').hidden = !(conectado && esAdmin());
+  // versión de pruebas: solo el administrador, en la app web (la PC recibe su instalador de pruebas aparte)
+  const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
+  $('admBeta').hidden = !(conectado && esAdmin() && enWeb);
+  if (window.BHL_CANAL === 'beta') { $('admBetaIr').textContent = 'Volver a la versión normal'; $('admBetaIr').href = '../'; }
   $('syncWipe').checked = true;
   if (conectado && esAdmin()) cargarUsuarios();
   d.hidden = false;
@@ -5704,6 +5741,16 @@ $('admLista').addEventListener('click', async e => {
   catch (err) { m.className = 'msg err'; m.textContent = err.message; }
 });
 $('dlgSync').addEventListener('click', e => { if (e.target === $('dlgSync')) $('dlgSync').hidden = true; });
+
+// ---- Versión de pruebas (/beta/): aviso arriba y solo para el administrador ----
+(function canalPruebas() {
+  if (window.BHL_CANAL !== 'beta') return;
+  document.body.classList.add('esbeta');
+  const d = document.createElement('div'); d.className = 'betaban';
+  d.innerHTML = '🧪 VERSIÓN DE PRUEBAS <a href="../">Volver a la normal</a>';
+  document.body.appendChild(d);
+  setInterval(() => { if (sync.session && !esAdmin()) location.replace('../'); }, 3000);
+})();
 
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
