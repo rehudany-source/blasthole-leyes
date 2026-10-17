@@ -816,7 +816,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v62</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v63</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6884,6 +6884,51 @@ function pmCSV() {
   const b0 = pv.before;
   pv.before = (ctx, v) => { if (b0) b0(ctx, v); try { pmDibujar(ctx, v); } catch (e) {} };
   const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (!pop.hidden) pmResumen(); } catch (e) {} return r; };
+})();
+
+/* ===== V63: imprimir / PDF de lo que se ve en el plano (acércate primero a la zona que quieres) ===== */
+function recortarPoly(P, b) {
+  // Sutherland–Hodgman contra el rectángulo de la vista
+  const lados = [[q => q.x >= b.x0, (a, c) => ({ x: b.x0, y: a.y + (c.y - a.y) * (b.x0 - a.x) / (c.x - a.x) })], [q => q.x <= b.x1, (a, c) => ({ x: b.x1, y: a.y + (c.y - a.y) * (b.x1 - a.x) / (c.x - a.x) })],
+    [q => q.y >= b.y0, (a, c) => ({ x: a.x + (c.x - a.x) * (b.y0 - a.y) / (c.y - a.y), y: b.y0 })], [q => q.y <= b.y1, (a, c) => ({ x: a.x + (c.x - a.x) * (b.y1 - a.y) / (c.y - a.y), y: b.y1 })]];
+  let out = P;
+  for (const [dentro, cruce] of lados) { const inp = out; out = []; if (!inp.length) break; for (let i = 0; i < inp.length; i++) { const a = inp[(i + inp.length - 1) % inp.length], c = inp[i]; if (dentro(c)) { if (!dentro(a)) out.push(cruce(a, c)); out.push(c); } else if (dentro(a)) out.push(cruce(a, c)); } }
+  return out.length >= 3 ? out : null;
+}
+function recortarSeg(a, c, b) {
+  let t0 = 0, t1 = 1; const dx = c.x - a.x, dy = c.y - a.y;
+  for (const [p, q] of [[-dx, a.x - b.x0], [dx, b.x1 - a.x], [-dy, a.y - b.y0], [dy, b.y1 - a.y]]) { if (p === 0) { if (q < 0) return null; continue; } const r = q / p; if (p < 0) { if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; } }
+  return [{ x: a.x + t0 * dx, y: a.y + t0 * dy }, { x: a.x + t1 * dx, y: a.y + t1 * dy }];
+}
+function imprimirVista() {
+  if (!t2.holes.length && !(t2.lims || []).length) { flashHint('No hay nada en el plano para imprimir.'); return; }
+  const b = { x0: pv.wx(0), x1: pv.wx(pv.W), y0: pv.wy(pv.H), y1: pv.wy(0) };
+  const holes = t2.holes.filter(h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1).map(h => ({ key: h.ck, id: h.id, x: h.x, y: h.y, z: 0 }));
+  const matched = new Map(); holes.forEach(h => { const l = t2.leyBy.get(h.key); if (l && l.hasData !== false) matched.set(h.key, l); });
+  const P0 = holes.length ? layout(holes, matched, Object.assign(opts(), { useZ: false })) : [];
+  // marco de la vista: fija la extensión del plano impreso a lo que estás viendo
+  [[b.x0, b.y0, b.x1, b.y0], [b.x1, b.y0, b.x1, b.y1], [b.x1, b.y1, b.x0, b.y1], [b.x0, b.y1, b.x0, b.y0]].forEach(([x1, y1, x2, y2]) => P0.push({ t: 'line', layer: 'LINEA_GUIA', x1, y1, x2, y2 }));
+  const rgb = c => { const h = /^#[0-9a-f]{6}$/i.test(c) ? c : '#666666'; return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255]; };
+  const polys = [], add = (P, col, w) => { const r = recortarPoly(P, b); if (r) polys.push({ pts: r, col, w }); };
+  (t2.lims || []).forEach(L => { try { if (t2.limOff.has(L.layer) || !limVisible(L)) return; if (L.modelo && blqModo() === 'oculto') return; } catch (e) {} if (L.bb.x1 < b.x0 || L.bb.x0 > b.x1 || L.bb.y1 < b.y0 || L.bb.y0 > b.y1) return; add(L.pts, rgb(L.modelo ? colorDestino(L.modelo) : limColor(L.layer)), 0.3 * limAncho()); });
+  t2.shapes.forEach(s => add(s.pts, [0.75, 0.53, 0.04], 1.6));
+  const filas = [['Proyectos', (t2.projs || []).map(p => p.name).join(' + ') || '—'], ['Taladros en la vista', `${holes.length} (${matched.size} con ley)`]];
+  const R = pm.on ? pmActual() : null;
+  if (R && !R.err) {
+    const E = PM_ESQ[R.esq];
+    R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => p.rings.forEach(P => add(P, rgb(c.colL), 1.1))));
+    R.corte.forEach(P => { for (let i = 0; i < P.length - 1; i++) { const s = recortarSeg(P[i], P[i + 1], b); if (s) polys.push({ pts: s, col: [0.9, 0.1, 0.1], w: 1.4 }); } });
+    filas.push(['Polígonos de minado', E.nom]);
+    R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
+  }
+  window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
+    title: `Plano ${(t2.projs || []).map(p => p.name).slice(0, 4).join(' + ')}${(t2.projs || []).length > 4 ? ' …' : ''}`, subtitle: `${fmtDate(todayISO())} · vista del plano (E ${Math.round(b.x0)}–${Math.round(b.x1)} · N ${Math.round(b.y0)}–${Math.round(b.y1)})` };
+  abrirPrevia();
+}
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b'; b.id = 'printVista'; b.textContent = '🖨 Imprimir'; b.title = 'Imprimir o sacar PDF de lo que se ve en el plano (acércate primero a la zona)';
+  anchor.parentNode.appendChild(b); b.onclick = imprimirVista;
 })();
 
 
