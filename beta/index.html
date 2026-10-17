@@ -794,7 +794,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v53</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v54</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -5462,6 +5462,10 @@ function cerrarCarga() { $('dlgCarga').hidden = true; }
 // ¿Es un CSV de límites (polígonos) y no de taladros? muchos puntos con el mismo ID, o el nombre lo dice
 function pareceLimite(f, csv) {
   if (/lim|rotura|pol[ií]gono|contorno/i.test(f.name)) return true;
+  // V54: polígonos de bloques de MinePlan (_P.csv: ID de vértice, X, Y, Z, PROJECTID, BLOCK) nunca son taladros
+  const hh = csv.header.map(x => String(x).trim().toLowerCase());
+  if (hh.some(x => /^(block|blockname|bloque|blocker)$/.test(x))) return true;
+  if (/_P\.(csv|txt|xlsx?)$/i.test(f.name) && hh.includes('projectid')) return true;
   const m = mapHoleCols(csv); if (m.id < 0) return false;
   const ids = csv.rows.map(r => r[m.id]).filter(Boolean); return ids.length > 6 && new Set(ids).size < ids.length * 0.5;
 }
