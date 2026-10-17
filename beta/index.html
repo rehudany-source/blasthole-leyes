@@ -788,13 +788,32 @@ body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.s
 body.app #tab3 .note { display: none; }
 body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
 .topo-mina { width: 3.6em; padding: 1px 4px; font: inherit; font-weight: 700; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+.pm-pop { width: min(430px, calc(100% - 20px)); }
+.pm-sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.pm-ley { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .78rem; } .pm-ley small { color: var(--muted); }
+.pm-t { width: 100%; border-collapse: collapse; font-size: .78rem; } .pm-t th, .pm-t td { padding: 3px 4px; text-align: right; border-bottom: 1px solid var(--line); } .pm-t th:first-child, .pm-t td:first-child { text-align: left; }
+.foto-btn { position: absolute; right: 12px; bottom: 76px; z-index: 6; height: 40px; min-width: 40px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel, #fff); color: var(--ink); font-size: 18px; display: flex; align-items: center; gap: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.2); cursor: pointer; }
+.foto-btn span { font-size: .75rem; font-weight: 700; }
+body.app .foto-btn { bottom: 188px; height: 48px; min-width: 48px; border-radius: 24px; font-size: 22px; justify-content: center; }
+.foto-pan { left: auto; right: 10px; top: auto; bottom: 124px; width: min(380px, calc(100% - 20px)); max-height: calc(100% - 140px); }
+body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: auto; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); max-height: 62vh; z-index: 60; }
+.foto-fil { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foto-lista { display: grid; gap: 6px; overflow: auto; max-height: 300px; }
+.foto-it { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; text-align: left; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.foto-it img { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; background: #222; } .foto-it span { display: grid; gap: 1px; font-size: .8rem; } .foto-it small { color: var(--muted); }
+.foto-dlg { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.55); display: grid; place-items: center; padding: 14px; }
+.foto-dlg[hidden] { display: none; }
+.foto-card { background: var(--panel, #fff); color: var(--ink); border-radius: 14px; padding: 12px 14px; width: min(460px, 100%); display: grid; gap: 8px; max-height: calc(100vh - 28px); overflow: auto; }
+.foto-card label { display: grid; gap: 3px; font-size: .85rem; } .foto-card select, .foto-card input[type=text] { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg, transparent); color: inherit; }
+.foto-prev { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; background: #111; }
+.foto-ver { width: min(900px, 100%); } .foto-img { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; background: #111; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v57</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v58</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6646,6 +6665,364 @@ async function v3Mostrar() {
   setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
 })();
 
+
+/* ===== V58: polígonos de minado por ley de Fe (líneas de excavación del ore control) ===== */
+// Cortes del área de calidad: Fe > 50 Alta Ley · 40–50 Baja Ley · 30–40 Evaluación ··· (corte mineral/desmonte) ··· 20–30 Marginal · < 20 Desmonte
+const PM_CLASES = [
+  { k: 'AL', nom: 'Alta Ley', min: 50.1, col: '#e040fb', colL: '#b0179f' },
+  { k: 'BL', nom: 'Baja Ley', min: 40.1, col: '#ff8a1f', colL: '#d06400' },
+  { k: 'EV', nom: 'Evaluación', min: 30.1, col: '#30d158', colL: '#1a9a3e' },
+  { k: 'MG', nom: 'Marginal', min: 20.1, col: '#4cc9f0', colL: '#0e8fb0' },
+  { k: 'DS', nom: 'Desmonte', min: -Infinity, col: '#9a9a9a', colL: '#6b6b6b' },
+];
+const PM_MINERAL = new Set(['AL', 'BL', 'EV']);
+const pm = { on: false, res: null, firma: '', celda: 1 };
+try { pm.on = localStorage.getItem('bhl-pm') === '1'; } catch (e) {}
+function pmClase(fe) { if (fe == null || isNaN(fe)) return -1; const r = Math.round(fe * 10) / 10; return PM_CLASES.findIndex(c => r >= c.min); }
+function pmColor(c) { return (typeof planClaro === 'function' && planClaro()) ? c.colL : c.col; }
+// Cada celda de 1 m toma la clase del taladro con ley más cercano (como en los polígonos de ore control), hasta ~0.75 del espaciamiento
+function pmCalcular() {
+  const src = [];
+  t2.holes.forEach(h => {
+    if (h.dup) return; const l = t2.leyBy.get(h.ck), has = l && l.hasData !== false;
+    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null;
+    const c = pmClase(fe); if (c < 0) return;
+    src.push({ x: h.x, y: h.y, c, fe, h, est: !has });
+  });
+  if (src.length < 3) return { err: src.length ? 'Hay muy pocos taladros con ley para trazar polígonos.' : 'Los proyectos marcados no tienen taladros con ley.' };
+  // espaciamiento típico (mediana del vecino más cercano), con rejilla para que sea rápido
+  const G = new Map(), gk = (x, y) => Math.floor(x / 10) + ',' + Math.floor(y / 10);
+  src.forEach((s, i) => { const k = gk(s.x, s.y); if (!G.has(k)) G.set(k, []); G.get(k).push(i); });
+  const vecinos = (x, y, r) => { const out = [], i0 = Math.floor((x - r) / 10), i1 = Math.floor((x + r) / 10), j0 = Math.floor((y - r) / 10), j1 = Math.floor((y + r) / 10); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = G.get(i + ',' + j); if (a) out.push(...a); } return out; };
+  const nn = src.map((s, i) => { let d = Infinity; vecinos(s.x, s.y, 15).forEach(j => { if (j !== i) d = Math.min(d, Math.hypot(src[j].x - s.x, src[j].y - s.y)); }); return d; }).filter(d => d < Infinity).sort((a, b) => a - b);
+  const esp = nn.length ? nn[Math.floor(nn.length / 2)] : 5, R = Math.max(2.5, Math.min(8, esp * 0.75));
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; src.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); });
+  const ar = (x1 - x0 + 2 * R) * (y1 - y0 + 2 * R), cel = ar < 6e5 ? 0.5 : ar < 2.5e6 ? 1 : 2; x0 = Math.floor(x0 - R - cel); y0 = Math.floor(y0 - R - cel);
+  const W = Math.ceil((x1 + R + cel - x0) / cel), H = Math.ceil((y1 + R + cel - y0) / cel);
+  const C = new Int8Array(W * H).fill(-1), D = new Float32Array(W * H).fill(Infinity), S = new Int32Array(W * H).fill(-1);
+  // pintar alrededor de cada taladro (más rápido que buscar el más cercano por celda)
+  const rc = Math.ceil(R / cel);
+  src.forEach((s, idx) => {
+    const ci = Math.floor((s.x - x0) / cel), cj = Math.floor((s.y - y0) / cel);
+    for (let j = cj - rc; j <= cj + rc; j++) { if (j < 0 || j >= H) continue; const yc = y0 + (j + 0.5) * cel;
+      for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || i >= W) continue; const xc = x0 + (i + 0.5) * cel, d = Math.hypot(xc - s.x, yc - s.y); if (d > R) continue; const k = j * W + i; if (d < D[k]) { D[k] = d; C[k] = s.c; S[k] = idx; } } }
+  });
+  const toXY = R0 => R0.map(([i, j]) => ({ x: x0 + i * cel, y: y0 + j * cel }));
+  const anillo = Rr => { if (Rr.length < 8) return Rr; let f = 0, dm = -1; Rr.forEach((q, i) => { const d = (q[0] - Rr[0][0]) ** 2 + (q[1] - Rr[0][1]) ** 2; if (d > dm) { dm = d; f = i; } }); return topoSimplificar(Rr.slice(0, f + 1), 0.6).concat(topoSimplificar(Rr.slice(f).concat([Rr[0]]), 0.6).slice(1, -1)); };
+  const banco = num('avBanco') || 12;
+  const clases = PM_CLASES.map((c, ci) => {
+    const M = new Uint8Array(W * H); let n = 0; for (let k = 0; k < W * H; k++) if (C[k] === ci) { M[k] = 1; n++; }
+    if (!n) return null;
+    // zonas conectadas de esta clase → cada una es un polígono (con sus huecos)
+    const lab = new Int32Array(W * H), zonas = []; let L = 0;
+    for (let k = 0; k < W * H; k++) { if (!M[k] || lab[k]) continue; L++; const st = [k], cel0 = []; lab[k] = L;
+      while (st.length) { const q = st.pop(); cel0.push(q); const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (M[r] && !lab[r]) { lab[r] = L; st.push(r); } }); }
+      zonas.push({ L, cel: cel0 }); }
+    const polys = zonas.map(z => {
+      // máscara local (solo el recuadro de la zona) para trazar el contorno sin recorrer toda la grilla
+      let i0 = W, j0 = H, i1 = 0, j1 = 0; z.cel.forEach(q => { const i = q % W, j = (q - i) / W; if (i < i0) i0 = i; if (i > i1) i1 = i; if (j < j0) j0 = j; if (j > j1) j1 = j; });
+      const w = i1 - i0 + 1, h = j1 - j0 + 1, Mz = new Uint8Array(w * h); z.cel.forEach(q => { const i = q % W, j = (q - i) / W; Mz[(j - j0) * w + (i - i0)] = 1; });
+      const rings = topoTrazar(Mz, w, h).map(r => toXY(anillo(r.map(([a, b]) => [a + i0, b + j0])))).filter(P => P.length >= 3);
+      const tal = new Set(); z.cel.forEach(q => { if (S[q] >= 0) tal.add(S[q]); });
+      const ts = [...tal].map(i => src[i]);
+      const area = z.cel.length * cel * cel, dens = ts.length ? ts.reduce((s, t) => s + densFe(t.fe), 0) / ts.length : densFe(c.min > 0 ? c.min + 5 : 15);
+      const feP = ts.length ? ts.reduce((s, t) => s + t.fe, 0) / ts.length : null;
+      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
+    }).filter(p => p.rings.length);
+    return { c, polys };
+  }).filter(Boolean);
+  // borde mineral / desmonte (línea roja punteada): entre Evaluación y Marginal
+  // solo los bordes donde el mineral toca Marginal o Desmonte (no el borde exterior de la malla)
+  const esMin = k => C[k] >= 0 && PM_MINERAL.has(PM_CLASES[C[k]].k), esEst = (i, j) => i >= 0 && j >= 0 && i < W && j < H && C[j * W + i] >= 0 && !PM_MINERAL.has(PM_CLASES[C[j * W + i]].k);
+  const seg = new Map(), entra = new Map(), key = (i, j) => j * (W + 1) + i, add = (a, b) => { (seg.get(a) || seg.set(a, []).get(a)).push(b); entra.set(b, (entra.get(b) || 0) + 1); };
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { if (!esMin(j * W + i)) continue;
+    if (esEst(i, j - 1)) add(key(i, j), key(i + 1, j)); if (esEst(i + 1, j)) add(key(i + 1, j), key(i + 1, j + 1));
+    if (esEst(i, j + 1)) add(key(i + 1, j + 1), key(i, j + 1)); if (esEst(i - 1, j)) add(key(i, j + 1), key(i, j)); }
+  const lineas = [], tomar = a => { const l = seg.get(a), b = l.pop(); if (!l.length) seg.delete(a); entra.set(b, entra.get(b) - 1); return b; };
+  const recorrer = ini => { const L = [ini]; let p = ini, g = 0; while (seg.has(p) && g++ < 1e6) { p = tomar(p); L.push(p); if (p === ini) break; } return L; };
+  [...seg.keys()].filter(k => !entra.get(k)).forEach(k => { while (seg.has(k)) lineas.push(recorrer(k)); });
+  while (seg.size) lineas.push(recorrer(seg.keys().next().value));
+  const corte = lineas.filter(L => L.length > 2).map(L => toXY(topoSimplificar(L.map(k => [k % (W + 1), Math.floor(k / (W + 1))]), 0.6)));
+  return { clases, corte, esp, R, banco, n: src.length, nEst: src.filter(s => s.est).length, grid: { x0, y0, cel, W, H, C } };
+}
+function pmFirma() { return [t2.holes.length, t2.leyBy && t2.leyBy.size, t2.estBy && t2.estBy.size, num('avBanco'), t2.holes.length ? t2.holes[0].ck + t2.holes[t2.holes.length - 1].ck : ''].join('|'); }
+function pmActual() { const f = pmFirma(); if (!pm.res || pm.firma !== f) { pm.res = t2.holes.length ? pmCalcular() : null; pm.firma = f; } return pm.res; }
+function pmDibujar(ctx, v) {
+  if (!pm.on) return; const R = pmActual(); if (!R || R.err) return;
+  const path = rings => { ctx.beginPath(); rings.forEach(P => { P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); }); };
+  ctx.save();
+  // relleno desde la grilla (sin rendijas entre clases) y contorno de cada polígono encima
+  const G = R.grid, claro = typeof planClaro === 'function' && planClaro();
+  if (!R.img || R.imgClaro !== claro) {
+    const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
+    const rgb = PM_CLASES.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
+    for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 60; }
+    cx.putImageData(im, 0, 0); R.img = cv; R.imgClaro = claro;
+  }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(R.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
+  R.clases.forEach(({ c, polys }) => { const col = pmColor(c); polys.forEach(p => { path(p.rings); ctx.globalAlpha = 0.95; ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }); });
+  ctx.globalAlpha = 1; ctx.setLineDash([2, 4]); ctx.lineCap = 'round'; ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3; R.corte.forEach(P => { ctx.beginPath(); P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); }); ctx.setLineDash([]);
+  // etiquetas: clase y Fe promedio en cada polígono que se vea
+  if (v.v.s > 1.5) {
+    ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.strokeStyle = (typeof planClaro === 'function' && planClaro()) ? 'rgba(255,255,255,.9)' : 'rgba(10,12,14,.8)';
+    R.clases.forEach(({ c, polys }) => polys.forEach(p => {
+      if (p.area * v.v.s * v.v.s < 1800) return;
+      if (!p._lbl) p._lbl = puntoDentro(p.rings[0]); const x = v.sx(p._lbl.x), y = v.sy(p._lbl.y); if (x < -50 || x > v.W + 50 || y < -50 || y > v.H + 50) return;
+      const t1 = c.nom, t2t = p.fe != null ? `Fe ${p.fe.toFixed(1)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '';
+      ctx.fillStyle = pmColor(c); ctx.strokeText(t1, x, y - 7); ctx.fillText(t1, x, y - 7); if (t2t) { ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(t2t, x, y + 7); ctx.fillText(t2t, x, y + 7); ctx.font = '700 11px system-ui, sans-serif'; }
+    }));
+  }
+  ctx.restore();
+}
+function pmResumen() {
+  const el = $('pmRes'); if (!el) return; const R = pmActual();
+  if (!t2.holes.length) { el.innerHTML = '<p class="msg">Marca uno o varios proyectos con leyes.</p>'; return; }
+  if (!R || R.err) { el.innerHTML = `<p class="msg err">${esc((R && R.err) || '')}</p>`; return; }
+  const fila = (c, polys) => { const a = polys.reduce((s, p) => s + p.area, 0), t = polys.reduce((s, p) => s + p.t, 0), n = polys.reduce((s, p) => s + p.n, 0), fe = n ? polys.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null;
+    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td><td>${n}</td></tr>`; };
+  const tot = R.clases.reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0), min = R.clases.filter(x => PM_MINERAL.has(x.c.k)).reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0);
+  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th><th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
+    <p class="msg">Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}.</p>`;
+}
+function pmDXF() {
+  const R = pmActual(); if (!R || R.err) return null;
+  const L = ['0', 'SECTION', '2', 'ENTITIES'];
+  const poly = (P, capa, color) => { L.push('0', 'LWPOLYLINE', '8', capa, '62', String(color), '90', String(P.length), '70', '1'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); };
+  const aci = { AL: 6, BL: 30, EV: 3, MG: 4, DS: 8 };
+  R.clases.forEach(({ c, polys }) => polys.forEach(p => {
+    p.rings.forEach(P => poly(P, 'PM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[̀-ͯ]/g, ''), aci[c.k]));
+    const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${p.fe != null ? ' Fe ' + p.fe.toFixed(1) : ''}`);
+  }));
+  R.corte.forEach(P => { L.push('0', 'LWPOLYLINE', '8', 'PM_CORTE_MINERAL', '62', '1', '90', String(P.length), '70', '0'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); });
+  L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
+}
+function pmCSV() {
+  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,Taladros'];
+  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.n].join(',')))); }));
+  return out.join('\r\n');
+}
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b'; b.id = 'pmBtn'; b.textContent = '⛏ Minado'; b.title = 'Polígonos de minado por ley de Fe: Alta Ley, Baja Ley, Evaluación, Marginal y Desmonte'; b.setAttribute('aria-pressed', pm.on ? 'true' : 'false');
+  anchor.parentNode.insertBefore(b, anchor);
+  const pop = document.createElement('div'); pop.className = 'topo-pop pm-pop'; pop.id = 'pmPop'; pop.hidden = true;
+  pop.innerHTML = `<div class="topo-h"><b>⛏ Polígonos de minado</b><button type="button" id="pmCerrar" aria-label="Cerrar">✕</button></div>
+    <label class="chk"><input type="checkbox" id="pmVer"> Ver polígonos en el plano</label>
+    <div class="pm-ley">${PM_CLASES.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${c.k === 'AL' ? 'Fe &gt; 50' : c.k === 'BL' ? '40–50' : c.k === 'EV' ? '30–40' : c.k === 'MG' ? '20–30' : '&lt; 20'}</small></span>`).join('')}</div>
+    <div id="pmRes"></div>
+    <div class="btnrow"><button type="button" class="btn sec small" id="pmDxf">Exportar DXF</button><button type="button" class="btn sec small" id="pmCsv">Exportar CSV</button></div>
+    <p class="msg" id="pmMsg"></p>`;
+  $('topoPop').parentNode.insertBefore(pop, $('topoPop'));
+  $('pmVer').checked = pm.on;
+  const nombre = ext => `Poligonos_minado_${(t2.projs || []).map(p => p.name).join('+').slice(0, 60) || 'avance'}_${todayISO()}.${ext}`.replace(/[\\/:*?"<>|]+/g, '_');
+  b.onclick = () => { pop.hidden = !pop.hidden; if (!pop.hidden) { $('topoPop').hidden = true; pmResumen(); } };
+  $('pmCerrar').onclick = () => { pop.hidden = true; };
+  $('pmVer').onchange = e => { pm.on = e.target.checked; try { localStorage.setItem('bhl-pm', pm.on ? '1' : '0'); } catch (er) {} b.setAttribute('aria-pressed', pm.on ? 'true' : 'false'); pmResumen(); pv.draw(); };
+  $('pmDxf').onclick = () => { const d = pmDXF(); if (!d) { $('pmMsg').textContent = 'No hay polígonos para exportar.'; return; } save(nombre('dxf'), new Blob([d], { type: 'application/dxf' }), $('pmMsg')); };
+  $('pmCsv').onclick = () => { const d = pmCSV(); if (!d) { $('pmMsg').textContent = 'No hay polígonos para exportar.'; return; } save(nombre('csv'), new Blob(['﻿' + d], { type: 'text/csv' }), $('pmMsg')); };
+  // se dibuja debajo de los taladros
+  const b0 = pv.before;
+  pv.before = (ctx, v) => { if (b0) b0(ctx, v); try { pmDibujar(ctx, v); } catch (e) {} };
+  const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (!pop.hidden) pmResumen(); } catch (e) {} return r; };
+})();
+
+
+/* ===== V58: fotos del frente con ubicación (se comparten con el equipo) ===== */
+const FOTO_MAT = ['Alta Ley', 'Baja Ley', 'Evaluación', 'Marginal', 'Desmonte', 'Mezcla', 'Otro'];
+const FOTO_COL = { 'Alta Ley': '#e040fb', 'Baja Ley': '#ff8a1f', 'Evaluación': '#30d158', 'Marginal': '#4cc9f0', 'Desmonte': '#9a9a9a', 'Mezcla': '#ffd60a', 'Otro': '#ffffff' };
+const fotos = { lista: [], pend: null, ubicar: null, ver: true, busy: false, url: new Map() };
+async function fotosInit() {
+  fotos.lista = (await idbGet('fotos')) || [];
+  try { fotos.ver = localStorage.getItem('bhl-fotos-ver') !== '0'; } catch (e) {}
+  fotosPintarLista(); pv.draw();
+}
+const fotosGuardar = () => idbSet('fotos', fotos.lista);
+// ---- imagen: se achica en el equipo (máx. 1600 px, ~250 KB) y una miniatura para la lista ----
+function fotoLeerImg(file) { return new Promise((ok, no) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => { ok(im); setTimeout(() => URL.revokeObjectURL(u), 1000); }; im.onerror = () => no(new Error('No se pudo abrir la imagen.')); im.src = u; }); }
+function fotoAchicar(im, max, q) {
+  const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * s), h = Math.round(im.naturalHeight * s);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h);
+  return { url: cv.toDataURL('image/jpeg', q), w, h, blob: () => new Promise(r => cv.toBlob(r, 'image/jpeg', q)) };
+}
+// ---- GPS guardado en la foto (EXIF), si el iPhone lo dejó ----
+async function fotoExifGPS(file) {
+  try {
+    const b = new DataView(await file.slice(0, 256 * 1024).arrayBuffer()); if (b.getUint16(0) !== 0xFFD8) return null;
+    let o = 2; while (o + 4 < b.byteLength) { const m = b.getUint16(o), l = b.getUint16(o + 2); if (m === 0xFFE1 && b.getUint32(o + 4) === 0x45786966) { o += 10; break; } o += 2 + l; if (m === 0xFFDA) return null; }
+    const le = b.getUint16(o) === 0x4949, u16 = p => b.getUint16(o + p, le), u32 = p => b.getUint32(o + p, le);
+    const ifd = p => { const n = u16(p), r = {}; for (let i = 0; i < n; i++) { const e = p + 2 + i * 12; r[u16(e)] = { t: u16(e + 2), c: u32(e + 4), v: e + 8 }; } return r; };
+    const i0 = ifd(u32(4)); if (!i0[0x8825]) return null; const g = ifd(u32(i0[0x8825].v));
+    const rat = (e, k) => { const p = u32(e.v); return u32(p + k * 8) / u32(p + k * 8 + 4); }, dms = e => rat(e, 0) + rat(e, 1) / 60 + rat(e, 2) / 3600;
+    if (!g[2] || !g[4]) return null;
+    const ref = e => String.fromCharCode(b.getUint8(e.v + o));
+    let lat = dms(g[2]), lon = dms(g[4]); if (g[1] && ref(g[1]) === 'S') lat = -lat; if (g[3] && ref(g[3]) === 'W') lon = -lon;
+    return isFinite(lat) && isFinite(lon) && lat && lon ? { lat, lon } : null;
+  } catch (e) { return null; }
+}
+function fotoProyCerca(x, y) { let best = null, bd = 40; (t2.holes || []).forEach(h => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h.pname; } }); return best || ''; }
+async function fotoNueva(file) {
+  try {
+    const im = await fotoLeerImg(file), full = fotoAchicar(im, 1600, 0.78), mini = fotoAchicar(im, 260, 0.6);
+    const bl = await full.blob(), buf = await bl.arrayBuffer();
+    let pos = null, origen = '';
+    if (typeof gps !== 'undefined' && gps.on && gps.pos) { const p = gpsXY(); pos = { x: p.x, y: p.y, acc: Math.round(p.acc) }; origen = 'GPS'; }
+    if (!pos) { const g = await fotoExifGPS(file); if (g) { const u = wgsAUtm(g.lat, g.lon); pos = { x: u.x + (gps.cal ? gps.cal.dx : 0), y: u.y + (gps.cal ? gps.cal.dy : 0), acc: null }; origen = 'foto'; } }
+    const id = 'F' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    fotos.pend = { id, buf, mini: mini.url, w: full.w, h: full.h, pos, origen, fecha: new Date(file.lastModified && Date.now() - file.lastModified < 864e5 * 3 ? file.lastModified : Date.now()).toISOString() };
+    fotoFormulario();
+  } catch (e) { flashHint(e.message); }
+}
+function fotoFormulario() {
+  const f = fotos.pend, d = $('fotoDlg'); if (!f) return;
+  d.innerHTML = `<div class="foto-card"><div class="topo-h"><b>📷 Foto del frente</b><button type="button" data-fx="cancelar" aria-label="Cancelar">✕</button></div>
+    <img src="${f.mini}" alt="" class="foto-prev">
+    <p class="msg">${f.pos ? `Ubicación por ${f.origen}${f.pos.acc ? ' (± ' + f.pos.acc + ' m)' : ''}: E ${f.pos.x.toFixed(1)} · N ${f.pos.y.toFixed(1)}` : '<b>Sin ubicación:</b> al guardar, toca en el plano dónde tomaste la foto.'}</p>
+    <label>Material que ves<select id="fotoMat">${FOTO_MAT.map(m => `<option>${m}</option>`).join('')}</select></label>
+    <label>Comentario<input type="text" id="fotoTxt" maxlength="140" placeholder="p. ej. contacto con caliza, agua en el frente…"></label>
+    <div class="btnrow"><button type="button" class="btn small" data-fx="guardar">${f.pos ? 'Guardar' : 'Guardar y ubicar en el plano'}</button>${f.pos ? '<button type="button" class="btn sec small" data-fx="mover">Ubicar a mano</button>' : ''}</div></div>`;
+  d.hidden = false;
+}
+async function fotoConfirmar(pos) {
+  const f = fotos.pend; if (!f) return;
+  const m = { id: f.id, fecha: f.fecha, x: pos.x, y: pos.y, acc: pos.acc || null, origen: pos.origen || f.origen || 'plano', material: f.material, texto: f.texto, proyecto: fotoProyCerca(pos.x, pos.y), w: f.w, h: f.h, mini: f.mini, mio: true, de: '', nube: false };
+  await idbSet('foto:' + f.id, f.buf); fotos.lista.push(m); await fotosGuardar(); fotos.pend = null; fotos.ubicar = null;
+  $('fotoDlg').hidden = true; if ($('fotoPan')) $('fotoPan').hidden = true; fotosPintarLista(); pv.draw(); flashHint('Foto guardada en el plano' + (navigator.onLine ? '.' : '; se sube a la nube cuando haya señal.'), true);
+  fotosNube();
+}
+// ---- nube: imagen en el almacenamiento de Supabase, datos y miniatura en la tabla ----
+async function fotosNube() {
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || fotos.busy) return;
+  fotos.busy = true; let cambio = false;
+  try {
+    const tk = await rest.token(), uid = sync.session.uid || jwtSub(tk);
+    for (const m of fotos.lista.filter(x => x.mio && !x.nube && !x.borrar)) {
+      const buf = await idbGet('foto:' + m.id); if (!buf) continue;
+      const path = `${uid}/${m.id}.jpg`;
+      const r = await fetch(`${SYNC.url}/storage/v1/object/bhl-fotos/${path}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: new Blob([buf], { type: 'image/jpeg' }) });
+      if (!r.ok) throw new Error('No se pudo subir la foto (' + r.status + ')');
+      const data = Object.assign({}, m); ['mini', 'mio', 'de', 'nube', 'path'].forEach(k => delete data[k]);
+      await rest.rpc('bhl_foto_guardar', { p_id: m.id, p_data: data, p_thumb: m.mini, p_path: path });
+      m.nube = true; m.path = path; cambio = true;
+    }
+    for (const m of fotos.lista.filter(x => x.borrar)) {
+      try {
+        await rest.rpc('bhl_foto_borrar', { p_id: m.id });
+        if (m.path) await fetch(`${SYNC.url}/storage/v1/object/bhl-fotos/${m.path}`, { method: 'DELETE', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}` } });
+        fotos.lista = fotos.lista.filter(x => x !== m);
+      } catch (e) { delete m.borrar; flashHint('No se pudo quitar la foto: ' + e.message); }
+      cambio = true;
+    }
+    const desde = (await idbGet('fotos-since')) || '1970-01-01T00:00:00Z';
+    const rem = (await rest.rpc('bhl_foto_lista', { p_desde: desde })) || [];
+    let ult = desde;
+    for (const r of rem) {
+      if (r.updated_at > ult) ult = r.updated_at;
+      const i = fotos.lista.findIndex(x => x.id === r.id);
+      if (r.deleted) { if (i >= 0) { fotos.lista.splice(i, 1); await idbSet('foto:' + r.id, null); cambio = true; } continue; }
+      const m = Object.assign({}, r.data, { id: r.id, mini: r.thumb, path: r.path, mio: !!r.mio, de: r.mio ? '' : r.de, nube: true });
+      if (i >= 0) fotos.lista[i] = Object.assign(fotos.lista[i], m); else fotos.lista.push(m); cambio = true;
+    }
+    if (ult !== desde) await idbSet('fotos-since', ult);
+  } catch (e) { console.warn('fotos nube', e); }
+  finally { fotos.busy = false; if (cambio) { await fotosGuardar(); fotosPintarLista(); pv.draw(); } }
+}
+async function fotoImagenURL(m) {
+  if (fotos.url.has(m.id)) return fotos.url.get(m.id);
+  let buf = await idbGet('foto:' + m.id);
+  if (!buf && m.path && typeof sync !== 'undefined' && sync.session) {
+    const tk = await rest.token(); const r = await fetch(`${SYNC.url}/storage/v1/object/authenticated/bhl-fotos/${m.path}`, { headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}` } });
+    if (r.ok) { buf = await r.arrayBuffer(); try { await idbSet('foto:' + m.id, buf); } catch (e) {} }
+  }
+  if (!buf) return m.mini || '';
+  const u = URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' })); fotos.url.set(m.id, u); return u;
+}
+async function fotoAbrir(m) {
+  const d = $('fotoDlg'), fh = new Date(m.fecha);
+  const puedo = m.mio || (typeof esAdmin === 'function' && esAdmin());
+  d.innerHTML = `<div class="foto-card foto-ver"><div class="topo-h"><b>📷 ${fh.toLocaleDateString('es-PE')} ${fh.toTimeString().slice(0, 5)}${m.de ? ' · ' + esc(m.de) : ''}</b><button type="button" data-fx="cerrar" aria-label="Cerrar">✕</button></div>
+    <img src="${m.mini || ''}" alt="Foto del frente" class="foto-img" id="fotoImg">
+    <p><b style="color:${FOTO_COL[m.material] || 'inherit'}">${esc(m.material || '')}</b>${m.texto ? ' · ' + esc(m.texto) : ''}</p>
+    <p class="msg">${m.proyecto ? esc(m.proyecto) + ' · ' : ''}E ${(+m.x).toFixed(1)} · N ${(+m.y).toFixed(1)} · ubicación por ${esc(m.origen || '—')}${m.nube ? ' · ☁' : ' · aún no sube a la nube'}</p>
+    <div class="btnrow"><button type="button" class="btn sec small" data-fx="centrar" data-id="${m.id}">Ver en el plano</button><button type="button" class="btn sec small" data-fx="bajar" data-id="${m.id}">Guardar imagen</button>${puedo ? `<button type="button" class="btn sec small" data-fx="borrar" data-id="${m.id}">Quitar</button>` : ''}</div></div>`;
+  d.hidden = false;
+  const u = await fotoImagenURL(m); const im = $('fotoImg'); if (im && u) im.src = u;
+}
+function fotosPintarLista() {
+  const el = $('fotoLista'); if (!el) return;
+  const filtro = ($('fotoFiltro') || {}).value || '7', lim = filtro === 'todo' ? 0 : Date.now() - (+filtro) * 864e5;
+  const L = fotos.lista.filter(m => new Date(m.fecha).getTime() >= lim).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  $('fotoCnt').textContent = fotos.lista.length ? `(${fotos.lista.length})` : '';
+  el.innerHTML = L.length ? L.map(m => `<button type="button" class="foto-it" data-fx="abrir" data-id="${m.id}"><img src="${m.mini || ''}" alt=""><span><b style="color:${FOTO_COL[m.material] || 'inherit'}">${esc(m.material || '')}</b><small>${new Date(m.fecha).toLocaleDateString('es-PE')} ${new Date(m.fecha).toTimeString().slice(0, 5)}${m.proyecto ? ' · ' + esc(m.proyecto) : ''}${m.de ? ' · ' + esc(m.de) : ''}${m.nube ? '' : ' · ⏳'}</small>${m.texto ? `<small>${esc(m.texto)}</small>` : ''}</span></button>`).join('') : '<p class="msg">No hay fotos en este periodo.</p>';
+}
+// ---- dibujo en el plano: marca de cámara con el color del material ----
+function fotosDibujar(ctx, v) {
+  if (!fotos.ver || !fotos.lista.length) return;
+  ctx.save();
+  fotos.lista.forEach(m => {
+    const x = v.sx(m.x), y = v.sy(m.y); if (x < -20 || x > v.W + 20 || y < -20 || y > v.H + 20) return;
+    const c = FOTO_COL[m.material] || '#fff';
+    ctx.fillStyle = 'rgba(15,18,22,.85)'; ctx.strokeStyle = c; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = c; ctx.fillRect(x - 6, y - 3.5, 12, 8); ctx.fillRect(x - 2.5, y - 5.5, 5, 2.5); ctx.fillStyle = 'rgba(15,18,22,.95)'; ctx.beginPath(); ctx.arc(x, y + 0.5, 2.6, 0, Math.PI * 2); ctx.fill();
+    if (v.v.s > 3 && m.texto) { ctx.font = '600 10.5px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,14,.8)'; const t = m.texto.slice(0, 40); ctx.strokeText(t, x + 15, y); ctx.fillStyle = c; ctx.fillText(t, x + 15, y); }
+  });
+  if (fotos.ubicar) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Toca en el plano dónde tomaste la foto', v.W / 2, 56); }
+  ctx.restore();
+}
+(() => {
+  const wrap = $('cad2wrap'); if (!wrap) return;
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'fotoBtn'; b.className = 'foto-btn'; b.title = 'Fotos del frente'; b.innerHTML = '📷<span id="fotoCnt"></span>';
+  wrap.appendChild(b);
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'environment'); inp.hidden = true; inp.id = 'fotoCam'; wrap.appendChild(inp);
+  const inp2 = document.createElement('input'); inp2.type = 'file'; inp2.accept = 'image/*'; inp2.hidden = true; inp2.id = 'fotoGal'; wrap.appendChild(inp2);
+  const pan = document.createElement('div'); pan.className = 'topo-pop foto-pan'; pan.id = 'fotoPan'; pan.hidden = true;
+  pan.innerHTML = `<div class="topo-h"><b>📷 Fotos del frente</b><button type="button" data-fx="panel" aria-label="Cerrar">✕</button></div>
+    <div class="btnrow"><button type="button" class="btn small" data-fx="camara">Tomar foto</button><button type="button" class="btn sec small" data-fx="galeria">Elegir de la galería</button></div>
+    <div class="foto-fil"><label class="chk"><input type="checkbox" id="fotoVer"> Ver en el plano</label><select id="fotoFiltro"><option value="1">Hoy</option><option value="7" selected>7 días</option><option value="30">30 días</option><option value="todo">Todas</option></select></div>
+    <div class="foto-lista" id="fotoLista"></div>
+    <p class="note">La foto toma tu posición del GPS (📍) si está prendido; si no, la ubicación guardada en la foto o la que toques en el plano. Todo el equipo ve las fotos.</p>`;
+  wrap.appendChild(pan);
+  const dlg = document.createElement('div'); dlg.className = 'foto-dlg'; dlg.id = 'fotoDlg'; dlg.hidden = true; document.body.appendChild(dlg);
+  $('fotoVer').checked = fotos.ver;
+  b.onclick = () => { pan.hidden = !pan.hidden; if (!pan.hidden) { fotosPintarLista(); fotosNube(); } };
+  $('fotoVer').onchange = e => { fotos.ver = e.target.checked; try { localStorage.setItem('bhl-fotos-ver', fotos.ver ? '1' : '0'); } catch (er) {} pv.draw(); };
+  $('fotoFiltro').onchange = fotosPintarLista;
+  inp.onchange = () => { const f = inp.files[0]; inp.value = ''; if (f) fotoNueva(f); };
+  inp2.onchange = () => { const f = inp2.files[0]; inp2.value = ''; if (f) fotoNueva(f); };
+  const accion = async e => {
+    const t = e.target.closest('[data-fx]'); if (!t) return; const fx = t.dataset.fx, m = t.dataset.id ? fotos.lista.find(x => x.id === t.dataset.id) : null;
+    if (fx === 'panel') pan.hidden = true;
+    else if (fx === 'camara') inp.click();
+    else if (fx === 'galeria') inp2.click();
+    else if (fx === 'abrir' && m) fotoAbrir(m);
+    else if (fx === 'cerrar') dlg.hidden = true;
+    else if (fx === 'cancelar') { fotos.pend = null; fotos.ubicar = null; dlg.hidden = true; pv.draw(); }
+    else if (fx === 'guardar' || fx === 'mover') {
+      const f = fotos.pend; if (!f) return; f.material = $('fotoMat').value; f.texto = $('fotoTxt').value.trim();
+      if (fx === 'guardar' && f.pos) { fotoConfirmar(Object.assign({ origen: f.origen }, f.pos)); return; }
+      dlg.hidden = true; pan.hidden = true; fotos.ubicar = true; pv.draw(); flashHint('Toca en el plano dónde tomaste la foto.', true);
+    }
+    else if (fx === 'centrar' && m) { dlg.hidden = true; pan.hidden = true; if (pv.v.s < 3) pv.v.s = 5; pv.v.ox = m.x - pv.W / 2 / pv.v.s; pv.v.oy = m.y + pv.H / 2 / pv.v.s; pv.draw(); }
+    else if (fx === 'bajar' && m) { const u = await fotoImagenURL(m); const bl = await (await fetch(u)).blob(); save(`Foto_${(m.proyecto || 'frente').replace(/[^\w-]+/g, '_')}_${m.fecha.slice(0, 16).replace(/[:T]/g, '-')}.jpg`, bl, $('fotoDlg').querySelector('.msg')); }
+    else if (fx === 'borrar' && m) {
+      if (t.dataset.ok !== '1') { t.dataset.ok = '1'; t.textContent = '¿Quitar para todos?'; return; }
+      dlg.hidden = true;
+      if (m.nube) { m.borrar = true; await fotosGuardar(); fotosNube(); } else { fotos.lista = fotos.lista.filter(x => x !== m); await fotosGuardar(); }
+      await idbSet('foto:' + m.id, null); fotosPintarLista(); pv.draw();
+    }
+  };
+  pan.addEventListener('click', accion); dlg.addEventListener('click', accion);
+  // tocar el plano: ubicar la foto nueva, o abrir la foto tocada
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => {
+    if (fotos.ubicar && fotos.pend) { fotoConfirmar({ x, y, origen: 'plano' }); return; }
+    if (fotos.ver && fotos.lista.length) { const tol = 14 / pv.v.s; const m = fotos.lista.map(m => ({ m, d: Math.hypot(m.x - x, m.y - y) })).sort((a, b) => a.d - b.d)[0]; if (m && m.d < tol) { fotoAbrir(m.m); return; } }
+    return tap0 ? tap0(x, y) : undefined;
+  };
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { fotosDibujar(ctx, v); } catch (e) {} };
+  fotosInit();
+})();
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -6964,6 +7341,7 @@ async function sincronizar() {
     }
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
     try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
+    try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
     sync.compForzar = false;
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
