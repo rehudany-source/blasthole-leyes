@@ -816,7 +816,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v60</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v61</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4625,7 +4625,9 @@ function limVisible(L) {
 }
 function drawDesmonte(ctx, v) {
   if (!desCfg().on) return;
+  const ocultos = blqModo() === 'oculto';
   poligonosDesmonte().forEach(L => {
+    if (ocultos && L.modelo) return;
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     ctx.save(); ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath();
     ctx.fillStyle = L.mat === 'desmonte' ? 'rgba(138,90,43,.22)' : 'rgba(138,90,43,.12)'; ctx.fill(); ctx.clip();
@@ -4641,6 +4643,7 @@ function drawLimits(ctx, v) {
   // subdivisiones primero; el límite de rotura encima
   t2.lims.slice().sort((a, b) => isMain(a) - isMain(b)).forEach(L => {
     if (t2.limOff.has(L.layer) || !limVisible(L)) return;
+    if (L.modelo && blqModo() === 'oculto') return;
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
@@ -6420,7 +6423,10 @@ function puntoDentro(P) {
   for (let i = 1; i < 12; i++) for (let k = 1; k < 12; k++) { const x = b.x0 + (b.x1 - b.x0) * i / 12, y = b.y0 + (b.y1 - b.y0) * k / 12; if (!pointInPoly(x, y, P)) continue; let d = Infinity; for (let s = 0, r = P.length - 1; s < P.length; r = s++) { const A = P[r], B = P[s], dx = B.x - A.x, dy = B.y - A.y, l = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A.x) * dx + (y - A.y) * dy) / l)); d = Math.min(d, Math.hypot(x - A.x - u * dx, y - A.y - u * dy)); } if (d > bd) { bd = d; best = { x, y }; } }
   return best || { x: b.x0 / 2 + b.x1 / 2, y: b.y0 / 2 + b.y1 / 2 };
 }
+// V61: cuánto texto mostrar de los bloques del modelo (para que no tape los taladros)
+function blqModo() { try { return localStorage.getItem('bhl-blq') || 'resumen'; } catch (e) { return 'resumen'; } }
 function drawBloqueModelo(ctx, v, L) {
+  const modo = blqModo(); if (modo === 'sin' || modo === 'oculto') return;
   const m = L.modelo; if (!L._lbl || L._lblN !== L.pts.length) { L._lbl = puntoDentro(L.pts); L._lblN = L.pts.length; }
   const p = L._lbl, x = v.sx(p.x), y = v.sy(p.y); if (x < -300 || x > v.W + 300 || y < -300 || y > v.H + 300) return;
   const col = colorDestino(m), lin = bloqueLineas(m);
@@ -6428,6 +6434,13 @@ function drawBloqueModelo(ctx, v, L) {
   const fs = Math.max(8, Math.min(13, v.v.s * 2.2));
   ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = col;
   ctx.strokeStyle = (typeof planClaro === 'function' && planClaro()) ? 'rgba(255,255,255,.85)' : 'rgba(10,12,14,.75)'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  if (modo !== 'todo' && v.v.s * 2.2 >= 8) {
+    const l1 = bloqueTitulo(m), l2 = modo === 'resumen' ? [m.material, m.fe != null ? 'Fe ' + (+m.fe).toFixed(1) : ''].filter(Boolean).join(' · ') : '';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${Math.max(10, Math.min(13, v.v.s * 2))}px ui-monospace, Consolas, monospace`;
+    ctx.strokeText(l1, x, l2 ? y - 7 : y); ctx.fillText(l1, x, l2 ? y - 7 : y);
+    if (l2) { ctx.font = `600 ${Math.max(9, Math.min(12, v.v.s * 1.8))}px ui-monospace, Consolas, monospace`; ctx.strokeText(l2, x, y + 8); ctx.fillText(l2, x, y + 8); }
+    ctx.restore(); return;
+  }
   if (v.v.s * 2.2 < 8) { // lejos: solo la letra del bloque (y el nombre completo a media distancia)
     const tx = v.v.s > 2 ? bloqueTitulo(m) : m.bloque;
     ctx.font = `700 ${Math.max(10, Math.min(14, v.v.s * 6))}px ui-monospace, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -6439,6 +6452,14 @@ function drawBloqueModelo(ctx, v, L) {
   lin.forEach((s, i) => { ctx.strokeText(s, x0, y0 + i * fs * 1.12); ctx.fillText(s, x0, y0 + i * fs * 1.12); });
   ctx.restore();
 }
+
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const s = document.createElement('select'); s.id = 'blqSel'; s.title = 'Bloques del modelo de MinePlan: cuánto texto mostrar'; s.setAttribute('aria-label', 'Bloques del modelo');
+  s.innerHTML = '<option value="todo">Bloques: texto completo</option><option value="resumen">Bloques: nombre y Fe</option><option value="nombre">Bloques: solo nombre</option><option value="sin">Bloques: sin texto</option><option value="oculto">Bloques: ocultos</option>';
+  s.value = blqModo(); anchor.parentNode.insertBefore(s, anchor);
+  s.onchange = () => { try { localStorage.setItem('bhl-blq', s.value); } catch (e) {} pv.draw(); };
+})();
 
 
 /* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
