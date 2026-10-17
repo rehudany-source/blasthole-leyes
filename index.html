@@ -794,7 +794,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v55</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v56</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1308,7 +1308,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
     <h2 id="syncTit">Tu cuenta</h2>
-    <p class="note">Cada persona entra con su usuario y ve sus propios proyectos y avances en todos sus equipos. Los límites, los proyectos FINAL y los polígonos de los avances se comparten con todo el equipo. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
+    <p class="note">Cada persona entra con su usuario y ve sus propios proyectos y avances en todos sus equipos. Los límites y los avances los ve solo quien los hizo; los proyectos FINAL y las topografías se comparten con todo el equipo. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
     <div id="syncLogin" class="dlgsec">
       <label class="f">Usuario o correo<input type="text" id="syncEmail" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ej. calidad1"></label>
       <label class="f">Contraseña<input type="password" id="syncPw" autocomplete="current-password" placeholder="mínimo 6 caracteres"></label>
@@ -1333,7 +1333,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
       <div id="syncAdmin" class="dlgsub" hidden>
         <div class="adm-beta" id="admBeta" hidden><b>🧪 Versión de pruebas</b><span>Solo tú la ves. Prueba las mejoras aquí; cuando estén sin errores se publican para todos.</span><a class="btn sec small" id="admBetaIr" href="beta/">Abrir versión de pruebas</a></div>
         <h3>Usuarios del programa</h3>
-        <p class="note">Cada usuario ve solo sus proyectos y avances. Los <b>límites</b>, los <b>proyectos FINAL</b> y los <b>polígonos de los avances</b> los ven todos.</p>
+        <p class="note">Cada usuario ve solo sus proyectos, sus límites y sus avances. Los <b>proyectos FINAL</b> y las <b>topografías</b> los ven todos.</p>
         <div class="adm-lista" id="admLista"></div>
         <div class="grid3 adm-nuevo"><label class="f">Usuario<input type="text" id="admEmail" placeholder="calidad1" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label class="f">Contraseña<input type="text" id="admPw" placeholder="mínimo 6" autocomplete="new-password" autocapitalize="none" spellcheck="false"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off" placeholder="ej. Juan Pérez"></label></div>
         <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Crear usuario</button><button class="btn sec small" id="admSerie" type="button" title="Llena el primer usuario calidad que falta">Siguiente «calidad»</button></div>
@@ -4638,7 +4638,7 @@ function renderLimList() {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
     const de = ls[0].compDe;
     const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
-      : `<span class="pn">${esc(f)}<small class="limde">👥 lo ve todo el equipo</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
+      : `<span class="pn">${esc(f)}<small class="limde">🔒 solo tú los ves</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
     marcarSinTaladros();
     const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
     const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
