@@ -787,13 +787,14 @@ body.app .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-
 body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.small { padding: 6px 10px; font-size: .78rem; }
 body.app #tab3 .note { display: none; }
 body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
+.topo-mina { width: 3.6em; padding: 1px 4px; font: inherit; font-weight: 700; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v52</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v54</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2664,21 +2665,25 @@ function leerMSR(buf) {
     if (e > 1e5 && e < 1e6 && n > 1e6 && n < 1e7 && z > -1000 && z < 7000 && Math.abs(e - Math.round(e * 100) / 100) < 1e-6) { org = [e, n, z]; break; }
   }
   if (!org) throw new Error('No encontré el origen de coordenadas: ¿es una topografía (.msr) de MinePlan?');
-  // cabecera de bloque (4 bytes, en múltiplos de 1024): 0x13 y luego la longitud en 24 bits (big endian) con 3 en el último medio byte
-  // longitud = valor − 3 (bloques llenos: 10 00 03 → 1 MB; el último bloque de cada sección puede no ser múltiplo de 16)
-  const lenB = p => {
-    if (p + 4 > L || u8[p] !== 0x13) return 0;
-    const n = ((u8[p + 1] << 16) | (u8[p + 2] << 8) | u8[p + 3]) - 3; if (n <= 0) return 0;
-    if ((u8[p + 3] & 0xF) === 3) return n;
-    const sig = Math.ceil((p + 4 + n) / 1024) * 1024; return (sig >= L || u8[sig] === 0x13) ? n : 0;
+  // cabecera de bloque (en múltiplos de 1024): 0x1N y luego N bytes con la longitud (big endian), que incluye esos N bytes.
+  // Bloques llenos: 13 10 00 03 → 1 MB. El último bloque de una sección puede ser corto: 13 0e 1f 4b, 12 75 2a …
+  const leeCab = p => {
+    if (p + 2 > L) return null; const b0 = u8[p]; if ((b0 & 0xF0) !== 0x10) return null;
+    const k = b0 & 0x0F; if (k < 1 || k > 3 || p + 1 + k > L) return null;
+    let v = 0; for (let i = 1; i <= k; i++) v = v * 256 + u8[p + i];
+    const n = v - k; if (n <= 0 || n > 1048576) return null;
+    const s = p + 1 + k, e = Math.min(L, s + n), sig = Math.ceil(e / 1024) * 1024;
+    // comprobación: el siguiente bloque empieza con otra cabecera (o se acaba el archivo)
+    if (!(k === 3 && n === 1048576) && !(sig >= L || (u8[sig] & 0xF0) === 0x10)) return null;
+    return { s, e };
   };
   const vBlocks = [], fBlocks = [];
   const esCara = s => s + 48 <= L && dv.getInt32(s, true) === 3 && dv.getInt32(s + 16, true) === 3 && dv.getInt32(s + 32, true) === 3;
   let enCaras = false;
   for (let p = 1024; p + 4 <= L;) {
-    const n = lenB(p);
-    if (!n || n > 1048576) { p += 1024; continue; }
-    const s = p + 4, e = Math.min(L, s + n);
+    const c = leeCab(p);
+    if (!c) { p += 1024; continue; }
+    const { s, e } = c;
     if (!enCaras && esCara(s)) enCaras = true;
     (enCaras ? fBlocks : vBlocks).push([s, e]);
     p = Math.ceil(e / 1024) * 1024;
@@ -5457,6 +5462,10 @@ function cerrarCarga() { $('dlgCarga').hidden = true; }
 // ¿Es un CSV de límites (polígonos) y no de taladros? muchos puntos con el mismo ID, o el nombre lo dice
 function pareceLimite(f, csv) {
   if (/lim|rotura|pol[ií]gono|contorno/i.test(f.name)) return true;
+  // V54: polígonos de bloques de MinePlan (_P.csv: ID de vértice, X, Y, Z, PROJECTID, BLOCK) nunca son taladros
+  const hh = csv.header.map(x => String(x).trim().toLowerCase());
+  if (hh.some(x => /^(block|blockname|bloque|blocker)$/.test(x))) return true;
+  if (/_P\.(csv|txt|xlsx?)$/i.test(f.name) && hh.includes('projectid')) return true;
   const m = mapHoleCols(csv); if (m.id < 0) return false;
   const ids = csv.rows.map(r => r[m.id]).filter(Boolean); return ids.length > 6 && new Set(ids).size < ids.length * 0.5;
 }
@@ -5998,7 +6007,25 @@ async function topoRecortar() {
 function topoFecha(nombre, lastMod) {
   const m = [...String(nombre).matchAll(/(?:^|[^\d])(\d{1,2})[-_.](\d{1,2})[-_.](\d{4}|\d{2})(?!\d)/g)].pop();
   if (m) { const d = +m[1], mo = +m[2], y = m[3].length === 2 ? 2000 + +m[3] : +m[3]; if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+  // SURVEY_1510 (díames) o 151026 (díamesaño)
+  const y0 = new Date(lastMod || Date.now()).getFullYear();
+  const c = String(nombre).replace(/\.[a-z0-9]+$/i, '').match(/(?:^|[^\d])(\d{2})(\d{2})(\d{2})?(?!\d)/);
+  if (c) { const d = +c[1], mo = +c[2], y = c[3] ? 2000 + +c[3] : y0; if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
   return new Date(lastMod || Date.now()).toISOString().slice(0, 10);
+}
+// V53: si el nombre no dice la mina (SURVEY_1510.msr), se deduce por los proyectos que caen dentro de la topografía
+function minaPorUbicacion(dem) {
+  const cuenta = {};
+  (lib.projects || []).concat(lib.comp || []).forEach(p => {
+    const h = (p.holes || [])[0]; if (!h) return; const z = demZ(dem, h.x, h.y); if (z == null || isNaN(z)) return;
+    const c = parseProjectCode(p.name || p.fileName || ''); if (!c) return; const m = MINA_CANON[c.mina] || c.mina; cuenta[m] = (cuenta[m] || 0) + 1;
+  });
+  let mej = ''; Object.entries(cuenta).forEach(([m, n]) => { if (!mej || n > cuenta[mej]) mej = m; });
+  if (mej) return mej;
+  // o por otra topografía de mina conocida que cubra el mismo lugar
+  const cx = dem.x0 + dem.W * dem.cel / 2, cy = dem.y0 + dem.H * dem.cel / 2;
+  const o = topo.lista.find(t => minaDe(t) && cx >= t.x0 && cx <= t.x0 + t.W * t.cel && cy >= t.y0 && cy <= t.y0 + t.H * t.cel);
+  return o ? minaDe(o) : '';
 }
 async function topoInit() {
   topo.lista = ((await idbGet('topos')) || []).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
@@ -6029,7 +6056,7 @@ async function cargarTopo(f) {
   const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
   const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
   const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const meta = { id, nombre, fecha, mina: topoMina(nombre), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
+  const meta = { id, nombre, fecha, mina: topoMina(nombre) || minaPorUbicacion(dem), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
   if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
   topo.lista = topo.lista.filter(x => x.id !== id).concat(meta).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const borradas = await topoRecortar();
@@ -6151,7 +6178,7 @@ function topoPintar() {
   const box = $('topoLista'); if (!box) return;
   $('topoBtn').setAttribute('aria-pressed', topo.act && topo.ver ? 'true' : 'false');
   if (!topo.lista.length) { box.innerHTML = '<small>Aún no hay topografías. Sube el .msr que te envían (MinePlan): queda guardado en este equipo.</small>'; $('topoAvance').disabled = true; topoInfo(); return; }
-  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b>${minaDe(t) ? 'M' + esc(minaDe(t)) + ' · ' : ''}${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
+  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b><input class="topo-mina" data-topomina="${t.id}" value="${esc(minaDe(t))}" placeholder="Mina" title="Mina de esta topografía (se guardan 4 por mina)" size="3"> ${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
   $('topoAvance').disabled = !(topo.act && topo.ant && topo.act !== topo.ant);
   $('topoVer').checked = topo.ver; topoInfo();
 }
@@ -6164,10 +6191,15 @@ function topoInfo(extra) {
 }
 (() => {
   const b = $('topoBtn'), pop = $('topoPop'); if (!b || !pop) return;
-  b.onclick = async () => { pop.hidden = !pop.hidden; if (!pop.hidden) { topoPintar(); if (topo.act && !topo.dems.has(topo.act)) { await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw(); } } };
+  b.onclick = async () => { pop.hidden = !pop.hidden; if (!pop.hidden) { topoPintar(); if (topo.act) { await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw(); } } };
   $('topoCerrar').onclick = () => { pop.hidden = true; };
   $('topoVer').onchange = e => { topo.ver = e.target.checked; topoDefaults(); topoPintar(); pv.draw(); };
   pop.addEventListener('change', async e => {
+    if (e.target.dataset && e.target.dataset.topomina) {
+      const m = topo.lista.find(x => x.id === e.target.dataset.topomina); if (!m) return;
+      m.mina = e.target.value.trim().toUpperCase().replace(/^M(INA)?\s*/, ''); m.nube = false; await topoRecortar(); await idbSet('topos', topo.lista); topoDefaults(); topoPintar(); try { topoNube(); } catch (er) {}
+      return;
+    }
     if (e.target.name === 'topoAct') { topo.act = e.target.value; if (topo.ant === topo.act) topo.ant = ''; }
     else if (e.target.name === 'topoAnt') { topo.ant = e.target.value; if (topo.ant === topo.act) topo.act = ''; }
     else return;
