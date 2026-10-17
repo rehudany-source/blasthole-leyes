@@ -794,7 +794,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v56</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v57</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4614,7 +4614,8 @@ function drawLimits(ctx, v) {
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
     ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); if (L.closed) ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
-    if (L.name && v.v.s > 2.5) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; if (L.modelo) { const des = L.mat === 'desmonte', col = des ? '#b07a45' : limColor(L.layer); ctx.globalAlpha = 1; ctx.font = '800 15px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--model').trim() || '#1c2126'; ctx.strokeText(L.name, v.sx(cx), v.sy(cy) - 7); ctx.fillStyle = col; ctx.fillText(L.name, v.sx(cx), v.sy(cy) - 7); if (v.v.s > 3.5) { ctx.font = '600 10.5px system-ui, sans-serif'; const tx = modeloEtiqueta(L.modelo); ctx.strokeText(tx, v.sx(cx), v.sy(cy) + 8); ctx.fillText(tx, v.sx(cx), v.sy(cy) + 8); } } else ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
+    if (L.modelo) { try { drawBloqueModelo(ctx, v, L); } catch (e) {} }
+    if (L.name && v.v.s > 2.5 && !L.modelo) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; if (L.modelo) { /* V57: etiqueta del bloque como en MinePlan, se dibuja aparte */ } else ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
   });
 }
 function bboxOf(pts) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }); return { x0, y0, x1, y1 }; }
@@ -6322,6 +6323,9 @@ async function cargarModelo(f) {
     const proy = (txt(r, 'proy') || proyArch).toUpperCase(), b = txt(r, 'bloque'); if (!proy || !b) return;
     const m = { proy, bloque: b, t: c.t >= 0 ? num(r[c.t]) : null, vol: c.vol >= 0 ? num(r[c.vol]) : null, density: c.density >= 0 ? num(r[c.density]) : null, material: txt(r, 'material'), oretype: txt(r, 'oretype'), destino: txt(r, 'destino'), lito: txt(r, 'lito'), zona: txt(r, 'zona') };
     Object.entries(MOD_COLS).forEach(([k, kk]) => { if (c['l_' + k] >= 0) m[kk] = num(r[c['l_' + k]]); });
+    // V57: para la etiqueta como en MinePlan
+    const ex = (al) => { const h = tb.csv.header.map(modNorm), i = h.findIndex(x => al.includes(x)); return i >= 0 ? num(r[i]) : null; };
+    m.ins = ex(['cins', 'ins', 'insol']); m.sfes = ex(['csfes', 'sfes', 's/fes']); m.rec = ex(['crp', 'cwr', 'rec', 'recup']);
     mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
   });
   if (!bloques.length) throw new Error('El archivo no tiene filas de bloques.');
@@ -6348,6 +6352,54 @@ function modeloEtiqueta(m) { return [m.material || m.oretype, m.destino, m.fe !=
 function perfilDe(L, c) {
   if (L && L.modelo && L.modelo.fe != null) { const m = L.modelo, v = { n: 'modelo' }; AVG_FIELDS.forEach(F => { v[F.k] = m[F.k] != null ? m[F.k] : null; }); return { v, dens: m.density || Math.round(densFe(m.fe) * 1000) / 1000, fe: m.fe }; }
   return { v: perfilDesmonte(c.fe), dens: c.dens || Math.round(densFe(c.fe) * 1000) / 1000, fe: c.fe };
+}
+
+/* ===== V57: etiqueta de bloque estilo MinePlan, con color por destino ===== */
+const DEST_COLOR = [
+  [/botadero|desmonte|waste|dump/i, '#8f8f8f'],
+  [/stock\s*marg|marginal/i, '#7fc8e3'],
+  [/chancadora|crusher|planta/i, '#3d86e0'],
+  [/ox|cu\b|cobre/i, '#3fbf7f'],
+];
+const DEST_COLOR_CLARO = { '#8f8f8f': '#6b6b6b', '#7fc8e3': '#3c9fc7', '#3d86e0': '#2563c9', '#3fbf7f': '#1f9a5c', '#e0a030': '#b9790c' };
+function colorDestino(m) { const s = (m.destino || '') + ' ' + (m.material || ''); const r = DEST_COLOR.find(([re]) => re.test(s)); const c = r ? r[1] : '#e0a030'; return (typeof planClaro === 'function' && planClaro()) ? (DEST_COLOR_CLARO[c] || c) : c; }
+function bloqueTitulo(m) { const p = String(m.proy || '').split('-'); return (p.length >= 4 ? `${p[2]}_${p[3]}_` : '') + m.bloque; }
+function bloqueLineas(m) {
+  const f = (v, d) => v == null ? null : (+v).toFixed(d), L = [bloqueTitulo(m)];
+  const add = (k, v) => { if (v != null) L.push(k.padEnd(5) + '= ' + v); };
+  add('Tonnes', m.t != null ? (+m.t).toFixed(2) : null);
+  add('%Fe', f(m.fe, 2)); add('%FeO', f(m.feo, 2)); add('%S', f(m.s, 3)); add('%Cu', f(m.cu, 3)); add('%Zn', f(m.zn, 3));
+  if (m.ins != null && m.ins > 0) add('%Ins', f(m.ins, 2));
+  add('%Sfes', f(m.sfes, 2)); add('%Rec', f(m.rec, 2)); add('Mrate', f(m.density, 2));
+  if (m.material) L.push('Mat'.padEnd(5) + '= ' + m.material); if (m.destino) L.push('Dest'.padEnd(5) + '= ' + m.destino);
+  return L.map(s => s.replace(/^(Tonnes)\s*=/, 'Tonnes ='));
+}
+function puntoDentro(P) {
+  // centro de gravedad del polígono; si cae fuera, el punto interior más alejado del borde en una grilla
+  let a = 0, cx = 0, cy = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const f = P[j].x * P[i].y - P[i].x * P[j].y; a += f; cx += (P[j].x + P[i].x) * f; cy += (P[j].y + P[i].y) * f; }
+  if (a) { cx /= 3 * a; cy /= 3 * a; if (pointInPoly(cx, cy, P)) return { x: cx, y: cy }; }
+  const b = bboxOf(P); let best = null, bd = -1;
+  for (let i = 1; i < 12; i++) for (let k = 1; k < 12; k++) { const x = b.x0 + (b.x1 - b.x0) * i / 12, y = b.y0 + (b.y1 - b.y0) * k / 12; if (!pointInPoly(x, y, P)) continue; let d = Infinity; for (let s = 0, r = P.length - 1; s < P.length; r = s++) { const A = P[r], B = P[s], dx = B.x - A.x, dy = B.y - A.y, l = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A.x) * dx + (y - A.y) * dy) / l)); d = Math.min(d, Math.hypot(x - A.x - u * dx, y - A.y - u * dy)); } if (d > bd) { bd = d; best = { x, y }; } }
+  return best || { x: b.x0 / 2 + b.x1 / 2, y: b.y0 / 2 + b.y1 / 2 };
+}
+function drawBloqueModelo(ctx, v, L) {
+  const m = L.modelo; if (!L._lbl || L._lblN !== L.pts.length) { L._lbl = puntoDentro(L.pts); L._lblN = L.pts.length; }
+  const p = L._lbl, x = v.sx(p.x), y = v.sy(p.y); if (x < -300 || x > v.W + 300 || y < -300 || y > v.H + 300) return;
+  const col = colorDestino(m), lin = bloqueLineas(m);
+  // tamaño de letra fijo en metros (como el texto del modelo): ~2.6 m, entre 8 y 15 px
+  const fs = Math.max(8, Math.min(13, v.v.s * 2.2));
+  ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = col;
+  ctx.strokeStyle = (typeof planClaro === 'function' && planClaro()) ? 'rgba(255,255,255,.85)' : 'rgba(10,12,14,.75)'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  if (v.v.s * 2.2 < 8) { // lejos: solo la letra del bloque (y el nombre completo a media distancia)
+    const tx = v.v.s > 2 ? bloqueTitulo(m) : m.bloque;
+    ctx.font = `700 ${Math.max(10, Math.min(14, v.v.s * 6))}px ui-monospace, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (v.v.s > 0.6) { ctx.strokeText(tx, x, y); ctx.fillText(tx, x, y); }
+    ctx.restore(); return;
+  }
+  ctx.font = `${fs}px ui-monospace, Consolas, "Courier New", monospace`;
+  const w = Math.max(...lin.map(s => ctx.measureText(s).width)), h = lin.length * fs * 1.12, x0 = x - w / 2, y0 = y - h / 2;
+  lin.forEach((s, i) => { ctx.strokeText(s, x0, y0 + i * fs * 1.12); ctx.fillText(s, x0, y0 + i * fs * 1.12); });
+  ctx.restore();
 }
 
 
