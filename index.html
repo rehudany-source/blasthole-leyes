@@ -794,7 +794,7 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v54</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v55</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6307,17 +6307,24 @@ async function topoNube() {
 
 /* ===== V52: bloques del modelo de MinePlan (_P.csv polígonos + _R.csv resultados) ===== */
 const MOD_COLS = { fe: 'fe', feo: 'feo', s: 's', cu: 'cu', zn: 'zn', cfe: 'cfe', cs: 'cs', cins: 'ccins' };
-function esResModelo(csv) { const h = csv.header.map(x => String(x).trim().toLowerCase()); return h.includes('blockname') && h.includes('projectid') && (h.includes('tonnes') || h.includes('fe')); }
+// V55: los nombres de columna varían según la plantilla de MinePlan (BLOCKNAME o GRADE_BLOCK, FE o FE_pct, DENSITY o DENS…)
+const modNorm = x => String(x).replace(/^﻿/, '').trim().toLowerCase().replace(/[\s%]+/g, '').replace(/_?(pct|porc|percent)$/, '');
+const MOD_SIN = { bloque: ['blockname', 'grade_block', 'gradeblock', 'block', 'bloque', 'blocker'], proy: ['projectid', 'project', 'proyecto'], t: ['tonnes', 'tons', 'tonelaje', 'toneladas', 'ton'],
+  vol: ['volumen', 'volume', 'vol'], density: ['density', 'dens', 'densidad', 'sg'], material: ['material', 'mat'], oretype: ['oretype', 'tipo'], destino: ['destination', 'destino', 'dest'], lito: ['litomine', 'lito', 'litologia'], zona: ['ozone', 'orezone', 'zona'] };
+function modCols(header) { const h = header.map(modNorm), c = {}; Object.entries(MOD_SIN).forEach(([k, al]) => { c[k] = h.findIndex(x => al.includes(x)); }); Object.keys(MOD_COLS).forEach(k => { c['l_' + k] = h.indexOf(k); }); return c; }
+function esResModelo(csv) { const c = modCols(csv.header); return c.bloque >= 0 && (c.t >= 0 || c.l_fe >= 0) && !csv.header.map(modNorm).some(x => /^(x|y|este|norte|east|north|easting|northing)$/.test(x)); }
 async function cargarModelo(f) {
-  const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas PROJECTID y BLOCKNAME.');
-  const h = tb.csv.header.map(x => String(x).trim().toLowerCase()), col = k => h.indexOf(k), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; };
+  const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas del bloque y sus resultados.');
+  const c = modCols(tb.csv.header), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; }, txt = (r, k) => c[k] >= 0 ? String(r[c[k]] || '').trim() : '';
+  const proyArch = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
   const mod = (await idbGet('modelo-bloques')) || {}; const bloques = [];
   tb.csv.rows.forEach(r => {
-    const proy = String(r[col('projectid')] || '').trim().toUpperCase(), b = String(r[col('blockname')] || '').trim(); if (!proy || !b) return;
-    const m = { proy, bloque: b, t: num(r[col('tonnes')]), vol: num(r[col('volumen')]), density: num(r[col('density')]), material: String(r[col('material')] || '').trim(), oretype: String(r[col('oretype')] || '').trim(), destino: String(r[col('destination')] || '').trim(), lito: String(r[col('litomine')] || '').trim(), zona: String(r[col('ozone')] || '').trim() };
-    Object.entries(MOD_COLS).forEach(([c, k]) => { if (col(c) >= 0) m[k] = num(r[col(c)]); });
+    const proy = (txt(r, 'proy') || proyArch).toUpperCase(), b = txt(r, 'bloque'); if (!proy || !b) return;
+    const m = { proy, bloque: b, t: c.t >= 0 ? num(r[c.t]) : null, vol: c.vol >= 0 ? num(r[c.vol]) : null, density: c.density >= 0 ? num(r[c.density]) : null, material: txt(r, 'material'), oretype: txt(r, 'oretype'), destino: txt(r, 'destino'), lito: txt(r, 'lito'), zona: txt(r, 'zona') };
+    Object.entries(MOD_COLS).forEach(([k, kk]) => { if (c['l_' + k] >= 0) m[kk] = num(r[c['l_' + k]]); });
     mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
   });
+  if (!bloques.length) throw new Error('El archivo no tiene filas de bloques.');
   await idbSet('modelo-bloques', mod);
   const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
   const n = await modeloAplicar(arr);
@@ -6332,12 +6339,12 @@ async function modeloAplicar(arr) {
     if (!proy || !l.name) return;
     const m = mod[proy + '|' + String(l.name).toUpperCase()]; if (!m) return;
     if (JSON.stringify(l.modelo) === JSON.stringify(m)) return;
-    l.modelo = m; l.mat = /desmonte|waste|est[eé]ril/i.test(m.material + ' ' + m.destino + ' ' + m.oretype) ? 'desmonte' : 'no';
+    l.modelo = m; l.mat = /desmonte|waste|est[eé]ril|botadero|dump/i.test(m.material + ' ' + m.destino + ' ' + m.oretype) ? 'desmonte' : 'no';
     l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; n++;
   });
   return n;
 }
-function modeloEtiqueta(m) { return [m.material || m.oretype, m.fe != null ? 'Fe ' + m.fe.toFixed(1) : '', m.t != null ? Math.round(m.t).toLocaleString('es-PE') + ' t' : ''].filter(Boolean).join(' · '); }
+function modeloEtiqueta(m) { return [m.material || m.oretype, m.destino, m.fe != null ? 'Fe ' + m.fe.toFixed(1) : '', m.t != null ? Math.round(m.t).toLocaleString('es-PE') + ' t' : ''].filter(Boolean).join(' · '); }
 function perfilDe(L, c) {
   if (L && L.modelo && L.modelo.fe != null) { const m = L.modelo, v = { n: 'modelo' }; AVG_FIELDS.forEach(F => { v[F.k] = m[F.k] != null ? m[F.k] : null; }); return { v, dens: m.density || Math.round(densFe(m.fe) * 1000) / 1000, fe: m.fe }; }
   return { v: perfilDesmonte(c.fe), dens: c.dens || Math.round(densFe(c.fe) * 1000) / 1000, fe: c.fe };
