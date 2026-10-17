@@ -812,13 +812,15 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
 .pm-nota { flex-basis: 100%; color: var(--muted); }
 .pm-opc > summary { cursor: pointer; font-weight: 600; font-size: .82rem; } .pm-opc { display: grid; gap: 6px; }
 .pm-grid { display: grid; gap: 4px; font-size: .8rem; } .pm-grid input { width: 4.5em; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+.pmm-lista { display: grid; gap: 4px; max-height: 180px; overflow: auto; } .pmm-it { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; } .pmm-it small { display: block; color: var(--muted); } .pmm-it .q { border: 0; background: none; cursor: pointer; }
+.pm-grid select { font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; max-width: 100%; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v65</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v66</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3508,6 +3510,7 @@ async function saveProjectRecord(rec) {
     if (TIPO_RANGO[prev.tipo || 'malla'] > TIPO_RANGO[rec.tipo]) rec.tipo = prev.tipo; // no se baja de final a malla
     if (!rec.leyes && prev.leyes) rec.leyes = prev.leyes;
   }
+  if (prev && prev.polMinado && !rec.polMinado) rec.polMinado = prev.polMinado; // V66: polígonos de minado dibujados a mano
   if (!rec.leyes) { const L = leyesDesdeBase(rec); if (L) { rec.leyesBase = snapLeyes(L.leyes); rec.leyesBaseLabel = L.src; rec.leyesBaseFecha = state.baseSaved || new Date().toISOString(); } else if (prev && prev.leyesBase) { rec.leyesBase = prev.leyesBase; rec.leyesBaseLabel = prev.leyesBaseLabel; rec.leyesBaseFecha = prev.leyesBaseFecha; } }
   const ok = await dbSave('projects', rec);
   await loadLibrary();
@@ -6739,10 +6742,10 @@ const pmE = () => PM_ESQ[pm.esq];
 function pmClase(fe, sfe) { if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
 function pmColor(c) { return (typeof planClaro === 'function' && planClaro()) ? c.colL : c.col; }
 // Cada celda de 1 m toma la clase del taladro con ley más cercano (como en los polígonos de ore control), hasta ~0.75 del espaciamiento
-function pmCalcular() {
+function pmCalcularHoles(lista) {
   const src = [], O = pmOpc(), mx = O.movD * Math.sin(O.movAz * Math.PI / 180), my = O.movD * Math.cos(O.movAz * Math.PI / 180);
   const doms = [];
-  t2.holes.forEach(h => {
+  lista.forEach(h => {
     if (h.dup) return; const l = t2.leyBy.get(h.ck), has = l && l.hasData !== false;
     const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null;
     const c = pmClase(fe, sfe); if (c < 0) return;
@@ -6838,6 +6841,16 @@ function pmCalcular() {
   const corte = lineas.filter(L => L.length > 2).map(L => toXY(topoSimplificar(L.map(k => [k % (W + 1), Math.floor(k / (W + 1))]), 0.6)));
   return { esq: pm.esq, opc: O, clases, corte, esp, R, banco, n: src.length, nEst: src.filter(s => s.est).length, grid: { x0, y0, cel, W, H, C } };
 }
+// V66: los polígonos se trazan por proyecto (los taladros de un proyecto no se unen con los de otro)
+function pmCalcular() {
+  const grupos = new Map(); t2.holes.forEach(h => { if (!grupos.has(h.pid)) grupos.set(h.pid, []); grupos.get(h.pid).push(h); });
+  const res = [...grupos.entries()].map(([pid, hs]) => ({ pid, r: pmCalcularHoles(hs) })).filter(x => !x.r.err);
+  if (!res.length) return { err: 'Los proyectos marcados no tienen suficientes taladros con ley para trazar polígonos.' };
+  const E = pmE(), clases = E.clases.map(c => ({ c, polys: [] }));
+  res.forEach(({ pid, r }) => r.clases.forEach(x => { const d = clases.find(y => y.c.k === x.c.k); x.polys.forEach(p => { p.pid = pid; p.pname = (t2.projs.find(q => q.id === pid) || {}).name || ''; d.polys.push(p); }); }));
+  const n = res.reduce((s, x) => s + x.r.n, 0);
+  return { esq: pm.esq, opc: res[0].r.opc, clases: clases.filter(x => x.polys.length), corte: [].concat(...res.map(x => x.r.corte)), esp: res.reduce((s, x) => s + x.r.esp * x.r.n, 0) / n, R: res[0].r.R, banco: res[0].r.banco, n, nEst: res.reduce((s, x) => s + x.r.nEst, 0), grids: res.map(x => x.r.grid) };
+}
 function pmFirma() { return [pm.esq, localStorage.getItem('bhl-pm-opc') || '', t2.holes.length, t2.leyBy && t2.leyBy.size, t2.estBy && t2.estBy.size, num('avBanco'), t2.holes.length ? t2.holes[0].ck + t2.holes[t2.holes.length - 1].ck : ''].join('|'); }
 function pmActual() { const f = pmFirma(); if (!pm.res || pm.firma !== f) { pm.res = t2.holes.length ? pmCalcular() : null; pm.firma = f; } return pm.res; }
 function pmDibujar(ctx, v) {
@@ -6845,14 +6858,17 @@ function pmDibujar(ctx, v) {
   const path = rings => { ctx.beginPath(); rings.forEach(P => { P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); }); };
   ctx.save();
   // relleno desde la grilla (sin rendijas entre clases) y contorno de cada polígono encima
-  const G = R.grid, claro = typeof planClaro === 'function' && planClaro();
-  if (!R.img || R.imgClaro !== claro) {
-    const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
-    const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
-    for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 90; }
-    cx.putImageData(im, 0, 0); R.img = cv; R.imgClaro = claro;
-  }
-  ctx.imageSmoothingEnabled = false; ctx.drawImage(R.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
+  const claro = typeof planClaro === 'function' && planClaro();
+  if (pmVerAuto()) R.grids.forEach(G => {
+    if (!G.img || G.imgClaro !== claro) {
+      const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
+      const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
+      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 90; }
+      cx.putImageData(im, 0, 0); G.img = cv; G.imgClaro = claro;
+    }
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(G.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
+  });
+  if (!pmVerAuto()) { ctx.restore(); return; }
   R.clases.forEach(({ c, polys }) => { const col = pmColor(c); polys.forEach(p => { path(p.rings); ctx.globalAlpha = 0.95; ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }); });
   ctx.globalAlpha = 1; ctx.setLineDash([2, 4]); ctx.lineCap = 'round'; ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3; R.corte.forEach(P => { ctx.beginPath(); P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); }); ctx.setLineDash([]);
   // etiquetas: clase y Fe promedio en cada polígono que se vea
@@ -6890,6 +6906,7 @@ function pmDXF() {
     p.rings.forEach(P => poly(P, 'PM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[̀-ͯ]/g, ''), aci[c.k]));
     const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${p.fe != null ? ' Fe ' + p.fe.toFixed(1) : ''}${R.esq === 'm' && p.sfe != null ? ' S/FeS ' + p.sfe.toFixed(2) : ''}`);
   }));
+  pmManuales().forEach(({ p, q }) => { const c = pmmClase(q); poly(q.pts, 'PMM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.aci); });
   R.corte.forEach(P => { L.push('0', 'LWPOLYLINE', '8', 'PM_CORTE_MINERAL', '62', '1', '90', String(P.length), '70', '0'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); });
   L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
 }
@@ -6974,6 +6991,7 @@ function imprimirVista() {
     R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => p.rings.forEach(P => add(P, rgb(c.colL), 1.1))));
     R.corte.forEach(P => { for (let i = 0; i < P.length - 1; i++) { const s = recortarSeg(P[i], P[i + 1], b); if (s) polys.push({ pts: s, col: [0.9, 0.1, 0.1], w: 1.4 }); } });
     filas.push(['Polígonos de minado', E.nom]);
+    if (pmVerMios()) pmManuales().forEach(({ q }) => add(q.pts, rgb(pmmClase(q).colL), 2));
     R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
   }
   window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
@@ -6984,6 +7002,108 @@ function imprimirVista() {
   const anchor = $('topoBtn'); if (!anchor) return;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b'; b.id = 'printVista'; b.textContent = '🖨 Imprimir'; b.title = 'Imprimir o sacar PDF de lo que se ve en el plano (acércate primero a la zona)';
   anchor.parentNode.appendChild(b); b.onclick = imprimirVista;
+})();
+
+/* ===== V66: polígonos de minado dibujados a mano, por proyecto (se guardan con el proyecto y se sincronizan) ===== */
+const pmm = { ver: 'ambos', dib: null }, pmmCache = new WeakMap();
+const pmmSt = (p, q) => { let c = pmmCache.get(q); if (!c) { c = { st: pmmStats(p, q), lbl: puntoDentro(q.pts) }; pmmCache.set(q, c); } return c; };
+try { pmm.ver = localStorage.getItem('bhl-pmm-ver') || 'ambos'; } catch (e) {}
+function pmVerAuto() { return pmm.ver !== 'mios'; }
+function pmVerMios() { return pmm.ver !== 'auto'; }
+function pmmClase(q) { const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1]; }
+function pmManuales() { const out = []; (t2.projs || []).forEach(p => (p.polMinado || []).forEach(q => out.push({ p, q }))); return out; }
+function pmmStats(p, q) {
+  const P = q.pts, b = bboxOf(P), hs = t2.holes.filter(h => h.pid === p.id && h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, P));
+  const ls = hs.map(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false ? l : (t2.estBy && t2.estBy.get(h.ck)) || null; }).filter(l => l && l.fe != null);
+  const fe = ls.length ? ls.reduce((s, l) => s + l.fe, 0) / ls.length : null, sf = ls.filter(l => l.sfe != null), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe, 0) / sf.length : null;
+  const area = polyArea(P), banco = num('avBanco') || 12, dens = ls.length ? ls.reduce((s, l) => s + densFe(l.fe), 0) / ls.length : densFe(25);
+  return { n: hs.length, nLey: ls.length, fe, sfe, area, t: area * banco * dens };
+}
+function pmmDibujar(ctx, v) {
+  if (!pm.on) return;
+  const claro = typeof planClaro === 'function' && planClaro();
+  ctx.save(); ctx.lineJoin = 'round';
+  if (pmVerMios()) pmManuales().forEach(({ p, q }) => {
+    const c = pmmClase(q), col = claro ? c.colL : c.col, P = q.pts;
+    ctx.beginPath(); P.forEach((pt, i) => (i ? ctx.lineTo(v.sx(pt.x), v.sy(pt.y)) : ctx.moveTo(v.sx(pt.x), v.sy(pt.y)))); ctx.closePath();
+    ctx.globalAlpha = 0.18; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+    if (v.v.s > 1.2) { const cc = pmmSt(p, q), s = cc.st, L = cc.lbl, x = v.sx(L.x), y = v.sy(L.y);
+      ctx.font = '700 11.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = claro ? 'rgba(255,255,255,.9)' : 'rgba(10,12,14,.85)';
+      const l1 = '✏ ' + c.nom, l2 = (s.fe != null ? `Fe ${s.fe.toFixed(1)} · ` : '') + `${Math.round(s.t).toLocaleString('es-PE')} t`;
+      ctx.fillStyle = col; ctx.strokeText(l1, x, y - 7); ctx.fillText(l1, x, y - 7); ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(l2, x, y + 7); ctx.fillText(l2, x, y + 7); }
+  });
+  const D = pmm.dib;
+  if (D && D.pts.length) {
+    const c = (pmE().clases.find(x => x.k === D.clase) || {}), col = claro ? c.colL : c.col;
+    ctx.strokeStyle = col || '#ffd60a'; ctx.lineWidth = 2.4; ctx.setLineDash([7, 5]); ctx.beginPath(); D.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = col || '#ffd60a'; D.pts.forEach(q => { ctx.beginPath(); ctx.arc(v.sx(q.x), v.sy(q.y), 4, 0, Math.PI * 2); ctx.fill(); });
+    if (D.pts.length >= 3) { ctx.beginPath(); ctx.arc(v.sx(D.pts[0].x), v.sy(D.pts[0].y), 11, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.stroke(); }
+  }
+  if (D) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Dibujando ${(pmE().clases.find(x => x.k === D.clase) || {}).nom || ''} de ${D.pname}: toca los vértices y toca el primero para cerrar`, v.W / 2, 56); }
+  ctx.restore();
+}
+async function pmmGuardar(pid, arr) {
+  const p = lib.projects.find(x => x.id === pid); if (!p) return false;
+  const ok = await dbSave('projects', Object.assign({}, p, { polMinado: arr.map(q => { const o = Object.assign({}, q); delete o._st; delete o._lbl; return o; }) }));
+  await loadLibrary(); refreshT2(); return ok;
+}
+async function pmmCerrar() {
+  const D = pmm.dib; if (!D || D.pts.length < 3) { flashHint('El polígono necesita al menos 3 vértices.'); return; }
+  if (polyArea(D.pts) < 4) { flashHint('Ese trazo no encierra un área.'); return; }
+  const p = lib.projects.find(x => x.id === D.pid); if (!p) return;
+  const q = { id: 'PM' + Date.now().toString(36), clase: D.clase, esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
+  pmm.dib = null; pmmPintar();
+  await pmmGuardar(p.id, (p.polMinado || []).concat([q]));
+  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + '.', true);
+}
+function pmmPintar() {
+  const box = $('pmmBox'); if (!box) return;
+  const propios = (t2.projs || []).filter(p => !p.ro);
+  const sp = $('pmmProy'), prev = sp.value; sp.innerHTML = propios.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">(marca un proyecto tuyo)</option>'; if (propios.some(p => p.id === prev)) sp.value = prev;
+  const sc = $('pmmClase'), pc = sc.value; sc.innerHTML = pmE().clases.map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join(''); if ([...sc.options].some(o => o.value === pc)) sc.value = pc;
+  $('pmmVer').value = pmm.ver;
+  const D = pmm.dib; $('pmmDib').hidden = !!D; $('pmmEdit').hidden = !D;
+  const L = pmManuales();
+  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q), s = pmmSt(p, q).st; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(c.nom)}</b> · ${esc(p.name)}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.</small></span>${p.ro ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
+}
+(() => {
+  const pop = $('pmPop'); if (!pop) return;
+  const box = document.createElement('details'); box.className = 'pm-opc'; box.id = 'pmmBox';
+  box.innerHTML = `<summary>✏ Mis polígonos de minado (por proyecto)</summary>
+    <div class="pm-grid"><label>Proyecto <select id="pmmProy"></select></label><label>Clase <select id="pmmClase"></select></label>
+    <label>Mostrar <select id="pmmVer"><option value="ambos">Automáticos y míos</option><option value="auto">Solo automáticos</option><option value="mios">Solo míos</option></select></label></div>
+    <div class="btnrow" id="pmmDib"><button type="button" class="btn small" id="pmmEmpezar">✏ Dibujar polígono</button></div>
+    <div class="btnrow" id="pmmEdit" hidden><button type="button" class="btn small" id="pmmOk">Cerrar y guardar</button><button type="button" class="btn sec small" id="pmmUndo">Deshacer vértice</button><button type="button" class="btn sec small" id="pmmCancel">Cancelar</button></div>
+    <div id="pmmLista" class="pmm-lista"></div>`;
+  pop.insertBefore(box, $('pmRes'));
+  box.addEventListener('toggle', pmmPintar);
+  $('pmmVer').onchange = e => { pmm.ver = e.target.value; try { localStorage.setItem('bhl-pmm-ver', pmm.ver); } catch (er) {} pv.draw(); };
+  $('pmmEmpezar').onclick = () => {
+    const pid = $('pmmProy').value, p = (t2.projs || []).find(x => x.id === pid);
+    if (!p) { flashHint('Marca en la lista un proyecto tuyo para dibujar sus polígonos.'); return; }
+    if (!pm.on) { pm.on = true; $('pmVer').checked = true; try { localStorage.setItem('bhl-pm', '1'); } catch (e) {} }
+    pmm.dib = { pid, pname: p.name, clase: $('pmmClase').value, pts: [] }; pmmPintar(); pv.draw();
+    flashHint(`Toca en el plano los vértices del polígono de ${p.name}; toca el primero para cerrarlo.`, true);
+  };
+  $('pmmOk').onclick = pmmCerrar;
+  $('pmmUndo').onclick = () => { if (pmm.dib) { pmm.dib.pts.pop(); pv.draw(); } };
+  $('pmmCancel').onclick = () => { pmm.dib = null; pmmPintar(); pv.draw(); };
+  $('pmmClase').onchange = e => { if (pmm.dib) { pmm.dib.clase = e.target.value; pv.draw(); } };
+  box.addEventListener('click', async e => {
+    const d = e.target.closest('[data-pmmdel]'); if (!d) return;
+    if (d.dataset.ok !== '1') { d.dataset.ok = '1'; d.textContent = '¿Quitar?'; setTimeout(() => { d.dataset.ok = ''; d.textContent = '🗑'; }, 3000); return; }
+    const p = lib.projects.find(x => x.id === d.dataset.pid); if (!p) return;
+    await pmmGuardar(p.id, (p.polMinado || []).filter(q => q.id !== d.dataset.pmmdel)); pmmPintar(); pv.draw();
+  });
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => {
+    const D = pmm.dib;
+    if (D) { if (D.pts.length >= 3 && Math.hypot(v2px(D.pts[0].x - x), v2px(D.pts[0].y - y)) < 14) { pmmCerrar(); return; } D.pts.push({ x, y }); pv.draw(); return; }
+    return tap0 ? tap0(x, y) : undefined;
+  };
+  const v2px = d => d * pv.v.s;
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { pmmDibujar(ctx, v); } catch (e) {} };
+  const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (box.open) pmmPintar(); } catch (e) {} return r; };
 })();
 
 
