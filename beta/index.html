@@ -197,6 +197,8 @@ body.enfull { overflow: hidden; }
 .fs-rail button svg { width: 24px; height: 24px; }
 .fs-rail button:hover { background: #2a3138; color: #fff; }
 .fs-rail button[aria-pressed="true"] { background: #ffd60a; color: #1a1a1a; }
+.fs-rail button.snap-btn[aria-pressed="true"] { background: #00b4d8; color: #04161c; }
+.btn.snap-btn.on { background: #00b4d8; color: #04161c; border-color: #00b4d8; }
 .fs-rail button[data-tool="erase"][aria-pressed="true"] { background: #ff6b6b; color: #1a0a0a; }
 .fs-rail .sep { display: block; height: 1px; background: #333b42; margin: 4px 6px; }
 .fs-libre { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9fb0bc; font: 600 .66rem var(--f-body); text-align: center; padding: 4px 0; cursor: pointer; }
@@ -820,7 +822,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v66</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v67</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1078,6 +1080,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
+          <label class="chk"><input type="checkbox" id="avRecorte" checked> Cortar cada polígono nuevo contra los ya dibujados (sin superponer)</label>
           <details class="idw" id="desBox" open>
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
             <div class="grid2">
@@ -4056,7 +4059,19 @@ function closeDraft() {
   const D = t2.draft; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; D.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
   const lado = Math.max(x1 - x0, y1 - y0), area = polyArea(D);
   if (area < 4 || area < 0.08 * lado * lado) { t2.draft = []; pv.draw(); flashHint('Ese trazo no encierra un área (parece una raya): no se tomó como polígono.'); return; }
-  const pts = t2.draft; t2.draft = []; addShape(pts); paintTools();
+  const pts = t2.draft; t2.draft = [];
+  // V67: el polígono nuevo se corta contra los ya dibujados (no se superponen)
+  const rc = $('avRecorte');
+  if (rc && rc.checked && t2.shapes.length && typeof polyDiferencia === 'function') {
+    const piezas = polyDiferencia(pts, t2.shapes.map(s => s.pts));
+    if (!piezas.length) { pv.draw(); paintTools(); flashHint('Ese polígono queda completamente dentro de los ya dibujados: no se agregó.'); return; }
+    const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(pts)) > 0.5;
+    piezas.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null }));
+    t2.viewing = null; selectFromShapes(); computeT2(); pv.draw(); paintTools();
+    if (recortado) flashHint('Se recortó contra los polígonos ya dibujados' + (piezas.length > 1 ? ` (quedó en ${piezas.length} partes).` : '.'), true);
+    return;
+  }
+  addShape(pts); paintTools();
 }
 function eraseAt(x, y) {
   const tol = 10 / pv.v.s; let hit = -1;
@@ -7052,9 +7067,16 @@ async function pmmCerrar() {
   if (polyArea(D.pts) < 4) { flashHint('Ese trazo no encierra un área.'); return; }
   const p = lib.projects.find(x => x.id === D.pid); if (!p) return;
   const q = { id: 'PM' + Date.now().toString(36), clase: D.clase, esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
+  // V67: se corta contra los polígonos ya dibujados del mismo proyecto
+  const prev = p.polMinado || [];
+  let piezas = [q.pts];
+  if (prev.length && typeof polyDiferencia === 'function') piezas = polyDiferencia(q.pts, prev.map(o => o.pts));
+  if (!piezas.length) { flashHint('Ese polígono queda completamente dentro de los ya dibujados en ' + p.name + ': no se guardó.'); return; }
+  const nuevos = piezas.map((P, i) => Object.assign({}, q, { id: q.id + (i ? '_' + i : ''), pts: P }));
+  const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(q.pts)) > 0.5;
   pmm.dib = null; pmmPintar();
-  await pmmGuardar(p.id, (p.polMinado || []).concat([q]));
-  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + '.', true);
+  await pmmGuardar(p.id, prev.concat(nuevos));
+  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + (recortado ? ', recortado contra los ya dibujados' + (piezas.length > 1 ? ` (${piezas.length} partes)` : '') : '') + '.', true);
 }
 function pmmPintar() {
   const box = $('pmmBox'); if (!box) return;
@@ -7300,6 +7322,159 @@ function fotosDibujar(ctx, v) {
   };
   const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { fotosDibujar(ctx, v); } catch (e) {} };
   fotosInit();
+})();
+
+// ===== V67: recorte de polígonos (el nuevo se corta contra los ya dibujados) e imán de vértices tipo CAD =====
+// polyDiferencia(A, Bs): devuelve la parte de A que queda fuera de todos los Bs, como lista de anillos simples
+// (los huecos se unen al borde con un corte de ancho cero, así siguen siendo un solo contorno).
+function polyDiferencia(A, Bs) {
+  if (!A || A.length < 3) return [];
+  const bA = bboxOf(A);
+  Bs = (Bs || []).filter(B => { if (!B || B.length < 3) return false; const b = bboxOf(B); return !(b.x0 > bA.x1 || b.x1 < bA.x0 || b.y0 > bA.y1 || b.y1 < bA.y0); });
+  if (!Bs.length) return [A.map(q => ({ x: q.x, y: q.y }))];
+  const ox = bA.x0, oy = bA.y0; // coordenadas locales: menos error numérico con UTM
+  const L = P => P.map(q => ({ x: q.x - ox, y: q.y - oy }));
+  const a = L(A), bs = Bs.map(L), rings = [a].concat(bs);
+  const TOL = 1e-3, EPS = 2e-3;
+  const segs = [];
+  rings.forEach(R => { for (let i = 0; i < R.length; i++) { const p = R[i], q = R[(i + 1) % R.length]; if (Math.hypot(q.x - p.x, q.y - p.y) > TOL) segs.push({ p, q, ts: [0, 1] }); } });
+  // cortar cada segmento en sus cruces y donde otro vértice cae encima
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i], sx0 = Math.min(s.p.x, s.q.x) - TOL, sx1 = Math.max(s.p.x, s.q.x) + TOL, sy0 = Math.min(s.p.y, s.q.y) - TOL, sy1 = Math.max(s.p.y, s.q.y) + TOL;
+    const dx = s.q.x - s.p.x, dy = s.q.y - s.p.y, LL = dx * dx + dy * dy, Ls = Math.sqrt(LL);
+    for (let j = 0; j < segs.length; j++) {
+      if (i === j) continue; const o = segs[j];
+      if (Math.max(o.p.x, o.q.x) < sx0 || Math.min(o.p.x, o.q.x) > sx1 || Math.max(o.p.y, o.q.y) < sy0 || Math.min(o.p.y, o.q.y) > sy1) continue;
+      [o.p, o.q].forEach(e => { const t = ((e.x - s.p.x) * dx + (e.y - s.p.y) * dy) / LL; if (t > 0 && t < 1) { const d = Math.abs((e.x - s.p.x) * dy - (e.y - s.p.y) * dx) / Ls; if (d < TOL) s.ts.push(t); } });
+      const ex = o.q.x - o.p.x, ey = o.q.y - o.p.y, den = dx * ey - dy * ex;
+      if (Math.abs(den) > 1e-12) { const t = ((o.p.x - s.p.x) * ey - (o.p.y - s.p.y) * ex) / den, u = ((o.p.x - s.p.x) * dy - (o.p.y - s.p.y) * dx) / den; if (t > 0 && t < 1 && u >= -1e-9 && u <= 1 + 1e-9) s.ts.push(t); }
+    }
+  }
+  const inR = (x, y) => pointInPoly(x, y, a) && !bs.some(B => pointInPoly(x, y, B));
+  const key = (x, y) => Math.round(x / 2e-4) + ',' + Math.round(y / 2e-4);
+  const verts = new Map(), out = new Map(), vis = new Set();
+  const V = (x, y) => { const k = key(x, y); if (!verts.has(k)) verts.set(k, { x, y, k }); return verts.get(k); };
+  segs.forEach(s => {
+    const ts = [...new Set(s.ts)].sort((m, n) => m - n), dx = s.q.x - s.p.x, dy = s.q.y - s.p.y;
+    for (let i = 0; i + 1 < ts.length; i++) {
+      const p = { x: s.p.x + dx * ts[i], y: s.p.y + dy * ts[i] }, q = { x: s.p.x + dx * ts[i + 1], y: s.p.y + dy * ts[i + 1] };
+      const l = Math.hypot(q.x - p.x, q.y - p.y); if (l < TOL) continue;
+      const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, nx = -(q.y - p.y) / l * EPS, ny = (q.x - p.x) / l * EPS;
+      const izq = inR(mx + nx, my + ny), der = inR(mx - nx, my - ny);
+      if (izq === der) continue;
+      let u = V(p.x, p.y), w = V(q.x, q.y); if (u === w) continue; if (!izq) [u, w] = [w, u];
+      const ek = u.k + '>' + w.k; if (vis.has(ek)) continue; vis.add(ek);
+      if (!out.has(u.k)) out.set(u.k, []); out.get(u.k).push({ u, w, used: false });
+    }
+  });
+  // enlazar en anillos: en cada vértice se toma el giro más a la izquierda (la zona queda a la izquierda)
+  const anillos = [];
+  out.forEach(list => list.forEach(e0 => {
+    if (e0.used) return; const R = []; let e = e0, guard = 0;
+    while (e && !e.used && guard++ < 100000) {
+      e.used = true; R.push({ x: e.u.x, y: e.u.y });
+      const cand = (out.get(e.w.k) || []).filter(f => !f.used); if (!cand.length) break;
+      const ain = Math.atan2(e.w.y - e.u.y, e.w.x - e.u.x);
+      let best = null, bv = -Infinity;
+      cand.forEach(f => { let d = Math.atan2(f.w.y - f.u.y, f.w.x - f.u.x) - ain; while (d <= -Math.PI) d += 2 * Math.PI; while (d > Math.PI) d -= 2 * Math.PI; if (d > bv) { bv = d; best = f; } });
+      e = best;
+    }
+    if (R.length >= 3) anillos.push(R);
+  }));
+  const sArea = R => { let s = 0; for (let i = 0; i < R.length; i++) { const p = R[i], q = R[(i + 1) % R.length]; s += p.x * q.y - q.x * p.y; } return s / 2; };
+  const ext = anillos.filter(R => sArea(R) > 0.05), hue = anillos.filter(R => sArea(R) < -0.05);
+  ext.forEach(R => { R.huecos = []; });
+  hue.forEach(H => { const p = H[0], c = ext.filter(R => pointInPoly(p.x + (H[1].x - p.x) * 0.5, p.y + (H[1].y - p.y) * 0.5, R)).sort((m, n) => sArea(m) - sArea(n))[0]; if (c) c.huecos.push(H); });
+  return ext.map(R => {
+    let P = R.slice();
+    R.huecos.forEach(H => {
+      // unir el hueco al borde por el par de vértices más cercano
+      let bi = 0, bj = 0, bd = Infinity;
+      P.forEach((p, i) => H.forEach((h, j) => { const d = (p.x - h.x) ** 2 + (p.y - h.y) ** 2; if (d < bd) { bd = d; bi = i; bj = j; } }));
+      const hh = H.slice(bj).concat(H.slice(0, bj));
+      P = P.slice(0, bi + 1).concat(hh, [hh[0], P[bi]], P.slice(bi + 1));
+    });
+    return P.map(q => ({ x: +(q.x + ox).toFixed(3), y: +(q.y + oy).toFixed(3) }));
+  }).filter(P => polyArea(P) >= 0.5);
+}
+
+// ---- Imán: hace coincidir el clic con vértices de polígonos, límites y taladros (tecla 1 o botón Imán) ----
+const snap = { on: true, hover: null };
+try { const s = localStorage.getItem('bhl-snap'); if (s != null) snap.on = s === '1'; } catch (e) {}
+function snapActivo() { return snap.on && ((typeof pmm !== 'undefined' && pmm.dib) || (enFull && t2.tool === 'pen')); }
+function snapFuentes() {
+  const polys = [];
+  t2.shapes.forEach(s => polys.push({ P: s.pts, c: true }));
+  if (typeof pmManuales === 'function' && typeof pm !== 'undefined' && pm.on && pmVerMios()) pmManuales().forEach(({ q }) => polys.push({ P: q.pts, c: true }));
+  (t2.lims || []).forEach(Lm => { if (!t2.limOff.has(Lm.layer) && (typeof limVisible !== 'function' || limVisible(Lm))) polys.push({ P: Lm.pts, c: !!Lm.closed }); });
+  const D = (typeof pmm !== 'undefined' && pmm.dib) ? pmm.dib.pts : t2.draft;
+  if (D && D.length) polys.push({ P: D, c: false, borr: true });
+  return polys;
+}
+function snapPt(x, y) {
+  const tol = 14 / pv.v.s; let best = null, bd = tol;
+  const polys = snapFuentes();
+  polys.forEach(({ P }) => P.forEach(q => { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = { x: q.x, y: q.y, k: 'v' }; } }));
+  t2.holes.forEach(h => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = { x: h.x, y: h.y, k: 'p' }; } });
+  if (best) return best;
+  bd = tol * 0.75;
+  polys.forEach(({ P, c, borr }) => { if (borr) return; const n = c ? P.length : P.length - 1; for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % P.length], dx = b.x - a.x, dy = b.y - a.y, LL = dx * dx + dy * dy; if (!LL) continue; const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / LL)), px = a.x + t * dx, py = a.y + t * dy, d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = { x: px, y: py, k: 'e' }; } } });
+  return best;
+}
+function snapAplicar(x, y) { if (!snapActivo()) return { x, y }; const s = snapPt(x, y); return s ? { x: s.x, y: s.y } : { x, y }; }
+function snapToggle(v) {
+  snap.on = v == null ? !snap.on : !!v; try { localStorage.setItem('bhl-snap', snap.on ? '1' : '0'); } catch (e) {}
+  if (!snap.on) snap.hover = null; snapPintar(); pv.draw();
+  flashHint(snap.on ? 'Imán activado: los vértices se pegan a vértices, bordes y taladros cercanos (tecla 1 para apagar).' : 'Imán desactivado (tecla 1 para activarlo).', true);
+}
+function snapPintar() { document.querySelectorAll('.snap-btn').forEach(b => { b.setAttribute('aria-pressed', String(snap.on)); b.classList.toggle('on', snap.on); }); }
+function snapDibujar(ctx, v) {
+  const h = snap.hover; if (!h || !snapActivo()) return;
+  const x = v.sx(h.x), y = v.sy(h.y), D = (typeof pmm !== 'undefined' && pmm.dib) ? pmm.dib.pts : t2.draft;
+  ctx.save();
+  if (D && D.length && h.raw) { const l = D[D.length - 1]; ctx.strokeStyle = 'rgba(255,214,10,.75)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(v.sx(l.x), v.sy(l.y)); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); }
+  if (h.k) {
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2.2; ctx.beginPath();
+    if (h.k === 'v') ctx.rect(x - 7, y - 7, 14, 14);
+    else if (h.k === 'p') ctx.arc(x, y, 8, 0, Math.PI * 2);
+    else { ctx.moveTo(x - 7, y - 7); ctx.lineTo(x + 7, y + 7); ctx.lineTo(x - 7, y + 7); ctx.lineTo(x + 7, y - 7); ctx.closePath(); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+(() => {
+  // botón en la barra de pantalla completa
+  const rail = $('fsRail');
+  if (rail) {
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'fsSnap'; b.className = 'snap-btn'; b.title = 'Imán: pegar a vértices y taladros (tecla 1)';
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3h-4v8a2 2 0 0 1-4 0V3z"/><path d="M6 7h4M14 7h4"/></svg><span>Imán (1)</span>';
+    const ref = rail.querySelector('button[data-tool="pick"]'); rail.insertBefore(b, ref ? ref.nextSibling : rail.firstChild);
+    b.onclick = () => snapToggle();
+  }
+  const ed = $('pmmEdit');
+  if (ed) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sec small snap-btn'; b.textContent = '🧲 Imán (1)'; b.title = 'Pegar los vértices a vértices, bordes y taladros cercanos (tecla 1)'; ed.appendChild(b); b.onclick = () => snapToggle(); }
+  snapPintar();
+  const rc = $('avRecorte');
+  if (rc) { try { const v = localStorage.getItem('bhl-recorte'); if (v != null) rc.checked = v === '1'; } catch (e) {} rc.addEventListener('change', () => { try { localStorage.setItem('bhl-recorte', rc.checked ? '1' : '0'); } catch (e) {} }); }
+  document.addEventListener('keydown', e => {
+    if (e.key !== '1' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('input, select, textarea')) return;
+    if (!(enFull || (typeof pmm !== 'undefined' && pmm.dib))) return;
+    e.preventDefault(); snapToggle();
+  });
+  // el clic toma el punto del imán (dibujo de avance y de polígonos de minado)
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => { const s = snapAplicar(x, y); snap.hover = null; return tap0 ? tap0(s.x, s.y) : undefined; };
+  const d0 = pv.onDraw;
+  pv.onDraw = (fase, x, y) => { if (fase === 'start' && t2.tool === 'pen') { const s = snapAplicar(x, y); x = s.x; y = s.y; } return d0 ? d0(fase, x, y) : undefined; };
+  const m0 = pv.onMove;
+  pv.onMove = (x, y) => {
+    if (m0) m0(x, y);
+    if (!snapActivo()) { if (snap.hover) { snap.hover = null; pv.draw(); } return; }
+    const s = snapPt(x, y), h = s ? Object.assign(s, { raw: true }) : { x, y, raw: true };
+    snap.hover = h; pv.draw();
+  };
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { snapDibujar(ctx, v); } catch (e) {} };
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
