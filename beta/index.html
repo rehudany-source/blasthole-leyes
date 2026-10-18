@@ -822,7 +822,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v68</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v69</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1081,6 +1081,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
           <label class="chk"><input type="checkbox" id="avRecorte" checked> Cortar cada polígono nuevo contra los ya dibujados (sin superponer)</label>
+          <label class="chk"><input type="checkbox" id="avRecLim" checked> Cortar los polígonos con los límites de los proyectos</label>
           <details class="idw" id="desBox" open>
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
             <div class="grid2">
@@ -4061,14 +4062,15 @@ function closeDraft() {
   if (area < 4 || area < 0.08 * lado * lado) { t2.draft = []; pv.draw(); flashHint('Ese trazo no encierra un área (parece una raya): no se tomó como polígono.'); return; }
   const pts = t2.draft; t2.draft = [];
   // V67: el polígono nuevo se corta contra los ya dibujados (no se superponen)
-  const rc = $('avRecorte');
-  if (rc && rc.checked && t2.shapes.length && typeof polyDiferencia === 'function') {
-    const piezas = polyDiferencia(pts, t2.shapes.map(s => s.pts));
-    if (!piezas.length) { pv.draw(); paintTools(); flashHint('Ese polígono queda completamente dentro de los ya dibujados: no se agregó.'); return; }
+  const rc = $('avRecorte'), rl = $('avRecLim');
+  const lims = rl && rl.checked && typeof limitesDe === 'function' ? limitesDe(null) : [];
+  if (((rc && rc.checked && t2.shapes.length) || lims.length) && typeof polyDiferencia === 'function') {
+    const piezas = polyDiferencia(pts, rc && rc.checked ? t2.shapes.map(s => s.pts) : [], lims.length ? lims : null);
+    if (!piezas.length) { pv.draw(); paintTools(); flashHint(lims.length ? 'Ese polígono queda fuera de los límites o dentro de los ya dibujados: no se agregó.' : 'Ese polígono queda completamente dentro de los ya dibujados: no se agregó.'); return; }
     const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(pts)) > 0.5;
     piezas.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null }));
     t2.viewing = null; selectFromShapes(); computeT2(); pv.draw(); paintTools();
-    if (recortado) flashHint('Se recortó contra los polígonos ya dibujados' + (piezas.length > 1 ? ` (quedó en ${piezas.length} partes).` : '.'), true);
+    if (recortado) flashHint('Se recortó contra ' + (lims.length ? 'los límites y los polígonos ya dibujados' : 'los polígonos ya dibujados') + (piezas.length > 1 ? ` (quedó en ${piezas.length} partes).` : '.'), true);
     return;
   }
   addShape(pts); paintTools();
@@ -7085,14 +7087,16 @@ async function pmmCerrar() {
   const q = { id: 'PM' + Date.now().toString(36), clase: D.clase === 'auto' ? 'auto' : D.clase, auto: D.clase === 'auto', esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
   // V67: se corta contra los polígonos ya dibujados del mismo proyecto
   const prev = p.polMinado || [];
+  // V69: y se corta con los límites del proyecto (si están cargados)
+  const lims = $('pmmLim') && $('pmmLim').checked && typeof limitesDe === 'function' ? limitesDe(p.id) : [];
   let piezas = [q.pts];
-  if (prev.length && typeof polyDiferencia === 'function') piezas = polyDiferencia(q.pts, prev.map(o => o.pts));
-  if (!piezas.length) { flashHint('Ese polígono queda completamente dentro de los ya dibujados en ' + p.name + ': no se guardó.'); return; }
+  if ((prev.length || lims.length) && typeof polyDiferencia === 'function') piezas = polyDiferencia(q.pts, prev.map(o => o.pts), lims.length ? lims : null);
+  if (!piezas.length) { D.pts = []; pv.draw(); flashHint('Ese polígono queda ' + (lims.length ? 'fuera de los límites de ' + p.name + ' o ' : '') + 'dentro de los ya dibujados en ' + p.name + ': no se guardó.'); return; }
   const nuevos = piezas.map((P, i) => Object.assign({}, q, { id: q.id + (i ? '_' + i : ''), pts: P }));
   const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(q.pts)) > 0.5;
   pmm.dib = null; pmmPintar();
   await pmmGuardar(p.id, prev.concat(nuevos));
-  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + (recortado ? ', recortado contra los ya dibujados' + (piezas.length > 1 ? ` (${piezas.length} partes)` : '') : '') + '.', true);
+  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + (recortado ? ', recortado contra ' + (lims.length ? 'los límites del proyecto y ' : '') + 'los ya dibujados' + (piezas.length > 1 ? ` (${piezas.length} partes)` : '') : '') + '.', true);
 }
 // resumen por clase calculada (Fe y M) de mis polígonos
 function pmmResumen(L) {
@@ -7118,6 +7122,7 @@ function pmmPintar() {
   box.innerHTML = `<summary>✏ Mis polígonos de minado (por proyecto)</summary>
     <div class="pm-grid"><label>Proyecto <select id="pmmProy"></select></label><label>Clase <select id="pmmClase"></select></label>
     <label>Mostrar <select id="pmmVer"><option value="ambos">Automáticos y míos</option><option value="auto">Solo automáticos</option><option value="mios">Solo míos</option></select></label></div>
+    <label class="chk"><input type="checkbox" id="pmmLim" checked> Cortar con los límites del proyecto</label>
     <div class="btnrow" id="pmmDib"><button type="button" class="btn small" id="pmmEmpezar">✏ Dibujar polígono</button></div>
     <div class="btnrow" id="pmmEdit" hidden><button type="button" class="btn small" id="pmmOk">Cerrar y guardar</button><button type="button" class="btn sec small" id="pmmUndo">Deshacer vértice</button><button type="button" class="btn sec small" id="pmmCancel">Cancelar</button></div>
     <div id="pmmLista" class="pmm-lista"></div>`;
@@ -7351,14 +7356,17 @@ function fotosDibujar(ctx, v) {
 // ===== V67: recorte de polígonos (el nuevo se corta contra los ya dibujados) e imán de vértices tipo CAD =====
 // polyDiferencia(A, Bs): devuelve la parte de A que queda fuera de todos los Bs, como lista de anillos simples
 // (los huecos se unen al borde con un corte de ancho cero, así siguen siendo un solo contorno).
-function polyDiferencia(A, Bs) {
+function polyDiferencia(A, Bs, Cs) {
+  // V69: Cs = límites; si vienen, el resultado además queda dentro de la unión de los límites
   if (!A || A.length < 3) return [];
-  const bA = bboxOf(A);
-  Bs = (Bs || []).filter(B => { if (!B || B.length < 3) return false; const b = bboxOf(B); return !(b.x0 > bA.x1 || b.x1 < bA.x0 || b.y0 > bA.y1 || b.y1 < bA.y0); });
-  if (!Bs.length) return [A.map(q => ({ x: q.x, y: q.y }))];
+  const bA = bboxOf(A), cerca = B => { if (!B || B.length < 3) return false; const b = bboxOf(B); return !(b.x0 > bA.x1 || b.x1 < bA.x0 || b.y0 > bA.y1 || b.y1 < bA.y0); };
+  Bs = (Bs || []).filter(cerca);
+  const conC = !!(Cs && Cs.length); Cs = conC ? Cs.filter(cerca) : [];
+  if (conC && !Cs.length) return [];
+  if (!Bs.length && !conC) return [A.map(q => ({ x: q.x, y: q.y }))];
   const ox = bA.x0, oy = bA.y0; // coordenadas locales: menos error numérico con UTM
   const L = P => P.map(q => ({ x: q.x - ox, y: q.y - oy }));
-  const a = L(A), bs = Bs.map(L), rings = [a].concat(bs);
+  const a = L(A), bs = Bs.map(L), cs = Cs.map(L), rings = [a].concat(bs, cs);
   const TOL = 1e-3, EPS = 2e-3;
   const segs = [];
   rings.forEach(R => { for (let i = 0; i < R.length; i++) { const p = R[i], q = R[(i + 1) % R.length]; if (Math.hypot(q.x - p.x, q.y - p.y) > TOL) segs.push({ p, q, ts: [0, 1] }); } });
@@ -7374,7 +7382,7 @@ function polyDiferencia(A, Bs) {
       if (Math.abs(den) > 1e-12) { const t = ((o.p.x - s.p.x) * ey - (o.p.y - s.p.y) * ex) / den, u = ((o.p.x - s.p.x) * dy - (o.p.y - s.p.y) * dx) / den; if (t > 0 && t < 1 && u >= -1e-9 && u <= 1 + 1e-9) s.ts.push(t); }
     }
   }
-  const inR = (x, y) => pointInPoly(x, y, a) && !bs.some(B => pointInPoly(x, y, B));
+  const inR = (x, y) => pointInPoly(x, y, a) && !bs.some(B => pointInPoly(x, y, B)) && (!conC || cs.some(C => pointInPoly(x, y, C)));
   const key = (x, y) => Math.round(x / 2e-4) + ',' + Math.round(y / 2e-4);
   const verts = new Map(), out = new Map(), vis = new Set();
   const V = (x, y) => { const k = key(x, y); if (!verts.has(k)) verts.set(k, { x, y, k }); return verts.get(k); };
@@ -7420,6 +7428,22 @@ function polyDiferencia(A, Bs) {
     });
     return P.map(q => ({ x: +(q.x + ox).toFixed(3), y: +(q.y + oy).toFixed(3) }));
   }).filter(P => polyArea(P) >= 0.5);
+}
+
+// límites cerrados de un proyecto: por el código en la capa/archivo o, si no lo tiene, por la mayoría de taladros que encierra
+function limitesDe(pid) {
+  const out = [];
+  (t2.lims || []).forEach(Lm => {
+    if (!Lm.closed || !Lm.pts || Lm.pts.length < 3 || t2.limOff.has(Lm.layer) || (typeof limVisible === 'function' && !limVisible(Lm))) return;
+    const pc = typeof projForLim === 'function' ? projForLim(Lm) : '';
+    if (pc) { if (pid == null || pc === pid) out.push(Lm.pts); return; }
+    const b = bboxOf(Lm.pts), cnt = new Map();
+    t2.holes.forEach(h => { if (h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, Lm.pts)) cnt.set(h.pid, (cnt.get(h.pid) || 0) + 1); });
+    if (!cnt.size) return;
+    if (pid == null) { out.push(Lm.pts); return; }
+    const top = [...cnt.entries()].sort((m, n) => n[1] - m[1])[0][0]; if (top === pid) out.push(Lm.pts);
+  });
+  return out;
 }
 
 // ---- Imán: hace coincidir el clic con vértices de polígonos, límites y taladros (tecla 1 o botón Imán) ----
@@ -7478,6 +7502,7 @@ function snapDibujar(ctx, v) {
   const ed = $('pmmEdit');
   if (ed) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sec small snap-btn'; b.textContent = '🧲 Imán (1)'; b.title = 'Pegar los vértices a vértices, bordes y taladros cercanos (tecla 1)'; ed.appendChild(b); b.onclick = () => snapToggle(); }
   snapPintar();
+  [['avRecLim', 'bhl-reclim'], ['pmmLim', 'bhl-pmmlim']].forEach(([id, k]) => { const el = $(id); if (!el) return; try { const v = localStorage.getItem(k); if (v != null) el.checked = v === '1'; } catch (e) {} el.addEventListener('change', () => { try { localStorage.setItem(k, el.checked ? '1' : '0'); } catch (e) {} }); });
   const rc = $('avRecorte');
   if (rc) { try { const v = localStorage.getItem('bhl-recorte'); if (v != null) rc.checked = v === '1'; } catch (e) {} rc.addEventListener('change', () => { try { localStorage.setItem('bhl-recorte', rc.checked ? '1' : '0'); } catch (e) {} }); }
   document.addEventListener('keydown', e => {
