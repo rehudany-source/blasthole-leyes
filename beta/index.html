@@ -814,7 +814,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
 .pm-nota { flex-basis: 100%; color: var(--muted); }
 .pm-opc > summary { cursor: pointer; font-weight: 600; font-size: .82rem; } .pm-opc { display: grid; gap: 6px; }
 .pm-grid { display: grid; gap: 4px; font-size: .8rem; } .pm-grid input { width: 4.5em; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
-.pmm-lista { display: grid; gap: 4px; max-height: 180px; overflow: auto; } .pmm-it { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; } .pmm-it small { display: block; color: var(--muted); } .pmm-it .q { border: 0; background: none; cursor: pointer; }
+.pmm-lista { display: grid; gap: 4px; max-height: 320px; overflow: auto; } .pmm-it { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; } .pmm-it small { display: block; color: var(--muted); } .pmm-it .q { border: 0; background: none; cursor: pointer; }
 .pm-grid select { font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; max-width: 100%; }
 </style>
 
@@ -822,7 +822,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v67</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v68</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6921,7 +6921,7 @@ function pmDXF() {
     p.rings.forEach(P => poly(P, 'PM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[̀-ͯ]/g, ''), aci[c.k]));
     const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${p.fe != null ? ' Fe ' + p.fe.toFixed(1) : ''}${R.esq === 'm' && p.sfe != null ? ' S/FeS ' + p.sfe.toFixed(2) : ''}`);
   }));
-  pmManuales().forEach(({ p, q }) => { const c = pmmClase(q); poly(q.pts, 'PMM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.aci); });
+  pmManuales().forEach(({ p, q }) => { const c = pmmClase(q, p); poly(q.pts, 'PMM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.aci); });
   R.corte.forEach(P => { L.push('0', 'LWPOLYLINE', '8', 'PM_CORTE_MINERAL', '62', '1', '90', String(P.length), '70', '0'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); });
   L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
 }
@@ -7006,7 +7006,7 @@ function imprimirVista() {
     R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => p.rings.forEach(P => add(P, rgb(c.colL), 1.1))));
     R.corte.forEach(P => { for (let i = 0; i < P.length - 1; i++) { const s = recortarSeg(P[i], P[i + 1], b); if (s) polys.push({ pts: s, col: [0.9, 0.1, 0.1], w: 1.4 }); } });
     filas.push(['Polígonos de minado', E.nom]);
-    if (pmVerMios()) pmManuales().forEach(({ q }) => add(q.pts, rgb(pmmClase(q).colL), 2));
+    if (pmVerMios()) pmManuales().forEach(({ p, q }) => add(q.pts, rgb(pmmClase(q, p).colL), 2));
     R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
   }
   window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
@@ -7025,12 +7025,28 @@ const pmmSt = (p, q) => { let c = pmmCache.get(q); if (!c) { c = { st: pmmStats(
 try { pmm.ver = localStorage.getItem('bhl-pmm-ver') || 'ambos'; } catch (e) {}
 function pmVerAuto() { return pmm.ver !== 'mios'; }
 function pmVerMios() { return pmm.ver !== 'auto'; }
-function pmmClase(q) { const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1]; }
+const PMM_SL = { k: 'SL', nom: 'Sin ley', sub: 'taladros sin resultados', col: '#b0b0b0', colL: '#777777', aci: 9 };
+// V68: clasificación calculada con las leyes de los taladros dentro del polígono (Fe y M por S/FeS)
+function pmmCalc(p, q) {
+  const s = pmmSt(p, q).st;
+  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, grupo: 'Sin ley', nota: '' }; }
+  const fe = PM_ESQ.fe.clases[PM_ESQ.fe.clase(s.fe, s.sfe)], m = PM_ESQ.m.clases[PM_ESQ.m.clase(s.fe, s.sfe)];
+  const r = Math.round(s.fe * 10) / 10, grupo = r >= 30.1 ? 'Mineral' : r >= 20.1 ? 'Marginal' : 'Desmonte';
+  return { s, fe, m, grupo, nota: '' };
+}
+function pmmClase(q, p) {
+  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : c.fe; } return PMM_SL; }
+  const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1];
+}
+function pmmTexto(p, q) {
+  const c = pmmCalc(p, q), a = c.fe.k === c.m.k ? c.fe.nom : `${c.fe.nom} · ${c.m.nom}`;
+  return { c, cal: a + (c.grupo === 'Mineral' ? ' · Mineral' : ''), elegida: (q.auto || q.clase === 'auto') ? '' : pmmClase(q, p).nom };
+}
 function pmManuales() { const out = []; (t2.projs || []).forEach(p => (p.polMinado || []).forEach(q => out.push({ p, q }))); return out; }
 function pmmStats(p, q) {
   const P = q.pts, b = bboxOf(P), hs = t2.holes.filter(h => h.pid === p.id && h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, P));
   const ls = hs.map(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false ? l : (t2.estBy && t2.estBy.get(h.ck)) || null; }).filter(l => l && l.fe != null);
-  const fe = ls.length ? ls.reduce((s, l) => s + l.fe, 0) / ls.length : null, sf = ls.filter(l => l.sfe != null), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe, 0) / sf.length : null;
+  const wf = l => densFe(l.fe), sw = ls.reduce((s, l) => s + wf(l), 0), fe = ls.length ? ls.reduce((s, l) => s + l.fe * wf(l), 0) / sw : null, sf = ls.filter(l => l.sfe != null), swf = sf.reduce((s, l) => s + wf(l), 0), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe * wf(l), 0) / swf : null;
   const area = polyArea(P), banco = num('avBanco') || 12, dens = ls.length ? ls.reduce((s, l) => s + densFe(l.fe), 0) / ls.length : densFe(25);
   return { n: hs.length, nLey: ls.length, fe, sfe, area, t: area * banco * dens };
 }
@@ -7039,22 +7055,22 @@ function pmmDibujar(ctx, v) {
   const claro = typeof planClaro === 'function' && planClaro();
   ctx.save(); ctx.lineJoin = 'round';
   if (pmVerMios()) pmManuales().forEach(({ p, q }) => {
-    const c = pmmClase(q), col = claro ? c.colL : c.col, P = q.pts;
+    const c = pmmClase(q, p), col = claro ? c.colL : c.col, P = q.pts;
     ctx.beginPath(); P.forEach((pt, i) => (i ? ctx.lineTo(v.sx(pt.x), v.sy(pt.y)) : ctx.moveTo(v.sx(pt.x), v.sy(pt.y)))); ctx.closePath();
     ctx.globalAlpha = 0.18; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
     if (v.v.s > 1.2) { const cc = pmmSt(p, q), s = cc.st, L = cc.lbl, x = v.sx(L.x), y = v.sy(L.y);
       ctx.font = '700 11.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = claro ? 'rgba(255,255,255,.9)' : 'rgba(10,12,14,.85)';
-      const l1 = '✏ ' + c.nom, l2 = (s.fe != null ? `Fe ${s.fe.toFixed(1)} · ` : '') + `${Math.round(s.t).toLocaleString('es-PE')} t`;
+      const tx = pmmTexto(p, q), l1 = '✏ ' + (tx.elegida ? tx.elegida + ' (calc. ' + tx.cal + ')' : tx.cal), l2 = (s.fe != null ? `Fe ${s.fe.toFixed(1)} · ` : '') + (s.sfe != null ? `S/FeS ${s.sfe.toFixed(2)} · ` : '') + `${Math.round(s.t).toLocaleString('es-PE')} t`;
       ctx.fillStyle = col; ctx.strokeText(l1, x, y - 7); ctx.fillText(l1, x, y - 7); ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(l2, x, y + 7); ctx.fillText(l2, x, y + 7); }
   });
   const D = pmm.dib;
   if (D && D.pts.length) {
-    const c = (pmE().clases.find(x => x.k === D.clase) || {}), col = claro ? c.colL : c.col;
+    const c = (pmE().clases.find(x => x.k === D.clase) || {}), col = claro ? c.colL : c.col; // automática: amarillo
     ctx.strokeStyle = col || '#ffd60a'; ctx.lineWidth = 2.4; ctx.setLineDash([7, 5]); ctx.beginPath(); D.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = col || '#ffd60a'; D.pts.forEach(q => { ctx.beginPath(); ctx.arc(v.sx(q.x), v.sy(q.y), 4, 0, Math.PI * 2); ctx.fill(); });
     if (D.pts.length >= 3) { ctx.beginPath(); ctx.arc(v.sx(D.pts[0].x), v.sy(D.pts[0].y), 11, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.stroke(); }
   }
-  if (D) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Dibujando ${(pmE().clases.find(x => x.k === D.clase) || {}).nom || ''} de ${D.pname}: toca los vértices y toca el primero para cerrar`, v.W / 2, 56); }
+  if (D) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Dibujando ${D.clase === 'auto' ? 'polígono (clase automática)' : (pmE().clases.find(x => x.k === D.clase) || {}).nom || ''} de ${D.pname}: toca los vértices y toca el primero para cerrar`, v.W / 2, 56); }
   ctx.restore();
 }
 async function pmmGuardar(pid, arr) {
@@ -7066,7 +7082,7 @@ async function pmmCerrar() {
   const D = pmm.dib; if (!D || D.pts.length < 3) { flashHint('El polígono necesita al menos 3 vértices.'); return; }
   if (polyArea(D.pts) < 4) { flashHint('Ese trazo no encierra un área.'); return; }
   const p = lib.projects.find(x => x.id === D.pid); if (!p) return;
-  const q = { id: 'PM' + Date.now().toString(36), clase: D.clase, esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
+  const q = { id: 'PM' + Date.now().toString(36), clase: D.clase === 'auto' ? 'auto' : D.clase, auto: D.clase === 'auto', esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
   // V67: se corta contra los polígonos ya dibujados del mismo proyecto
   const prev = p.polMinado || [];
   let piezas = [q.pts];
@@ -7078,15 +7094,23 @@ async function pmmCerrar() {
   await pmmGuardar(p.id, prev.concat(nuevos));
   pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + (recortado ? ', recortado contra los ya dibujados' + (piezas.length > 1 ? ` (${piezas.length} partes)` : '') : '') + '.', true);
 }
+// resumen por clase calculada (Fe y M) de mis polígonos
+function pmmResumen(L) {
+  const g = new Map();
+  L.forEach(({ p, q }) => { const c = pmmCalc(p, q), s = c.s, k = c.fe.nom + (c.m.k !== c.fe.k ? ' · ' + c.m.nom : ''); const o = g.get(k) || { k, col: c.fe.col, n: 0, t: 0, a: 0, fw: 0, sw: 0, st: 0 }; o.n++; o.t += s.t; o.a += s.area; if (s.fe != null) { o.fw += s.fe * s.t; o.st += s.t; } if (s.sfe != null) { o.sw += s.sfe * s.t; o.ss = (o.ss || 0) + s.t; } g.set(k, o); });
+  const rows = [...g.values()].sort((a, b) => b.t - a.t), T = rows.reduce((s, o) => s + o.t, 0);
+  const min = L.reduce((s, { p, q }) => { const c = pmmCalc(p, q); return s + (c.grupo === 'Mineral' ? c.s.t : 0); }, 0);
+  return `<table class="pm-t pmm-tab"><thead><tr><th>Mis polígonos (calculado)</th><th>Pol.</th><th>t</th><th>Fe</th><th>S/FeS</th></tr></thead><tbody>${rows.map(o => `<tr><td><i class="pm-sw" style="background:${o.col}"></i>${esc(o.k)}</td><td>${o.n}</td><td>${Math.round(o.t).toLocaleString('es-PE')}</td><td>${o.st ? (o.fw / o.st).toFixed(1) : '—'}</td><td>${o.ss ? (o.sw / o.ss).toFixed(2) : '—'}</td></tr>`).join('')}</tbody></table><small class="pm-nota">Mineral (Fe > 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(T).toLocaleString('es-PE')} t. Fe y S/FeS ponderados por tonelaje (densidad según Fe).</small>`;
+}
 function pmmPintar() {
   const box = $('pmmBox'); if (!box) return;
   const propios = (t2.projs || []).filter(p => !p.ro);
   const sp = $('pmmProy'), prev = sp.value; sp.innerHTML = propios.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">(marca un proyecto tuyo)</option>'; if (propios.some(p => p.id === prev)) sp.value = prev;
-  const sc = $('pmmClase'), pc = sc.value; sc.innerHTML = pmE().clases.map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join(''); if ([...sc.options].some(o => o.value === pc)) sc.value = pc;
+  const sc = $('pmmClase'), pc = sc.value; sc.innerHTML = '<option value="auto">Automática (la calcula con las leyes)</option>' + pmE().clases.map(c => `<option value="${c.k}">${esc(c.nom)} (elegida)</option>`).join(''); if ([...sc.options].some(o => o.value === pc)) sc.value = pc;
   $('pmmVer').value = pmm.ver;
   const D = pmm.dib; $('pmmDib').hidden = !!D; $('pmmEdit').hidden = !D;
   const L = pmManuales();
-  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q), s = pmmSt(p, q).st; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(c.nom)}</b> · ${esc(p.name)}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.</small></span>${p.ro ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
+  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q, p), tx = pmmTexto(p, q), s = tx.c.s; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(tx.elegida || tx.cal)}</b> · ${esc(p.name)}${tx.elegida ? `<small>Calculado: ${esc(tx.cal)}</small>` : ''}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.${s.n && s.nLey < s.n ? ' (' + s.nLey + ' con ley)' : ''}${tx.c.nota ? ' · ' + tx.c.nota : ''}</small></span>${p.ro ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') + pmmResumen(L) : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
 }
 (() => {
   const pop = $('pmPop'); if (!pop) return;
