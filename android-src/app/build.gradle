@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+def ver = (project.findProperty('bhlVersion') ?: '69') as Integer
+android {
+    namespace 'pe.bhleyes.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'pe.bhleyes.app'
+        minSdk 24
+        targetSdk 34
+        versionCode ver
+        versionName "V" + ver
+    }
+    signingConfigs {
+        rel { storeFile file('bhleyes.jks'); storePassword 'bhleyes2026'; keyAlias 'bhleyes'; keyPassword 'bhleyes2026' }
+    }
+    buildFeatures { buildConfig true }
+    flavorDimensions = ['canal']
+    productFlavors {
+        estable {
+            dimension 'canal'
+            buildConfigField 'String', 'URL_APP', '"https://rehudany-source.github.io/blasthole-leyes/"'
+            resValue 'string', 'app_name', 'BlastHole Leyes'
+        }
+        pruebas {
+            dimension 'canal'
+            applicationIdSuffix '.pruebas'
+            versionNameSuffix ' pruebas'
+            buildConfigField 'String', 'URL_APP', '"https://rehudany-source.github.io/blasthole-leyes/beta/"'
+            resValue 'string', 'app_name', 'BHL Pruebas'
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.rel }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.core:core:1.13.1' }
