@@ -822,7 +822,7 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v69</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v70</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2680,7 +2680,7 @@ function printPlotSVG(r) {
   document.body.classList.add('printing');
   const fin = () => { document.body.classList.remove('printing'); area.innerHTML = ''; window.removeEventListener('afterprint', fin); };
   window.addEventListener('afterprint', fin);
-  setTimeout(() => { window.print(); setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60);
+  setTimeout(() => { window.print(); if (!window.BHLAndroid) setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60); // en Android la app avisa al terminar (afterprint)
 }
 
 // ===== Topografía MinePlan (.msr) =====
