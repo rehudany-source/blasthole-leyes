@@ -197,6 +197,8 @@ body.enfull { overflow: hidden; }
 .fs-rail button svg { width: 24px; height: 24px; }
 .fs-rail button:hover { background: #2a3138; color: #fff; }
 .fs-rail button[aria-pressed="true"] { background: #ffd60a; color: #1a1a1a; }
+.fs-rail button.snap-btn[aria-pressed="true"] { background: #00b4d8; color: #04161c; }
+.btn.snap-btn.on { background: #00b4d8; color: #04161c; border-color: #00b4d8; }
 .fs-rail button[data-tool="erase"][aria-pressed="true"] { background: #ff6b6b; color: #1a0a0a; }
 .fs-rail .sep { display: block; height: 1px; background: #333b42; margin: 4px 6px; }
 .fs-libre { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9fb0bc; font: 600 .66rem var(--f-body); text-align: center; padding: 4px 0; cursor: pointer; }
@@ -419,7 +421,7 @@ body.app .appset:not([hidden]) { display: grid; gap: 20px; padding-top: 6px; }
 .abtn { cursor: pointer; color: var(--accent); }
 .abtn span { color: var(--muted); font-size: 1.3rem; }
 .anote { margin: 0 4px; font-size: .82rem; color: var(--muted); }
-#appTemaSlot .tema { display: grid; grid-template-columns: repeat(3, 1fr); padding: 8px; gap: 6px; border: 0; }
+#appTemaSlot .tema { display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px; gap: 6px; border: 0; }
 #appTemaSlot .tema button { min-height: 44px; border-radius: 10px; font-size: .95rem; }
 body.app .cadwrap:not(.full) .anl { padding: 3px 4px 3px 10px; border-radius: 10px; }
 body.app .cadwrap:not(.full) .anl select { font-size: 15px; min-height: 34px; padding: 4px 8px; border-radius: 8px; }
@@ -788,19 +790,114 @@ body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.s
 body.app #tab3 .note { display: none; }
 body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
 .topo-mina { width: 3.6em; padding: 1px 4px; font: inherit; font-weight: 700; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+.pm-pop { width: min(430px, calc(100% - 20px)); }
+.pm-sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.pm-ley { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .78rem; } .pm-ley small { color: var(--muted); }
+.pm-t { width: 100%; border-collapse: collapse; font-size: .78rem; } .pm-t th, .pm-t td { padding: 3px 4px; text-align: right; border-bottom: 1px solid var(--line); } .pm-t th:first-child, .pm-t td:first-child { text-align: left; }
+.foto-btn { position: absolute; right: 12px; bottom: 76px; z-index: 6; height: 40px; min-width: 40px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel, #fff); color: var(--ink); font-size: 18px; display: flex; align-items: center; gap: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.2); cursor: pointer; }
+.foto-btn span { font-size: .75rem; font-weight: 700; }
+body.app .foto-btn { bottom: 188px; height: 48px; min-width: 48px; border-radius: 24px; font-size: 22px; justify-content: center; }
+.foto-pan { left: auto; right: 10px; top: auto; bottom: 124px; width: min(380px, calc(100% - 20px)); max-height: calc(100% - 140px); }
+body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: auto; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); max-height: 62vh; z-index: 60; }
+.foto-fil { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foto-lista { display: grid; gap: 6px; overflow: auto; max-height: 300px; }
+.foto-it { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; text-align: left; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.foto-it img { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; background: #222; } .foto-it span { display: grid; gap: 1px; font-size: .8rem; } .foto-it small { color: var(--muted); }
+.foto-dlg { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.55); display: grid; place-items: center; padding: 14px; }
+.foto-dlg[hidden] { display: none; }
+.foto-card { background: var(--panel, #fff); color: var(--ink); border-radius: 14px; padding: 12px 14px; width: min(460px, 100%); display: grid; gap: 8px; max-height: calc(100vh - 28px); overflow: auto; }
+.foto-card label { display: grid; gap: 3px; font-size: .85rem; } .foto-card select, .foto-card input[type=text] { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg, transparent); color: inherit; }
+.foto-prev { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; background: #111; }
+.foto-ver { width: min(900px, 100%); } .foto-img { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; background: #111; }
+.pm-esq { display: flex; align-items: center; gap: 8px; font-size: .82rem; } .pm-esq .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pm-esq .seg button { border: 0; background: transparent; color: inherit; padding: 4px 10px; font: inherit; cursor: pointer; } .pm-esq .seg button[aria-pressed=true] { background: var(--accent, #b4532a); color: #fff; }
+.pm-nota { flex-basis: 100%; color: var(--muted); }
+.pm-opc > summary { cursor: pointer; font-weight: 600; font-size: .82rem; } .pm-opc { display: grid; gap: 6px; }
+.pm-grid { display: grid; gap: 4px; font-size: .8rem; } .pm-grid input { width: 4.5em; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+.pmm-lista { display: grid; gap: 4px; max-height: 320px; overflow: auto; } .pmm-it { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; } .pmm-it small { display: block; color: var(--muted); } .pmm-it .q { border: 0; background: none; cursor: pointer; }
+.pm-grid select { font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; max-width: 100%; }
+
+/* ===== V71: iPhone ===== */
+.capas-btn, .capas-hoja, .capas-fondo { display: none; }
+@media (max-width: 760px) {
+  .anl #limWSel, .anl #blqSel, .anl #pmBtn, .anl #topoBtn, .anl #supBtn, .anl #printVista { display: none !important; }
+  body.app .cadwrap:not(.full) .anl { right: 8px; }
+  .anl #anSel { flex: 1 1 auto; min-width: 0; }
+  .anl .capas-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 8px; font-size: 15px !important; }
+  .anl .capas-btn .cb-i { font-size: 16px; }
+  body.app .cadwrap.full .fs-anl .anl .capas-btn .cb-t { display: none; }
+  .capas-fondo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.35); }
+  .capas-hoja:not([hidden]) { display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; max-height: 78vh; background: var(--panel, #fff); color: var(--ink); border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.3); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .ch-h { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  .ch-h b { font: 700 1.05rem var(--f-body); }
+  .ch-x { font: 700 .95rem var(--f-body); background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 0 16px; min-height: 40px; }
+  .ch-b { overflow-y: auto; padding: 8px 12px 14px; display: grid; gap: 8px; -webkit-overflow-scrolling: touch; }
+  .ch-sel { display: grid; gap: 4px; font: 600 .82rem var(--f-body); color: var(--muted); }
+  .ch-sel select { font-size: 16px; min-height: 44px; border-radius: 10px; }
+  .ch-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; text-align: left; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; font: inherit; cursor: pointer; }
+  .ch-row i { font-style: normal; font-size: 22px; text-align: center; }
+  .ch-row b { display: block; font: 600 1rem var(--f-body); }
+  .ch-row small { color: var(--muted); font-size: .8rem; }
+  .ch-row em { font-style: normal; color: var(--muted); font-size: .8rem; }
+  .ch-row.on { border-color: #b65cff; } .ch-row.on em { color: #b65cff; font-weight: 700; }
+  /* ventanas de Minado y Topo: hoja inferior que se desplaza */
+  body .topo-pop { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 72vh; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 18px 18px 0 0; z-index: 80; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 40px rgba(0,0,0,.3); }
+  .topo-pop select, .topo-pop input:not([type=checkbox]) { font-size: 16px; }
+  /* en pantalla completa: la barra de arriba sin flechas sueltas */
+  body.app .cadwrap.full .fs-anl .anl { font-size: 0; gap: 6px; }
+  body.app .cadwrap.full .fs-anl .anl select { font-size: 15px; min-width: 64px; }
+  body.app .cadwrap.full .fs-anl #letraSel { min-width: 56px; }
+  .anl #letraSel { flex: none; min-width: 58px; }
+  body.app .cadwrap.full .fs-filbtn { max-width: 30vw; padding: 0 10px; }
+  body.app .cadwrap.full .fs-anl { flex: 1; min-width: 0; }
+  body.app .cadwrap.full .fs-anl .anl #anSel { min-width: 70px; }
+  /* herramientas de dibujo SIEMPRE visibles abajo; el panel del avance encima de ellas y más bajo */
+  .cadwrap.full .fs-rail, .cadwrap.full:not(.nopanel) .fs-rail { display: grid !important; z-index: 6; }
+  .cadwrap.full:not(.nopanel) .fs-panel { bottom: calc(84px + var(--sb, 0px)); max-height: 38%; }
+  /* cámara y GPS a la derecha, a media altura: no tapan el aviso de arriba ni el panel */
+  .cadwrap.full .foto-btn { top: 30%; bottom: auto; }
+  .cadwrap.full .gps-btn { top: calc(30% + 58px); bottom: auto; }
+  /* que el contenido no quede debajo de la barra de pestañas */
+  body.app .main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* V71: iPhone acostado (poca altura): herramientas a la izquierda y panel a la derecha, el plano en el medio */
+@media (max-width: 1000px) and (max-height: 500px) and (orientation: landscape) {
+  .cadwrap.full .fs-rail, .cadwrap.full:not(.nopanel) .fs-rail { display: flex !important; flex-direction: column; grid-auto-flow: row; left: calc(8px + env(safe-area-inset-left, 0px)); right: auto; top: calc(var(--tb) + 6px); bottom: calc(6px + var(--sb)); width: 66px; max-height: none; overflow-y: auto; padding: 4px; }
+  .cadwrap.full .fs-rail button { width: 100%; min-height: 46px; flex: none; }
+  .cadwrap.full:not(.nopanel) .fs-panel, .cadwrap.full .fs-panel { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); width: 290px; top: calc(var(--tb) + 6px); bottom: calc(6px + var(--sb)); max-height: none; }
+  .cadwrap.full .fs-hint:not(:empty) { left: 86px; right: 306px; width: auto; max-width: none; font-size: .78rem; padding: 6px 10px; }
+  .cadwrap.full.nopanel .fs-hint:not(:empty) { right: 10px; }
+  .cadwrap.full .foto-btn { top: auto; bottom: 70px; right: 310px; }
+  .cadwrap.full .gps-btn { top: auto; bottom: 12px; right: 310px; }
+  .cadwrap.full.nopanel .foto-btn, .cadwrap.full.nopanel .gps-btn { right: 12px; }
+}
+
+/* V71b: iPhone real (app instalada) */
+/* la pantalla completa ocupa todo el alto en iOS (antes quedaba una franja blanca abajo) */
+.cadwrap.full { top: 0; bottom: 0; height: 100vh !important; height: 100lvh !important; }
+html:has(.cadwrap.full), html:has(.cadwrap.full) body { background: var(--model, #111518); }
+/* en la versión de pruebas la franja morada tapaba la barra de arriba de la pantalla completa */
+body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
+
+/* V73: modo sol (alto contraste para leer en el tajo) */
+:root[data-theme="sol"] { --bg: #ffffff; --panel: #ffffff; --ink: #000000; --muted: #2b2f31; --line: #7d8488; --accent: #a8401c; --accent-ink: #fff; --ok: #146b34; --warn: #7a5200; --bad: #a3150c; --chip: #e9ecec; --model: #ffffff; --model-grid: #d5dadc; color-scheme: light; }
+:root[data-theme="sol"] body { font-weight: 500; }
+:root[data-theme="sol"] .anl, :root[data-theme="sol"] .cadwrap.full .fs-top, :root[data-theme="sol"] .cadwrap.full .fs-rail, :root[data-theme="sol"] .cadwrap.full .fs-panel { background: #000; border-color: #000; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v57</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v73</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
     <div class="tema" role="group" aria-label="Apariencia">
       <button type="button" data-tema="light" title="Modo día">☀ Día</button>
       <button type="button" data-tema="dark" title="Modo noche">☾ Noche</button>
+      <button type="button" data-tema="sol" title="Modo sol: alto contraste para leer bajo el sol">☼ Sol</button>
       <button type="button" data-tema="auto" title="Igual que Windows">Auto</button>
     </div>
     <button class="btn sec small" id="btnUpd" type="button" hidden>Buscar actualización</button>
@@ -1052,6 +1149,8 @@ body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); 
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
           <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
+          <label class="chk"><input type="checkbox" id="avRecorte" checked> Cortar cada polígono nuevo contra los ya dibujados (sin superponer)</label>
+          <label class="chk"><input type="checkbox" id="avRecLim" checked> Cortar los polígonos con los límites de los proyectos</label>
           <details class="idw" id="desBox" open>
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
             <div class="grid2">
@@ -2650,7 +2749,7 @@ function printPlotSVG(r) {
   document.body.classList.add('printing');
   const fin = () => { document.body.classList.remove('printing'); area.innerHTML = ''; window.removeEventListener('afterprint', fin); };
   window.addEventListener('afterprint', fin);
-  setTimeout(() => { window.print(); setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60);
+  setTimeout(() => { window.print(); if (!window.BHLAndroid) setTimeout(() => { if (!matchMedia('print').matches) fin(); }, 1500); }, 60); // en Android la app avisa al terminar (afterprint)
 }
 
 // ===== Topografía MinePlan (.msr) =====
@@ -3350,9 +3449,12 @@ function planClaro() {
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(c); if (!m) return false;
   return (parseInt(m[1], 16) * 299 + parseInt(m[2], 16) * 587 + parseInt(m[3], 16) * 114) / 1000 > 140;
 }
+const CAD_S = { ink: '#000000', label: '#000000', muted: '#2b2f31', prev: '#5c646b', prevTxt: '#4a5258', noLey: '#9aa1a7', sel: '#006f8f', selFill: 'rgba(0,111,143,.18)', poly: '#a36f00', polyFill: 'rgba(163,111,0,.14)', ghost: 'rgba(40,48,56,.7)', ghostTxt: 'rgba(20,28,36,.95)', proj: 'rgba(150,50,20,1)' };
+const ACI_S = { 1: '#c40000', 2: '#8f6a00', 3: '#007a2a', 4: '#006f8f', 5: '#1240c4', 6: '#a400a4', 7: '#000000', 8: '#4a5258', 30: '#c25200' };
+function modoSol() { return document.documentElement.dataset.theme === 'sol'; }
 function applyCadTheme() {
-  const light = planClaro();
-  Object.assign(ACI, light ? ACI_L : ACI_D); Object.assign(CAD, light ? CAD_L : CAD_D);
+  const light = planClaro(), sol = modoSol();
+  Object.assign(ACI, sol ? ACI_S : light ? ACI_L : ACI_D); Object.assign(CAD, sol ? CAD_S : light ? CAD_L : CAD_D);
   try { RAMP.splice(0, RAMP.length, ...(light ? RAMP_L : RAMP_D)); LIM_COLORS.splice(0, LIM_COLORS.length, ...(light ? LIM_L : LIM_D)); } catch (e) { /* aún no definidos */ }
 }
 function setTema(t) {
@@ -3484,6 +3586,7 @@ async function saveProjectRecord(rec) {
     if (TIPO_RANGO[prev.tipo || 'malla'] > TIPO_RANGO[rec.tipo]) rec.tipo = prev.tipo; // no se baja de final a malla
     if (!rec.leyes && prev.leyes) rec.leyes = prev.leyes;
   }
+  if (prev && prev.polMinado && !rec.polMinado) rec.polMinado = prev.polMinado; // V66: polígonos de minado dibujados a mano
   if (!rec.leyes) { const L = leyesDesdeBase(rec); if (L) { rec.leyesBase = snapLeyes(L.leyes); rec.leyesBaseLabel = L.src; rec.leyesBaseFecha = state.baseSaved || new Date().toISOString(); } else if (prev && prev.leyesBase) { rec.leyesBase = prev.leyesBase; rec.leyesBaseLabel = prev.leyesBaseLabel; rec.leyesBaseFecha = prev.leyesBaseFecha; } }
   const ok = await dbSave('projects', rec);
   await loadLibrary();
@@ -3705,13 +3808,21 @@ class PlanView {
     canvas.addEventListener('pointerdown', e => {
       if (this.drawId != null) return; // mientras se dibuja con el lápiz se ignora la palma/dedo
       if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e)); return; }
-      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); } });
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
+      // V73: al dibujar con el dedo, mantener presionado muestra una lupa; se arrastra para afinar y al soltar se pone el vértice
+      clearTimeout(this._aimT); this.aim = null;
+      if (e.pointerType === 'touch' && ptrs.size === 1 && this.wantsAim && this.wantsAim()) {
+        const id = e.pointerId;
+        this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 260);
+      }
+    });
     canvas.addEventListener('pointermove', e => {
       if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
       if (this.drawId != null) return;
       const r = canvas.getBoundingClientRect();
       if (this.onMove) this.onMove(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top));
       if (!ptrs.has(e.pointerId)) return;
+      if (this.aim) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.aim = { px: e.clientX - r.left, py: e.clientY - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); return; }
       const prev = ptrs.get(e.pointerId), cur = { x: e.clientX, y: e.clientY }; ptrs.set(e.pointerId, cur);
       if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.zoomAt(d / pinch0, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); pinch0 = d; moved += 10; return; }
       const dx = cur.x - prev.x, dy = cur.y - prev.y; moved += Math.abs(dx) + Math.abs(dy);
@@ -3719,11 +3830,13 @@ class PlanView {
     });
     const up = e => {
       if (this.drawId === e.pointerId) { this.drawId = null; this.onDraw('end'); return; }
+      clearTimeout(this._aimT);
+      if (this.aim && ptrs.has(e.pointerId)) { const A = this.aim; this.aim = null; ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('drag'); if (this.onTap) this.onTap(this.wx(A.px), this.wy(A.py)); this.draw(); return; }
       if (ptrs.has(e.pointerId) && moved < 5 && ptrs.size === 1 && this.onTap) { const r = canvas.getBoundingClientRect(); this.onTap(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)); }
       ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) canvas.classList.remove('drag');
     };
     canvas.addEventListener('pointerup', up);
-    canvas.addEventListener('pointercancel', e => { if (this.drawId === e.pointerId) { this.drawId = null; this.onDraw('end'); } ptrs.delete(e.pointerId); canvas.classList.remove('drag'); });
+    canvas.addEventListener('pointercancel', e => { clearTimeout(this._aimT); this.aim = null; if (this.drawId === e.pointerId) { this.drawId = null; this.onDraw('end'); } ptrs.delete(e.pointerId); canvas.classList.remove('drag'); });
     new ResizeObserver(() => this.resize()).observe(wrap);
   }
   sx(x) { return (x - this.v.ox) * this.v.s; } sy(y) { return (this.v.oy - y) * this.v.s; }
@@ -3731,7 +3844,9 @@ class PlanView {
   resize() { const r = this.cv.getBoundingClientRect(); if (!r.width) return; this.dpr = window.devicePixelRatio || 1; this.W = r.width; this.H = r.height; this.cv.width = Math.round(this.W * this.dpr); this.cv.height = Math.round(this.H * this.dpr); this.draw(); }
   fit(b) { if (!b) return; const r = this.cv.getBoundingClientRect(); if (!r.width) return; this.W = r.width; this.H = r.height; const s = Math.min(this.W / (b.x1 - b.x0 + 8), this.H / (b.y1 - b.y0 + 8)); this.v.s = s; this.v.ox = (b.x0 + b.x1) / 2 - this.W / 2 / s; this.v.oy = (b.y0 + b.y1) / 2 + this.H / 2 / s; }
   zoomAt(f, px, py) { const x = this.wx(px), y = this.wy(py); this.v.s = Math.min(400, Math.max(0.5, this.v.s * f)); this.v.ox = x - px / this.v.s; this.v.oy = y + py / this.v.s; this.draw(); }
-  draw() {
+  // V59: se dibuja una sola vez por cuadro de pantalla (al arrastrar llegan muchos eventos y se trababa)
+  draw() { if (this._raf) return; this._raf = requestAnimationFrame(() => { this._raf = 0; this.drawNow(); }); }
+  drawNow() {
     if (!this.W) return;
     const ctx = this.ctx; ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const cs = getComputedStyle(document.documentElement);
@@ -3744,6 +3859,22 @@ class PlanView {
     if (this.before) { try { this.before(ctx, this); } catch (e) {} }
     this.render(ctx, this);
     if (this.after) { try { this.after(ctx, this); } catch (e) {} }
+    if (this.aim) { try { this.lupa(ctx); } catch (e) {} }
+  }
+  // lupa: copia ampliada (×2.5) de lo que está bajo el dedo, dibujada arriba del dedo
+  lupa(ctx) {
+    const A = this.aim, R = 58, k = 2.5, d = this.dpr;
+    let cx = A.px, cy = A.py - 105; if (cy - R < 4) cy = A.py + 105; cx = Math.max(R + 4, Math.min(this.W - R - 4, cx));
+    const sw = (2 * R / k) * d;
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.closePath();
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--model').trim() || '#fff'; ctx.fill(); ctx.clip();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.cv, A.px * d - sw / 2, A.py * d - sw / 2, sw, sw, (cx - R) * d, (cy - R) * d, 2 * R * d, 2 * R * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.restore();
+    ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = '#e03131'; ctx.beginPath(); ctx.moveTo(cx - 12, cy); ctx.lineTo(cx + 12, cy); ctx.moveTo(cx, cy - 12); ctx.lineTo(cx, cy + 12); ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -3885,7 +4016,7 @@ function renderAnLegend() {
   const el = $('anLegend'), F = anField();
   if (t2.analito === 'all') { el.innerHTML = '<span><b>Todas las leyes</b> como en la pestaña 1: Fe · FeO · S a la izquierda, S_100 (verde) y S/FeS (rojo) a la derecha</span><span><i style="background:#ff40ff"></i>Fe &gt; 50</span><span><i style="background:#ff8a1f"></i>Fe 40–50</span><span><i style="background:#30d158"></i>Fe 30–40</span>'; return; }
   if (!F) { el.innerHTML = '<span>Sin ley en el plano: solo número de taladro.</span>'; return; }
-  if (F.k === 'fe') { el.innerHTML = '<span><i style="background:#ff40ff"></i>Fe &gt; 50</span><span><i style="background:#ff8a1f"></i>Fe 40–50</span><span><i style="background:#30d158"></i>Fe 30–40</span><span><i style="background:#f2f2f2;border:1px solid var(--line)"></i>Fe &lt; 30</span>'; return; }
+  if (F.k === 'fe') { el.innerHTML = '<span><i style="background:#ff40ff"></i>Fe &gt; 50</span><span><i style="background:#ff8a1f"></i>Fe 40–50</span><span><i style="background:#30d158"></i>Fe 30–40</span><span><i style="background:#4cc9f0;border-radius:50%"></i>Fe 20–30 (punto al alejar)</span><span><i style="background:#9a9a9a;border-radius:50%"></i>Fe &lt; 20 (punto al alejar)</span><span><i style="background:#f2f2f2;border:1px solid var(--line)"></i>Fe &lt; 30 (número al acercar)</span>'; return; }
   const br = anBreaks();
   if (!br) { el.innerHTML = `<span>${F.label}: sin resultados en los proyectos elegidos.</span>`; return; }
   const f = v => fmt(v, F.dec, '');
@@ -3950,15 +4081,28 @@ function renderPlan2(ctx, v) {
     const val = has && F ? l[F.k] : le && F ? le[F.k] : null;
     const rc = inSel ? (ringC.get(h.ck) || CAD.sel) : null;
     if (inSel) { ctx.beginPath(); ctx.arc(x, y, r * 2, 0, Math.PI * 2); ctx.globalAlpha = 0.22; ctx.fillStyle = rc; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = rc; ctx.lineWidth = 1.5; ctx.stroke(); }
+    // V73: alejado (sin números) se dibuja un PUNTO lleno con el color de la clase; lo ya promediado queda tenue, no gris
+    if (!showVal && !TODAS && !(t2.letra && v.v.s >= 4)) {
+      let col;
+      if (inSel) col = rc;
+      else if (val != null && F && F.k === 'fe') { const rr = Math.round(val * 10) / 10; col = rr > 50 ? ACI[6] : rr >= 40 ? ACI[30] : rr >= 30 ? ACI[3] : rr >= 20 ? (planClaro() ? '#0e8fb0' : '#4cc9f0') : (planClaro() ? '#8a8f94' : '#9a9a9a'); }
+      else if (val != null && F) col = anColor(val, br);
+      else col = has || le ? CAD.ink : CAD.noLey;
+      const rd = Math.max(1.5, Math.min(4.2, v.v.s * 0.4));
+      ctx.globalAlpha = prev ? 0.38 : !has && !le ? 0.55 : 1;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, has || le ? rd : rd * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      if (le) { ctx.beginPath(); ctx.arc(x, y, rd + 1.2, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1; ctx.stroke(); }
+      return;
+    }
     // sin texto (alejado): el punto toma el color de la ley
     const dotColor = inSel ? rc : prev ? CAD.prev : !has ? CAD.noLey : F && !showVal ? anColor(val, br) : CAD.ink;
-    ctx.strokeStyle = dotColor; ctx.lineWidth = 1.4;
+    ctx.strokeStyle = dotColor; ctx.lineWidth = (typeof modoSol === 'function' && modoSol()) ? 2.1 : 1.4;
     ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x - r, y + r); ctx.lineTo(x + r, y - r); ctx.stroke();
-    const fs = t2.letra || Math.max(9, Math.min(14, v.v.s * 0.55));
-    ctx.font = `${fs}px Arial, sans-serif`; ctx.textAlign = 'center';
+    const SOLm = typeof modoSol === 'function' && modoSol(), fs = (t2.letra || Math.max(9, Math.min(14, v.v.s * 0.55))) + (SOLm ? 2 : 0);
+    ctx.font = `${SOLm ? '700 ' : ''}${fs}px Arial, sans-serif`; ctx.textAlign = 'center';
     if (TODAS) return;
     if (showId) { ctx.textBaseline = 'top'; ctx.fillStyle = prev ? CAD.prevTxt : CAD.label; ctx.fillText(h.id, x, y + r + 2); }
-    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? (le.des ? '#a0682f' : SUP_COLOR) : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}600 ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
+    if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? (le.des ? '#a0682f' : SUP_COLOR) : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}${SOLm ? 800 : 600} ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
     const qs = has ? qcLey(l) : null;
     if (qs && qs.length) qcMarca(ctx, x, y, r, qs);
     if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
@@ -3997,6 +4141,7 @@ const TOOL_HINT = {
   pick: 'Límites: toca un límite o subdivisión para sumarlo como polígono; tócalo de nuevo para quitarlo.',
 };
 function setTool(t) {
+  paintHint._oculto = null;
   if (t === 'pick' && !t2.lims.length) { flashHint('Primero sube los límites de rotura (DXF o CSV) en el panel «Límites y subdivisiones».'); t = 'pan'; }
   t2.tool = t; if (t !== 'pen') t2.draft = [];
   paintTools(); pv.draw();
@@ -4027,7 +4172,20 @@ function closeDraft() {
   const D = t2.draft; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; D.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
   const lado = Math.max(x1 - x0, y1 - y0), area = polyArea(D);
   if (area < 4 || area < 0.08 * lado * lado) { t2.draft = []; pv.draw(); flashHint('Ese trazo no encierra un área (parece una raya): no se tomó como polígono.'); return; }
-  const pts = t2.draft; t2.draft = []; addShape(pts); paintTools();
+  const pts = t2.draft; t2.draft = [];
+  // V67: el polígono nuevo se corta contra los ya dibujados (no se superponen)
+  const rc = $('avRecorte'), rl = $('avRecLim');
+  const lims = rl && rl.checked && typeof limitesDe === 'function' ? limitesDe(null) : [];
+  if (((rc && rc.checked && t2.shapes.length) || lims.length) && typeof polyDiferencia === 'function') {
+    const piezas = polyDiferencia(pts, rc && rc.checked ? t2.shapes.map(s => s.pts) : [], lims.length ? lims : null);
+    if (!piezas.length) { pv.draw(); paintTools(); flashHint(lims.length ? 'Ese polígono queda fuera de los límites o dentro de los ya dibujados: no se agregó.' : 'Ese polígono queda completamente dentro de los ya dibujados: no se agregó.'); return; }
+    const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(pts)) > 0.5;
+    piezas.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null }));
+    t2.viewing = null; selectFromShapes(); computeT2(); pv.draw(); paintTools();
+    if (recortado) flashHint('Se recortó contra ' + (lims.length ? 'los límites y los polígonos ya dibujados' : 'los polígonos ya dibujados') + (piezas.length > 1 ? ` (quedó en ${piezas.length} partes).` : '.'), true);
+    return;
+  }
+  addShape(pts); paintTools();
 }
 function eraseAt(x, y) {
   const tol = 10 / pv.v.s; let hit = -1;
@@ -4385,13 +4543,20 @@ async function guardarAvanceSeguro() {
   // Segunda protección: justo antes de escribir, revisar contra lo que está guardado AHORA (no contra lo calculado antes)
   const guardados = ((await dbAll('avances')) || []).map(normAvance);
   const mios = new Set(rec.keys);
-  const igual = guardados.find(a => a.keys.length === rec.keys.length && a.keys.every(k => mios.has(k)));
-  if (igual) { setMsg('t2Msg', 'err', 'Este avance ya fue registrado. No se realizará un segundo guardado.'); flashHint('Este avance ya fue registrado. No se realizará un segundo guardado.', false); return; }
+  // el mismo avance el mismo día = doble guardado por error
+  const igual = guardados.find(a => a.fecha === rec.fecha && a.keys.length === rec.keys.length && a.keys.every(k => mios.has(k)));
+  if (igual) { setMsg('t2Msg', 'err', 'Este avance ya fue registrado con esta fecha. No se realizará un segundo guardado.'); flashHint('Este avance ya fue registrado con esta fecha. No se realizará un segundo guardado.', false); return; }
+  // V59: un taladro puede volver a entrar en otro avance (p. ej. material de la parte alta del proyecto que se mina otro día), pero hay que confirmarlo
   const choques = guardados.filter(a => a.keys.some(k => mios.has(k)));
   if (choques.length) {
-    const n = rec.keys.filter(k => choques.some(a => a.keys.includes(k))).length;
-    setMsg('t2Msg', 'err', `No se guardó: ${n} taladro(s) ya están en otro avance (${choques.map(a => fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : '')).join(', ')}). Un taladro no puede contarse dos veces. Vuelve a dibujar el avance sin esos taladros.`);
-    return;
+    const rep = rec.keys.filter(k => choques.some(a => a.keys.includes(k))), firma = rec.fecha + '|' + rep.sort().join(',');
+    if (t2._repOk !== firma) {
+      t2._repOk = firma;
+      setMsg('t2Msg', 'warn', `⚠ ${rep.length} taladro(s) ya están en otro avance (${choques.map(a => fmtDate(a.fecha) + (a.nombre ? ' · ' + a.nombre : '')).join(', ')}). Si es material que se volvió a minar (por ejemplo de la parte alta del proyecto), toca «Guardar avance» otra vez para guardarlo así.`);
+      flashHint(`${rep.length} taladro(s) ya están en otro avance. Toca Guardar otra vez para confirmar.`, false);
+      return;
+    }
+    t2._repOk = null; rec.repetidos = rep.length; rec.repDe = choques.map(a => a.fecha);
   }
   const ok = await dbSave('avances', rec);
   if (!ok) { setMsg('t2Msg', 'err', 'No se pudo guardar el avance en esta PC.'); return; }
@@ -4594,7 +4759,9 @@ function limVisible(L) {
 }
 function drawDesmonte(ctx, v) {
   if (!desCfg().on) return;
+  const ocultos = blqModo() === 'oculto';
   poligonosDesmonte().forEach(L => {
+    if (ocultos && L.modelo) return;
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     ctx.save(); ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath();
     ctx.fillStyle = L.mat === 'desmonte' ? 'rgba(138,90,43,.22)' : 'rgba(138,90,43,.12)'; ctx.fill(); ctx.clip();
@@ -4610,6 +4777,7 @@ function drawLimits(ctx, v) {
   // subdivisiones primero; el límite de rotura encima
   t2.lims.slice().sort((a, b) => isMain(a) - isMain(b)).forEach(L => {
     if (t2.limOff.has(L.layer) || !limVisible(L)) return;
+    if (L.modelo && blqModo() === 'oculto') return;
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
@@ -4772,7 +4940,11 @@ function paintHint() {
   if (a) { el.innerHTML = `<span>Viendo el avance guardado del ${fmtDate(a.fecha)}. Toca el plano con «Mover» para volver al avance nuevo.</span>`; return; }
   const n = t2.draft.length;
   if (t2.tool === 'pen' && n) { el.innerHTML = `<span>${n} vértice${n === 1 ? '' : 's'}</span><button type="button" class="ok" data-h="close"${n < 3 ? ' disabled' : ''}>✓ Cerrar polígono</button><button type="button" data-h="undo">↶ Deshacer</button><button type="button" data-h="cancel">Cancelar</button>`; return; }
-  el.innerHTML = `<span>${TOOL_HINT[t2.tool] || ''}</span>`;
+  // V73: el aviso de la herramienta se oculta solo a los 4 s (vuelve al cambiar de herramienta)
+  const txt = TOOL_HINT[t2.tool] || '';
+  if (paintHint._oculto === t2.tool + '|' + txt) { el.innerHTML = ''; return; }
+  el.innerHTML = `<span>${txt}</span>`;
+  clearTimeout(paintHint._t); paintHint._t = setTimeout(() => { if (!t2.draft.length && !hintFlash && enFull && el.textContent === txt) { paintHint._oculto = t2.tool + '|' + txt; el.innerHTML = ''; } }, 4000);
 }
 $('fsHint').addEventListener('click', e => {
   const b = e.target.closest('button[data-h]'); if (!b) return;
@@ -5133,13 +5305,17 @@ function vlPrintPolys() {
 // «Ver ley: Todas» en la pestaña 2: los mismos bloques de leyes que la pestaña 1 (posiciones calculadas una vez)
 let todasCache = null;
 function drawTodas(ctx, v) {
+  const showText = v.v.s * 0.4 >= 3.2;
+  // V59: lejos no se ve ningún texto: no se calcula la distribución de etiquetas (era lo que trababa con muchos proyectos)
+  if (!showText && v.v.s * 0.7 < 4) return;
   const o = opts(), key = JSON.stringify(o);
-  if (!todasCache || todasCache.holes !== t2.holes || todasCache.leyBy !== t2.leyBy || todasCache.key !== key) {
+  let firma = t2.holes.length + ':' + (t2.leyBy ? t2.leyBy.size : 0); for (let i = 0; i < t2.holes.length; i += 7) { const h = t2.holes[i]; firma += ',' + h.ck + Math.round(h.x); }
+  let fl = 0; if (t2.leyBy) t2.leyBy.forEach(l => { if (l && l.fe != null) fl += l.fe; }); firma += ':' + fl.toFixed(1);
+  if (!todasCache || todasCache.firma !== firma || todasCache.key !== key) {
     const hs = t2.holes.map(h => ({ key: h.ck, id: h.id, x: h.x, y: h.y, z: 0 }));
     const P = layout(hs, t2.leyBy, Object.assign({}, o, { useZ: false }));
-    todasCache = { holes: t2.holes, leyBy: t2.leyBy, key, P: P.filter(p => p.layer !== 'BLASTHOLE') };
+    todasCache = { firma, key, P: P.filter(p => p.layer !== 'BLASTHOLE') };
   }
-  const showText = v.v.s * 0.4 >= 3.2;
   ctx.lineWidth = Math.max(1, Math.min(2, v.v.s * 0.04));
   for (const p of todasCache.P) {
     if (p.t === 'line') {
@@ -6071,14 +6247,16 @@ async function cargarTopo(f) {
 }
 function topoImagen(id, dem) {
   if (topo.img.has(id)) return topo.img.get(id);
-  const { W, H, Z, cel } = dem; const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const cx = cv.getContext('2d'), im = cx.createImageData(W, H), d = im.data;
+  // V59: topografías grandes (Mina 5: 5.5 millones de celdas) se dibujan a media resolución; se ve igual y no traba
+  const { W, H, Z } = dem, st = W * H > 2.2e6 ? 2 : 1, cel = dem.cel * st, Wi = Math.ceil(W / st), Hi = Math.ceil(H / st);
+  const cv = document.createElement('canvas'); cv.width = Wi; cv.height = Hi; cv._st = st;
+  const cx = cv.getContext('2d'), im = cx.createImageData(Wi, Hi), d = im.data;
   let zmin = Infinity, zmax = -Infinity; for (let k = 0; k < Z.length; k++) { const z = Z[k]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
   const az = 315 * Math.PI / 180, alt = 45 * Math.PI / 180, ce = Math.cos(Math.PI / 2 - alt), se = Math.sin(Math.PI / 2 - alt);
   const g = (i, j) => { i = Math.max(0, Math.min(W - 1, i)); j = Math.max(0, Math.min(H - 1, j)); const z = Z[j * W + i]; return z; };
-  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
-    const z = Z[j * W + i]; const o = ((H - 1 - j) * W + i) * 4; if (z !== z) { d[o + 3] = 0; continue; }
-    let zl = g(i - 1, j), zr = g(i + 1, j), zd = g(i, j - 1), zu = g(i, j + 1); if (zl !== zl) zl = z; if (zr !== zr) zr = z; if (zd !== zd) zd = z; if (zu !== zu) zu = z;
+  for (let jj = 0; jj < Hi; jj++) for (let ii = 0; ii < Wi; ii++) {
+    const i = ii * st, j = jj * st, z = Z[j * W + i]; const o = ((Hi - 1 - jj) * Wi + ii) * 4; if (z !== z) { d[o + 3] = 0; continue; }
+    let zl = g(i - st, j), zr = g(i + st, j), zd = g(i, j - st), zu = g(i, j + st); if (zl !== zl) zl = z; if (zr !== zr) zr = z; if (zd !== zd) zd = z; if (zu !== zu) zu = z;
     const dx = (zr - zl) / (2 * cel), dy = (zu - zd) / (2 * cel), sl = Math.atan(1.6 * Math.hypot(dx, dy)), asp = Math.atan2(dy, -dx);
     let sh = ce * Math.cos(sl) + se * Math.sin(sl) * Math.cos(az - Math.PI / 2 + asp); sh = Math.max(0, Math.min(1, sh));
     const t = (z - zmin) / Math.max(1, zmax - zmin);
@@ -6096,7 +6274,8 @@ pv.before = (ctx, v) => {
   if (!topo.ver || !topo.act) return;
   const dem = topo.dems.get(topo.act); if (!dem) return;
   const img = topoImagen(topo.act, dem);
-  const x = v.sx(dem.x0), y = v.sy(dem.y0 + dem.H * dem.cel), w = dem.W * dem.cel * v.v.s, h = dem.H * dem.cel * v.v.s;
+  const ex = img.width * (img._st || 1) * dem.cel, ey = img.height * (img._st || 1) * dem.cel;
+  const x = v.sx(dem.x0), y = v.sy(dem.y0 + ey), w = ex * v.v.s, h = ey * v.v.s;
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x, y, w, h);
   if (topo.dif) { if (!topo.dif.img) topo.dif.img = topoDifImagen(topo.dif); const D = topo.dif; ctx.drawImage(D.img, v.sx(D.x0), v.sy(D.y0 + D.H * D.cel), D.W * D.cel * v.v.s, D.H * D.cel * v.v.s); }
   ctx.restore();
@@ -6382,7 +6561,10 @@ function puntoDentro(P) {
   for (let i = 1; i < 12; i++) for (let k = 1; k < 12; k++) { const x = b.x0 + (b.x1 - b.x0) * i / 12, y = b.y0 + (b.y1 - b.y0) * k / 12; if (!pointInPoly(x, y, P)) continue; let d = Infinity; for (let s = 0, r = P.length - 1; s < P.length; r = s++) { const A = P[r], B = P[s], dx = B.x - A.x, dy = B.y - A.y, l = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A.x) * dx + (y - A.y) * dy) / l)); d = Math.min(d, Math.hypot(x - A.x - u * dx, y - A.y - u * dy)); } if (d > bd) { bd = d; best = { x, y }; } }
   return best || { x: b.x0 / 2 + b.x1 / 2, y: b.y0 / 2 + b.y1 / 2 };
 }
+// V61: cuánto texto mostrar de los bloques del modelo (para que no tape los taladros)
+function blqModo() { try { return localStorage.getItem('bhl-blq') || 'resumen'; } catch (e) { return 'resumen'; } }
 function drawBloqueModelo(ctx, v, L) {
+  const modo = blqModo(); if (modo === 'sin' || modo === 'oculto') return;
   const m = L.modelo; if (!L._lbl || L._lblN !== L.pts.length) { L._lbl = puntoDentro(L.pts); L._lblN = L.pts.length; }
   const p = L._lbl, x = v.sx(p.x), y = v.sy(p.y); if (x < -300 || x > v.W + 300 || y < -300 || y > v.H + 300) return;
   const col = colorDestino(m), lin = bloqueLineas(m);
@@ -6390,6 +6572,13 @@ function drawBloqueModelo(ctx, v, L) {
   const fs = Math.max(8, Math.min(13, v.v.s * 2.2));
   ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = col;
   ctx.strokeStyle = (typeof planClaro === 'function' && planClaro()) ? 'rgba(255,255,255,.85)' : 'rgba(10,12,14,.75)'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  if (modo !== 'todo' && v.v.s * 2.2 >= 8) {
+    const l1 = bloqueTitulo(m), l2 = modo === 'resumen' ? [m.material, m.fe != null ? 'Fe ' + (+m.fe).toFixed(1) : ''].filter(Boolean).join(' · ') : '';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${Math.max(10, Math.min(13, v.v.s * 2))}px ui-monospace, Consolas, monospace`;
+    ctx.strokeText(l1, x, l2 ? y - 7 : y); ctx.fillText(l1, x, l2 ? y - 7 : y);
+    if (l2) { ctx.font = `600 ${Math.max(9, Math.min(12, v.v.s * 1.8))}px ui-monospace, Consolas, monospace`; ctx.strokeText(l2, x, y + 8); ctx.fillText(l2, x, y + 8); }
+    ctx.restore(); return;
+  }
   if (v.v.s * 2.2 < 8) { // lejos: solo la letra del bloque (y el nombre completo a media distancia)
     const tx = v.v.s > 2 ? bloqueTitulo(m) : m.bloque;
     ctx.font = `700 ${Math.max(10, Math.min(14, v.v.s * 6))}px ui-monospace, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -6401,6 +6590,14 @@ function drawBloqueModelo(ctx, v, L) {
   lin.forEach((s, i) => { ctx.strokeText(s, x0, y0 + i * fs * 1.12); ctx.fillText(s, x0, y0 + i * fs * 1.12); });
   ctx.restore();
 }
+
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const s = document.createElement('select'); s.id = 'blqSel'; s.title = 'Bloques del modelo de MinePlan: cuánto texto mostrar'; s.setAttribute('aria-label', 'Bloques del modelo');
+  s.innerHTML = '<option value="todo">Bloques: texto completo</option><option value="resumen">Bloques: nombre y Fe</option><option value="nombre">Bloques: solo nombre</option><option value="sin">Bloques: sin texto</option><option value="oculto">Bloques: ocultos</option>';
+  s.value = blqModo(); anchor.parentNode.insertBefore(s, anchor);
+  s.onchange = () => { try { localStorage.setItem('bhl-blq', s.value); } catch (e) {} pv.draw(); };
+})();
 
 
 /* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
@@ -6645,6 +6842,958 @@ async function v3Mostrar() {
   };
   setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
 })();
+
+
+/* ===== V58: polígonos de minado por ley de Fe (líneas de excavación del ore control) ===== */
+// Cortes del área de calidad: Fe > 50 Alta Ley · 40–50 Baja Ley · 30–40 Evaluación ··· (corte mineral/desmonte) ··· 20–30 Marginal · < 20 Desmonte
+const PM_MG = { k: 'MG', nom: 'Marginal', sub: 'Fe 20–30', col: '#4cc9f0', colL: '#0e8fb0', aci: 4 }, PM_DS = { k: 'DS', nom: 'Desmonte', sub: 'Fe < 20', col: '#9a9a9a', colL: '#6b6b6b', aci: 8 };
+// V60: dos formas de clasificar: por ley de Fe o por tipo de material M1–M5 (S/FeS) en lo que es mineral (Fe > 30)
+const PM_ESQ = {
+  fe: { nom: 'Ley de Fe', clases: [
+    { k: 'AL', nom: 'Alta Ley', sub: 'Fe > 50', col: '#e040fb', colL: '#b0179f', aci: 6 },
+    { k: 'BL', nom: 'Baja Ley', sub: 'Fe 40–50', col: '#ff8a1f', colL: '#d06400', aci: 30 },
+    { k: 'EV', nom: 'Evaluación', sub: 'Fe 30–40', col: '#30d158', colL: '#1a9a3e', aci: 3 }, PM_MG, PM_DS],
+    mineral: new Set(['AL', 'BL', 'EV']),
+    clase: (fe) => { const r = Math.round(fe * 10) / 10; return r >= 50.1 ? 0 : r >= 40.1 ? 1 : r >= 30.1 ? 2 : r >= 20.1 ? 3 : 4; } },
+  m: { nom: 'Tipo de material (M por S/FeS)', clases: [
+    { k: 'M1', nom: 'M1', sub: 'S/FeS ≤ 0.30', col: '#3d7dff', colL: '#1f4fd0', aci: 5 },
+    { k: 'M2', nom: 'M2', sub: '0.31–0.60', col: '#2bd94a', colL: '#138a2c', aci: 3 },
+    { k: 'M3', nom: 'M3', sub: '0.61–0.90', col: '#ffe11a', colL: '#a88a00', aci: 2 },
+    { k: 'M4', nom: 'M4', sub: '0.91–1.50', col: '#ff8a1f', colL: '#d06400', aci: 30 },
+    { k: 'M5', nom: 'M5', sub: '> 1.50', col: '#ff2d55', colL: '#c0102f', aci: 1 },
+    { k: 'MS', nom: 'Mineral sin S/FeS', sub: 'Fe > 30', col: '#c7a6ff', colL: '#7a4fc9', aci: 200 }, PM_MG, PM_DS],
+    mineral: new Set(['M1', 'M2', 'M3', 'M4', 'M5', 'MS']),
+    clase: (fe, sfe) => { const r = Math.round(fe * 10) / 10; if (r < 20.1) return 7; if (r < 30.1) return 6; if (sfe == null || isNaN(sfe)) return 5; const m = matSFe(sfe); return { M1: 0, M2: 1, M3: 2, M4: 3, M5: 4 }[m]; } },
+};
+const pm = { on: false, res: null, firma: '', celda: 1, esq: 'fe' };
+// V64: opciones del método (excavadora para mineral, óxidos, marginal y contactos; pala para desmonte)
+const PM_OPC0 = { metodo: 'suav', minMin: 36, minDes: 100, movD: 0, movAz: 0, eqDes: 'cont' };
+function pmOpc() { let o = {}; try { o = JSON.parse(localStorage.getItem('bhl-pm-opc') || '{}'); } catch (e) {} return Object.assign({}, PM_OPC0, o); }
+function pmOpcGuardar(o) { try { localStorage.setItem('bhl-pm-opc', JSON.stringify(o)); } catch (e) {} pm.res = null; }
+try { pm.on = localStorage.getItem('bhl-pm') === '1'; pm.esq = PM_ESQ[localStorage.getItem('bhl-pm-esq')] ? localStorage.getItem('bhl-pm-esq') : 'fe'; } catch (e) {}
+const pmE = () => PM_ESQ[pm.esq];
+function pmClase(fe, sfe) { if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
+function pmColor(c) { return (typeof planClaro === 'function' && planClaro()) ? c.colL : c.col; }
+// Cada celda de 1 m toma la clase del taladro con ley más cercano (como en los polígonos de ore control), hasta ~0.75 del espaciamiento
+function pmCalcularHoles(lista) {
+  const src = [], O = pmOpc(), mx = O.movD * Math.sin(O.movAz * Math.PI / 180), my = O.movD * Math.cos(O.movAz * Math.PI / 180);
+  const doms = [];
+  lista.forEach(h => {
+    if (h.dup) return; const l = t2.leyBy.get(h.ck), has = l && l.hasData !== false;
+    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null;
+    const c = pmClase(fe, sfe); if (c < 0) return;
+    src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
+  });
+  if (src.length < 3) return { err: src.length ? 'Hay muy pocos taladros con ley para trazar polígonos.' : 'Los proyectos marcados no tienen taladros con ley.' };
+  // espaciamiento típico (mediana del vecino más cercano), con rejilla para que sea rápido
+  const G = new Map(), gk = (x, y) => Math.floor(x / 10) + ',' + Math.floor(y / 10);
+  src.forEach((s, i) => { const k = gk(s.x, s.y); if (!G.has(k)) G.set(k, []); G.get(k).push(i); });
+  const vecinos = (x, y, r) => { const out = [], i0 = Math.floor((x - r) / 10), i1 = Math.floor((x + r) / 10), j0 = Math.floor((y - r) / 10), j1 = Math.floor((y + r) / 10); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = G.get(i + ',' + j); if (a) out.push(...a); } return out; };
+  const nn = src.map((s, i) => { let d = Infinity; vecinos(s.x, s.y, 15).forEach(j => { if (j !== i) d = Math.min(d, Math.hypot(src[j].x - s.x, src[j].y - s.y)); }); return d; }).filter(d => d < Infinity).sort((a, b) => a - b);
+  const esp = nn.length ? nn[Math.floor(nn.length / 2)] : 5, R = Math.max(2.5, Math.min(8, esp * 0.75));
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; src.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); });
+  const ar = (x1 - x0 + 2 * R) * (y1 - y0 + 2 * R), cel = ar < 6e5 ? 0.5 : ar < 2.5e6 ? 1 : 2; x0 = Math.floor(x0 - R - cel); y0 = Math.floor(y0 - R - cel);
+  const W = Math.ceil((x1 + R + cel - x0) / cel), H = Math.ceil((y1 + R + cel - y0) / cel);
+  const C = new Int8Array(W * H).fill(-1), D = new Float32Array(W * H).fill(Infinity), S = new Int32Array(W * H).fill(-1);
+  // pintar alrededor de cada taladro (más rápido que buscar el más cercano por celda)
+  const rc = Math.ceil(R / cel);
+  src.forEach((s, idx) => {
+    const ci = Math.floor((s.x - x0) / cel), cj = Math.floor((s.y - y0) / cel);
+    for (let j = cj - rc; j <= cj + rc; j++) { if (j < 0 || j >= H) continue; const yc = y0 + (j + 0.5) * cel;
+      for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || i >= W) continue; const xc = x0 + (i + 0.5) * cel, d = Math.hypot(xc - s.x, yc - s.y); if (d > R) continue; const k = j * W + i; if (d < D[k]) { D[k] = d; C[k] = s.c; S[k] = idx; } } }
+  });
+  const E0 = pmE();
+  if (O.metodo === 'suav') {
+    // 1) cada punto toma la clase del taladro más cercano (área de influencia real de cada taladro); no se mezclan leyes,
+    //    así una zona chica de desmonte entre mineral no desaparece si el equipo puede separarla
+    // 2) unidad mínima de minado: zonas más chicas que el mínimo de su equipo pasan a la clase vecina con más borde en común
+    // desmonte: con pala usa su mínimo; con excavadora el de la excavadora; «en contactos» = excavadora si la zona toca mineral
+    const minDe = (ci, tocaMin) => { const kk = E0.clases[ci].k; const exc = kk !== 'DS' || O.eqDes === 'exc' || (O.eqDes === 'cont' && tocaMin); return (exc ? O.minMin : O.minDes) / (cel * cel); };
+    for (let pasada = 0; pasada < 4; pasada++) {
+      const lab = new Int32Array(W * H); let L = 0, cambios = 0;
+      for (let k0 = 0; k0 < W * H; k0++) { if (C[k0] < 0 || lab[k0]) continue; L++; const ci = C[k0], st = [k0], z = []; lab[k0] = L; const borde = new Map();
+        while (st.length) { const q = st.pop(); z.push(q); const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (C[r] === ci) { if (!lab[r]) { lab[r] = L; st.push(r); } } else if (C[r] >= 0) borde.set(C[r], (borde.get(C[r]) || 0) + 1); }); }
+        let tocaMin = false; borde.forEach((v, c2) => { if (E0.mineral.has(E0.clases[c2].k)) tocaMin = true; });
+        if (z.length >= minDe(ci, tocaMin) || !borde.size) continue;
+        let mejor = -1, mb = -1; borde.forEach((v, c2) => { if (v > mb) { mb = v; mejor = c2; } });
+        z.forEach(q => { C[q] = mejor; }); cambios++; }
+      if (!cambios) break;
+    }
+    // 2b) bordes más rectos para la pala/excavadora: filtro de mayoría (≈1 m) que no borra zonas
+    for (let pasada = 0; pasada < 2; pasada++) {
+      const C2 = C.slice(), rr = Math.max(1, Math.round(1 / cel));
+      for (let jj = 0; jj < H; jj++) for (let ii = 0; ii < W; ii++) { const k = jj * W + ii; if (C[k] < 0) continue; const cnt = new Map();
+        for (let b = -rr; b <= rr; b++) for (let a = -rr; a <= rr; a++) { const x = ii + a, y = jj + b; if (x < 0 || y < 0 || x >= W || y >= H) continue; const c = C[y * W + x]; if (c >= 0) cnt.set(c, (cnt.get(c) || 0) + 1); }
+        let mc = C[k], mv = cnt.get(C[k]) || 0; cnt.forEach((v, c) => { if (v > mv) { mv = v; mc = c; } }); C2[k] = mc; }
+      C.set(C2);
+    }
+    // 3) dilución: cada zona debe cumplir su corte con el promedio de sus taladros; si no, baja a la clase siguiente
+    if (pm.esq === 'fe') {
+      const lab = new Int32Array(W * H); let L = 0;
+      for (let k0 = 0; k0 < W * H; k0++) { if (C[k0] < 0 || lab[k0]) continue; L++; const ci = C[k0], st = [k0], z = [], tal = new Set(); lab[k0] = L;
+        while (st.length) { const q = st.pop(); z.push(q); if (S[q] >= 0) tal.add(S[q]); const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (C[r] === ci && !lab[r]) { lab[r] = L; st.push(r); } }); }
+        if (!tal.size) continue; const feZ = [...tal].reduce((s, q) => s + src[q].fe, 0) / tal.size, cz = pmClase(feZ, null);
+        if (cz > ci) z.forEach(q => { C[q] = cz; }); }
+    }
+  }
+  const toXY = R0 => R0.map(([i, j]) => ({ x: x0 + i * cel, y: y0 + j * cel }));
+  const anillo = Rr => { if (Rr.length < 8) return Rr; let f = 0, dm = -1; Rr.forEach((q, i) => { const d = (q[0] - Rr[0][0]) ** 2 + (q[1] - Rr[0][1]) ** 2; if (d > dm) { dm = d; f = i; } }); return topoSimplificar(Rr.slice(0, f + 1), 0.6).concat(topoSimplificar(Rr.slice(f).concat([Rr[0]]), 0.6).slice(1, -1)); };
+  const banco = num('avBanco') || 12;
+  const E = pmE(), clases = E.clases.map((c, ci) => {
+    const M = new Uint8Array(W * H); let n = 0; for (let k = 0; k < W * H; k++) if (C[k] === ci) { M[k] = 1; n++; }
+    if (!n) return null;
+    // zonas conectadas de esta clase → cada una es un polígono (con sus huecos)
+    const lab = new Int32Array(W * H), zonas = []; let L = 0;
+    for (let k = 0; k < W * H; k++) { if (!M[k] || lab[k]) continue; L++; const st = [k], cel0 = []; lab[k] = L;
+      while (st.length) { const q = st.pop(); cel0.push(q); const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (M[r] && !lab[r]) { lab[r] = L; st.push(r); } }); }
+      zonas.push({ L, cel: cel0 }); }
+    const polys = zonas.map(z => {
+      // máscara local (solo el recuadro de la zona) para trazar el contorno sin recorrer toda la grilla
+      let i0 = W, j0 = H, i1 = 0, j1 = 0; z.cel.forEach(q => { const i = q % W, j = (q - i) / W; if (i < i0) i0 = i; if (i > i1) i1 = i; if (j < j0) j0 = j; if (j > j1) j1 = j; });
+      const w = i1 - i0 + 1, h = j1 - j0 + 1, Mz = new Uint8Array(w * h); z.cel.forEach(q => { const i = q % W, j = (q - i) / W; Mz[(j - j0) * w + (i - i0)] = 1; });
+      const rings = topoTrazar(Mz, w, h).map(r => toXY(anillo(r.map(([a, b]) => [a + i0, b + j0])))).filter(P => P.length >= 3);
+      const tal = new Set(); z.cel.forEach(q => { if (S[q] >= 0) tal.add(S[q]); });
+      const ts = [...tal].map(i => src[i]);
+      const area = z.cel.length * cel * cel, dens = ts.length ? ts.reduce((s, t) => s + densFe(t.fe), 0) / ts.length : densFe(25);
+      const feP = ts.length ? ts.reduce((s, t) => s + t.fe, 0) / ts.length : null, sf = ts.filter(t => t.sfe != null), sfeP = sf.length ? sf.reduce((s, t) => s + t.sfe, 0) / sf.length : null;
+      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
+    }).filter(p => p.rings.length);
+    return { c, polys };
+  }).filter(Boolean);
+  // borde mineral / desmonte (línea roja punteada): entre Evaluación y Marginal
+  // solo los bordes donde el mineral toca Marginal o Desmonte (no el borde exterior de la malla)
+  const esMin = k => C[k] >= 0 && E.mineral.has(E.clases[C[k]].k), esEst = (i, j) => i >= 0 && j >= 0 && i < W && j < H && C[j * W + i] >= 0 && !E.mineral.has(E.clases[C[j * W + i]].k);
+  const seg = new Map(), entra = new Map(), key = (i, j) => j * (W + 1) + i, add = (a, b) => { (seg.get(a) || seg.set(a, []).get(a)).push(b); entra.set(b, (entra.get(b) || 0) + 1); };
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { if (!esMin(j * W + i)) continue;
+    if (esEst(i, j - 1)) add(key(i, j), key(i + 1, j)); if (esEst(i + 1, j)) add(key(i + 1, j), key(i + 1, j + 1));
+    if (esEst(i, j + 1)) add(key(i + 1, j + 1), key(i, j + 1)); if (esEst(i - 1, j)) add(key(i, j + 1), key(i, j)); }
+  const lineas = [], tomar = a => { const l = seg.get(a), b = l.pop(); if (!l.length) seg.delete(a); entra.set(b, entra.get(b) - 1); return b; };
+  const recorrer = ini => { const L = [ini]; let p = ini, g = 0; while (seg.has(p) && g++ < 1e6) { p = tomar(p); L.push(p); if (p === ini) break; } return L; };
+  [...seg.keys()].filter(k => !entra.get(k)).forEach(k => { while (seg.has(k)) lineas.push(recorrer(k)); });
+  while (seg.size) lineas.push(recorrer(seg.keys().next().value));
+  const corte = lineas.filter(L => L.length > 2).map(L => toXY(topoSimplificar(L.map(k => [k % (W + 1), Math.floor(k / (W + 1))]), 0.6)));
+  return { esq: pm.esq, opc: O, clases, corte, esp, R, banco, n: src.length, nEst: src.filter(s => s.est).length, grid: { x0, y0, cel, W, H, C } };
+}
+// V66: los polígonos se trazan por proyecto (los taladros de un proyecto no se unen con los de otro)
+function pmCalcular() {
+  const grupos = new Map(); t2.holes.forEach(h => { if (!grupos.has(h.pid)) grupos.set(h.pid, []); grupos.get(h.pid).push(h); });
+  const res = [...grupos.entries()].map(([pid, hs]) => ({ pid, r: pmCalcularHoles(hs) })).filter(x => !x.r.err);
+  if (!res.length) return { err: 'Los proyectos marcados no tienen suficientes taladros con ley para trazar polígonos.' };
+  const E = pmE(), clases = E.clases.map(c => ({ c, polys: [] }));
+  res.forEach(({ pid, r }) => r.clases.forEach(x => { const d = clases.find(y => y.c.k === x.c.k); x.polys.forEach(p => { p.pid = pid; p.pname = (t2.projs.find(q => q.id === pid) || {}).name || ''; d.polys.push(p); }); }));
+  const n = res.reduce((s, x) => s + x.r.n, 0);
+  return { esq: pm.esq, opc: res[0].r.opc, clases: clases.filter(x => x.polys.length), corte: [].concat(...res.map(x => x.r.corte)), esp: res.reduce((s, x) => s + x.r.esp * x.r.n, 0) / n, R: res[0].r.R, banco: res[0].r.banco, n, nEst: res.reduce((s, x) => s + x.r.nEst, 0), grids: res.map(x => x.r.grid) };
+}
+function pmFirma() { return [pm.esq, localStorage.getItem('bhl-pm-opc') || '', t2.holes.length, t2.leyBy && t2.leyBy.size, t2.estBy && t2.estBy.size, num('avBanco'), t2.holes.length ? t2.holes[0].ck + t2.holes[t2.holes.length - 1].ck : ''].join('|'); }
+function pmActual() { const f = pmFirma(); if (!pm.res || pm.firma !== f) { pm.res = t2.holes.length ? pmCalcular() : null; pm.firma = f; } return pm.res; }
+function pmDibujar(ctx, v) {
+  if (!pm.on) return; const R = pmActual(); if (!R || R.err) return;
+  const path = rings => { ctx.beginPath(); rings.forEach(P => { P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); }); };
+  ctx.save();
+  // relleno desde la grilla (sin rendijas entre clases) y contorno de cada polígono encima
+  const claro = typeof planClaro === 'function' && planClaro();
+  if (pmVerAuto()) R.grids.forEach(G => {
+    if (!G.img || G.imgClaro !== claro) {
+      const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
+      const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
+      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 90; }
+      cx.putImageData(im, 0, 0); G.img = cv; G.imgClaro = claro;
+    }
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(G.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
+  });
+  if (!pmVerAuto()) { ctx.restore(); return; }
+  R.clases.forEach(({ c, polys }) => { const col = pmColor(c); polys.forEach(p => { path(p.rings); ctx.globalAlpha = 0.95; ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }); });
+  ctx.globalAlpha = 1; ctx.setLineDash([2, 4]); ctx.lineCap = 'round'; ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3; R.corte.forEach(P => { ctx.beginPath(); P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); }); ctx.setLineDash([]);
+  // etiquetas: clase y Fe promedio en cada polígono que se vea
+  if (v.v.s > 1.5) {
+    ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.strokeStyle = (typeof planClaro === 'function' && planClaro()) ? 'rgba(255,255,255,.9)' : 'rgba(10,12,14,.8)';
+    R.clases.forEach(({ c, polys }) => polys.forEach(p => {
+      if (p.area * v.v.s * v.v.s < 1800) return;
+      if (!p._lbl) p._lbl = puntoDentro(p.rings[0]); const x = v.sx(p._lbl.x), y = v.sy(p._lbl.y); if (x < -50 || x > v.W + 50 || y < -50 || y > v.H + 50) return;
+      const t1 = c.nom + (R.esq === 'm' && p.sfe != null && /^M\d/.test(c.k) ? ` · S/FeS ${p.sfe.toFixed(2)}` : ''), t2t = p.fe != null ? `Fe ${p.fe.toFixed(1)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '';
+      ctx.fillStyle = pmColor(c); ctx.strokeText(t1, x, y - 7); ctx.fillText(t1, x, y - 7); if (t2t) { ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(t2t, x, y + 7); ctx.fillText(t2t, x, y + 7); ctx.font = '700 11px system-ui, sans-serif'; }
+    }));
+  }
+  ctx.restore();
+}
+function pmResumen() {
+  const el = $('pmRes'); if (!el) return; const R = pmActual();
+  if (!t2.holes.length) { el.innerHTML = '<p class="msg">Marca uno o varios proyectos con leyes.</p>'; return; }
+  if (!R || R.err) { el.innerHTML = `<p class="msg err">${esc((R && R.err) || '')}</p>`; return; }
+  const conM = R.esq === 'm';
+  const fila = (c, polys) => { const a = polys.reduce((s, p) => s + p.area, 0), t = polys.reduce((s, p) => s + p.t, 0), n = polys.reduce((s, p) => s + p.n, 0), fe = n ? polys.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null;
+    const ps = polys.filter(p => p.sfe != null), sf = ps.length ? ps.reduce((s, p) => s + p.sfe * p.n, 0) / ps.reduce((s, p) => s + p.n, 0) : null;
+    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td>${conM ? `<td>${sf != null ? sf.toFixed(2) : '—'}</td>` : ''}<td>${n}</td></tr>`; };
+  const mineral = PM_ESQ[R.esq].mineral;
+  const tot = R.clases.reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0), min = R.clases.filter(x => mineral.has(x.c.k)).reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0);
+  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th>${conM ? '<th>S/FeS</th>' : ''}<th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
+    <p class="msg">Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}. ${R.opc.metodo === 'suav' ? `Método suavizado por equipo: mínimo ${R.opc.minMin} m² con excavadora y ${R.opc.minDes} m² con pala; desmonte con ${R.opc.eqDes === 'exc' ? 'excavadora' : R.opc.eqDes === 'pala' ? 'pala' : 'excavadora en los contactos con mineral y pala en lo demás'}` : 'Método por taladro (sin suavizar)'}${R.opc.movD ? ` · desplazado ${R.opc.movD} m al ${R.opc.movAz}°` : ''}.</p>`;
+}
+function pmDXF() {
+  const R = pmActual(); if (!R || R.err) return null;
+  const L = ['0', 'SECTION', '2', 'ENTITIES'];
+  const poly = (P, capa, color) => { L.push('0', 'LWPOLYLINE', '8', capa, '62', String(color), '90', String(P.length), '70', '1'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); };
+  const aci = {}; PM_ESQ[R.esq].clases.forEach(c => { aci[c.k] = c.aci; });
+  R.clases.forEach(({ c, polys }) => polys.forEach(p => {
+    p.rings.forEach(P => poly(P, 'PM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[̀-ͯ]/g, ''), aci[c.k]));
+    const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${p.fe != null ? ' Fe ' + p.fe.toFixed(1) : ''}${R.esq === 'm' && p.sfe != null ? ' S/FeS ' + p.sfe.toFixed(2) : ''}`);
+  }));
+  pmManuales().forEach(({ p, q }) => { const c = pmmClase(q, p); poly(q.pts, 'PMM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.aci); });
+  R.corte.forEach(P => { L.push('0', 'LWPOLYLINE', '8', 'PM_CORTE_MINERAL', '62', '1', '90', String(P.length), '70', '0'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); });
+  L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
+}
+function pmCSV() {
+  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,SFeS_prom,Taladros'];
+  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.sfe != null ? p.sfe.toFixed(3) : '', p.n].join(',')))); }));
+  return out.join('\r\n');
+}
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b'; b.id = 'pmBtn'; b.textContent = '⛏ Minado'; b.title = 'Polígonos de minado: por ley de Fe (Alta Ley … Desmonte) o por tipo de material M1–M5'; b.setAttribute('aria-pressed', pm.on ? 'true' : 'false');
+  anchor.parentNode.insertBefore(b, anchor);
+  const pop = document.createElement('div'); pop.className = 'topo-pop pm-pop'; pop.id = 'pmPop'; pop.hidden = true;
+  pop.innerHTML = `<div class="topo-h"><b>⛏ Polígonos de minado</b><button type="button" id="pmCerrar" aria-label="Cerrar">✕</button></div>
+    <label class="chk"><input type="checkbox" id="pmVer"> Ver polígonos en el plano</label>
+    <div class="pm-esq"><span>Clasificar por</span><div class="seg"><button type="button" data-pmesq="fe">Ley de Fe</button><button type="button" data-pmesq="m">Material M1–M5</button></div></div>
+    <div class="pm-ley" id="pmLey"></div>
+    <details class="pm-opc"><summary>Método y unidad mínima</summary>
+      <div class="pm-esq"><span>Método</span><div class="seg"><button type="button" data-pmmet="suav">Suavizado por equipo</button><button type="button" data-pmmet="tal">Por taladro</button></div></div>
+      <div class="pm-grid"><label>Mínimo con excavadora (mineral, óxidos, marginal) <input type="number" id="pmMinMin" min="0" step="4"> m²</label>
+      <label>Desmonte se carga con <select id="pmEqDes"><option value="cont">Excavadora en contactos con mineral, pala en lo demás</option><option value="exc">Excavadora</option><option value="pala">Pala</option></select></label>
+      <label>Mínimo con pala <input type="number" id="pmMinDes" min="0" step="10"> m²</label>
+      <label>Desplazamiento por voladura <input type="number" id="pmMovD" min="0" step="0.5"> m hacia <input type="number" id="pmMovAz" min="0" max="360" step="5">° (rumbo)</label></div>
+      <small class="pm-nota">Suavizado: cada punto toma la clase de su taladro más cercano; las zonas más chicas que el mínimo del equipo que las carga pasan a la clase vecina; los bordes se enderezan (≈1 m); si una zona no llega a su corte con el promedio de sus taladros, baja de clase.</small>
+    </details>
+    <div id="pmRes"></div>
+    <div class="btnrow"><button type="button" class="btn sec small" id="pmDxf">Exportar DXF</button><button type="button" class="btn sec small" id="pmCsv">Exportar CSV</button></div>
+    <p class="msg" id="pmMsg"></p>`;
+  $('topoPop').parentNode.insertBefore(pop, $('topoPop'));
+  $('pmVer').checked = pm.on;
+  const pintarEsq = () => { pop.querySelectorAll('[data-pmesq]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmesq === pm.esq ? 'true' : 'false')); $('pmLey').innerHTML = pmE().clases.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${esc(c.sub)}</small></span>`).join('') + (pm.esq === 'm' ? '<small class="pm-nota">M1–M5 solo en el mineral (Fe &gt; 30), según S/FeS como en el historial.</small>' : ''); };
+  pintarEsq();
+  const pintarOpc = () => { const o = pmOpc(); pop.querySelectorAll('[data-pmmet]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmmet === o.metodo ? 'true' : 'false')); $('pmMinMin').value = o.minMin; $('pmMinDes').value = o.minDes; $('pmMovD').value = o.movD; $('pmMovAz').value = o.movAz; $('pmEqDes').value = o.eqDes; };
+  pintarOpc();
+  const cambiarOpc = cambios => { pmOpcGuardar(Object.assign(pmOpc(), cambios)); pintarOpc(); pmResumen(); pv.draw(); };
+  pop.addEventListener('click', e => { const x = e.target.closest('[data-pmmet]'); if (x) cambiarOpc({ metodo: x.dataset.pmmet }); });
+  $('pmEqDes').addEventListener('change', e => cambiarOpc({ eqDes: e.target.value }));
+  [['pmMinMin', 'minMin'], ['pmMinDes', 'minDes'], ['pmMovD', 'movD'], ['pmMovAz', 'movAz']].forEach(([id, k]) => { $(id).addEventListener('change', e => { const v = parseFloat(e.target.value); cambiarOpc({ [k]: isNaN(v) ? PM_OPC0[k] : Math.max(0, v) }); }); });
+  pop.addEventListener('click', e => { const x = e.target.closest('[data-pmesq]'); if (!x) return; pm.esq = x.dataset.pmesq; try { localStorage.setItem('bhl-pm-esq', pm.esq); } catch (er) {} pintarEsq(); pmResumen(); pv.draw(); });
+  const nombre = ext => `Poligonos_minado_${(t2.projs || []).map(p => p.name).join('+').slice(0, 60) || 'avance'}_${todayISO()}.${ext}`.replace(/[\\/:*?"<>|]+/g, '_');
+  b.onclick = () => { pop.hidden = !pop.hidden; if (!pop.hidden) { $('topoPop').hidden = true; pmResumen(); } };
+  $('pmCerrar').onclick = () => { pop.hidden = true; };
+  $('pmVer').onchange = e => { pm.on = e.target.checked; try { localStorage.setItem('bhl-pm', pm.on ? '1' : '0'); } catch (er) {} b.setAttribute('aria-pressed', pm.on ? 'true' : 'false'); pmResumen(); pv.draw(); };
+  $('pmDxf').onclick = () => { const d = pmDXF(); if (!d) { $('pmMsg').textContent = 'No hay polígonos para exportar.'; return; } save(nombre('dxf'), new Blob([d], { type: 'application/dxf' }), $('pmMsg')); };
+  $('pmCsv').onclick = () => { const d = pmCSV(); if (!d) { $('pmMsg').textContent = 'No hay polígonos para exportar.'; return; } save(nombre('csv'), new Blob(['﻿' + d], { type: 'text/csv' }), $('pmMsg')); };
+  // se dibuja debajo de los taladros
+  const b0 = pv.before;
+  pv.before = (ctx, v) => { if (b0) b0(ctx, v); try { pmDibujar(ctx, v); } catch (e) {} };
+  const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (!pop.hidden) pmResumen(); } catch (e) {} return r; };
+})();
+
+/* ===== V63: imprimir / PDF de lo que se ve en el plano (acércate primero a la zona que quieres) ===== */
+function recortarPoly(P, b) {
+  // Sutherland–Hodgman contra el rectángulo de la vista
+  const lados = [[q => q.x >= b.x0, (a, c) => ({ x: b.x0, y: a.y + (c.y - a.y) * (b.x0 - a.x) / (c.x - a.x) })], [q => q.x <= b.x1, (a, c) => ({ x: b.x1, y: a.y + (c.y - a.y) * (b.x1 - a.x) / (c.x - a.x) })],
+    [q => q.y >= b.y0, (a, c) => ({ x: a.x + (c.x - a.x) * (b.y0 - a.y) / (c.y - a.y), y: b.y0 })], [q => q.y <= b.y1, (a, c) => ({ x: a.x + (c.x - a.x) * (b.y1 - a.y) / (c.y - a.y), y: b.y1 })]];
+  let out = P;
+  for (const [dentro, cruce] of lados) { const inp = out; out = []; if (!inp.length) break; for (let i = 0; i < inp.length; i++) { const a = inp[(i + inp.length - 1) % inp.length], c = inp[i]; if (dentro(c)) { if (!dentro(a)) out.push(cruce(a, c)); out.push(c); } else if (dentro(a)) out.push(cruce(a, c)); } }
+  return out.length >= 3 ? out : null;
+}
+function recortarSeg(a, c, b) {
+  let t0 = 0, t1 = 1; const dx = c.x - a.x, dy = c.y - a.y;
+  for (const [p, q] of [[-dx, a.x - b.x0], [dx, b.x1 - a.x], [-dy, a.y - b.y0], [dy, b.y1 - a.y]]) { if (p === 0) { if (q < 0) return null; continue; } const r = q / p; if (p < 0) { if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; } }
+  return [{ x: a.x + t0 * dx, y: a.y + t0 * dy }, { x: a.x + t1 * dx, y: a.y + t1 * dy }];
+}
+function imprimirVista() {
+  if (!t2.holes.length && !(t2.lims || []).length) { flashHint('No hay nada en el plano para imprimir.'); return; }
+  const b = { x0: pv.wx(0), x1: pv.wx(pv.W), y0: pv.wy(pv.H), y1: pv.wy(0) };
+  const holes = t2.holes.filter(h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1).map(h => ({ key: h.ck, id: h.id, x: h.x, y: h.y, z: 0 }));
+  const matched = new Map(); holes.forEach(h => { const l = t2.leyBy.get(h.key); if (l && l.hasData !== false) matched.set(h.key, l); });
+  const P0 = holes.length ? layout(holes, matched, Object.assign(opts(), { useZ: false })) : [];
+  // marco de la vista: fija la extensión del plano impreso a lo que estás viendo
+  [[b.x0, b.y0, b.x1, b.y0], [b.x1, b.y0, b.x1, b.y1], [b.x1, b.y1, b.x0, b.y1], [b.x0, b.y1, b.x0, b.y0]].forEach(([x1, y1, x2, y2]) => P0.push({ t: 'line', layer: 'LINEA_GUIA', x1, y1, x2, y2 }));
+  const rgb = c => { const h = /^#[0-9a-f]{6}$/i.test(c) ? c : '#666666'; return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255]; };
+  const polys = [], add = (P, col, w) => { const r = recortarPoly(P, b); if (r) polys.push({ pts: r, col, w }); };
+  (t2.lims || []).forEach(L => { try { if (t2.limOff.has(L.layer) || !limVisible(L)) return; if (L.modelo && blqModo() === 'oculto') return; } catch (e) {} if (L.bb.x1 < b.x0 || L.bb.x0 > b.x1 || L.bb.y1 < b.y0 || L.bb.y0 > b.y1) return; add(L.pts, rgb(L.modelo ? colorDestino(L.modelo) : limColor(L.layer)), 0.3 * limAncho()); });
+  t2.shapes.forEach(s => add(s.pts, [0.75, 0.53, 0.04], 1.6));
+  const filas = [['Proyectos', (t2.projs || []).map(p => p.name).join(' + ') || '—'], ['Taladros en la vista', `${holes.length} (${matched.size} con ley)`]];
+  const R = pm.on ? pmActual() : null;
+  if (R && !R.err) {
+    const E = PM_ESQ[R.esq];
+    R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => p.rings.forEach(P => add(P, rgb(c.colL), 1.1))));
+    R.corte.forEach(P => { for (let i = 0; i < P.length - 1; i++) { const s = recortarSeg(P[i], P[i + 1], b); if (s) polys.push({ pts: s, col: [0.9, 0.1, 0.1], w: 1.4 }); } });
+    filas.push(['Polígonos de minado', E.nom]);
+    if (pmVerMios()) pmManuales().forEach(({ p, q }) => add(q.pts, rgb(pmmClase(q, p).colL), 2));
+    R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
+  }
+  window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
+    title: `Plano ${(t2.projs || []).map(p => p.name).slice(0, 4).join(' + ')}${(t2.projs || []).length > 4 ? ' …' : ''}`, subtitle: `${fmtDate(todayISO())} · vista del plano (E ${Math.round(b.x0)}–${Math.round(b.x1)} · N ${Math.round(b.y0)}–${Math.round(b.y1)})` };
+  abrirPrevia();
+}
+(() => {
+  const anchor = $('topoBtn'); if (!anchor) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b'; b.id = 'printVista'; b.textContent = '🖨 Imprimir'; b.title = 'Imprimir o sacar PDF de lo que se ve en el plano (acércate primero a la zona)';
+  anchor.parentNode.appendChild(b); b.onclick = imprimirVista;
+})();
+
+/* ===== V66: polígonos de minado dibujados a mano, por proyecto (se guardan con el proyecto y se sincronizan) ===== */
+const pmm = { ver: 'ambos', dib: null }, pmmCache = new WeakMap();
+const pmmSt = (p, q) => { let c = pmmCache.get(q); if (!c) { c = { st: pmmStats(p, q), lbl: puntoDentro(q.pts) }; pmmCache.set(q, c); } return c; };
+try { pmm.ver = localStorage.getItem('bhl-pmm-ver') || 'ambos'; } catch (e) {}
+function pmVerAuto() { return pmm.ver !== 'mios'; }
+function pmVerMios() { return pmm.ver !== 'auto'; }
+const PMM_SL = { k: 'SL', nom: 'Sin ley', sub: 'taladros sin resultados', col: '#b0b0b0', colL: '#777777', aci: 9 };
+// V68: clasificación calculada con las leyes de los taladros dentro del polígono (Fe y M por S/FeS)
+function pmmCalc(p, q) {
+  const s = pmmSt(p, q).st;
+  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, grupo: 'Sin ley', nota: '' }; }
+  const fe = PM_ESQ.fe.clases[PM_ESQ.fe.clase(s.fe, s.sfe)], m = PM_ESQ.m.clases[PM_ESQ.m.clase(s.fe, s.sfe)];
+  const r = Math.round(s.fe * 10) / 10, grupo = r >= 30.1 ? 'Mineral' : r >= 20.1 ? 'Marginal' : 'Desmonte';
+  return { s, fe, m, grupo, nota: '' };
+}
+function pmmClase(q, p) {
+  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : c.fe; } return PMM_SL; }
+  const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1];
+}
+function pmmTexto(p, q) {
+  const c = pmmCalc(p, q), a = c.fe.k === c.m.k ? c.fe.nom : `${c.fe.nom} · ${c.m.nom}`;
+  return { c, cal: a + (c.grupo === 'Mineral' ? ' · Mineral' : ''), elegida: (q.auto || q.clase === 'auto') ? '' : pmmClase(q, p).nom };
+}
+function pmManuales() { const out = []; (t2.projs || []).forEach(p => (p.polMinado || []).forEach(q => out.push({ p, q }))); return out; }
+function pmmStats(p, q) {
+  const P = q.pts, b = bboxOf(P), hs = t2.holes.filter(h => h.pid === p.id && h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, P));
+  const ls = hs.map(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false ? l : (t2.estBy && t2.estBy.get(h.ck)) || null; }).filter(l => l && l.fe != null);
+  const wf = l => densFe(l.fe), sw = ls.reduce((s, l) => s + wf(l), 0), fe = ls.length ? ls.reduce((s, l) => s + l.fe * wf(l), 0) / sw : null, sf = ls.filter(l => l.sfe != null), swf = sf.reduce((s, l) => s + wf(l), 0), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe * wf(l), 0) / swf : null;
+  const area = polyArea(P), banco = num('avBanco') || 12, dens = ls.length ? ls.reduce((s, l) => s + densFe(l.fe), 0) / ls.length : densFe(25);
+  return { n: hs.length, nLey: ls.length, fe, sfe, area, t: area * banco * dens };
+}
+function pmmDibujar(ctx, v) {
+  if (!pm.on) return;
+  const claro = typeof planClaro === 'function' && planClaro();
+  ctx.save(); ctx.lineJoin = 'round';
+  if (pmVerMios()) pmManuales().forEach(({ p, q }) => {
+    const c = pmmClase(q, p), col = claro ? c.colL : c.col, P = q.pts;
+    ctx.beginPath(); P.forEach((pt, i) => (i ? ctx.lineTo(v.sx(pt.x), v.sy(pt.y)) : ctx.moveTo(v.sx(pt.x), v.sy(pt.y)))); ctx.closePath();
+    ctx.globalAlpha = 0.18; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+    if (v.v.s > 1.2) { const cc = pmmSt(p, q), s = cc.st, L = cc.lbl, x = v.sx(L.x), y = v.sy(L.y);
+      ctx.font = '700 11.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = claro ? 'rgba(255,255,255,.9)' : 'rgba(10,12,14,.85)';
+      const tx = pmmTexto(p, q), l1 = '✏ ' + (tx.elegida ? tx.elegida + ' (calc. ' + tx.cal + ')' : tx.cal), l2 = (s.fe != null ? `Fe ${s.fe.toFixed(1)} · ` : '') + (s.sfe != null ? `S/FeS ${s.sfe.toFixed(2)} · ` : '') + `${Math.round(s.t).toLocaleString('es-PE')} t`;
+      ctx.fillStyle = col; ctx.strokeText(l1, x, y - 7); ctx.fillText(l1, x, y - 7); ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(l2, x, y + 7); ctx.fillText(l2, x, y + 7); }
+  });
+  const D = pmm.dib;
+  if (D && D.pts.length) {
+    const c = (pmE().clases.find(x => x.k === D.clase) || {}), col = claro ? c.colL : c.col; // automática: amarillo
+    ctx.strokeStyle = col || '#ffd60a'; ctx.lineWidth = 2.4; ctx.setLineDash([7, 5]); ctx.beginPath(); D.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = col || '#ffd60a'; D.pts.forEach(q => { ctx.beginPath(); ctx.arc(v.sx(q.x), v.sy(q.y), 4, 0, Math.PI * 2); ctx.fill(); });
+    if (D.pts.length >= 3) { ctx.beginPath(); ctx.arc(v.sx(D.pts[0].x), v.sy(D.pts[0].y), 11, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.stroke(); }
+  }
+  if (D) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Dibujando ${D.clase === 'auto' ? 'polígono (clase automática)' : (pmE().clases.find(x => x.k === D.clase) || {}).nom || ''} de ${D.pname}: toca los vértices y toca el primero para cerrar`, v.W / 2, 56); }
+  ctx.restore();
+}
+async function pmmGuardar(pid, arr) {
+  const p = lib.projects.find(x => x.id === pid); if (!p) return false;
+  const ok = await dbSave('projects', Object.assign({}, p, { polMinado: arr.map(q => { const o = Object.assign({}, q); delete o._st; delete o._lbl; return o; }) }));
+  await loadLibrary(); refreshT2(); return ok;
+}
+async function pmmCerrar() {
+  const D = pmm.dib; if (!D || D.pts.length < 3) { flashHint('El polígono necesita al menos 3 vértices.'); return; }
+  if (polyArea(D.pts) < 4) { flashHint('Ese trazo no encierra un área.'); return; }
+  const p = lib.projects.find(x => x.id === D.pid); if (!p) return;
+  const q = { id: 'PM' + Date.now().toString(36), clase: D.clase === 'auto' ? 'auto' : D.clase, auto: D.clase === 'auto', esq: pm.esq, pts: D.pts.map(o => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3) })), fecha: new Date().toISOString(), autor: (typeof sync !== 'undefined' && sync.session && nombreDe(sync.session.email)) || '' };
+  // V67: se corta contra los polígonos ya dibujados del mismo proyecto
+  const prev = p.polMinado || [];
+  // V69: y se corta con los límites del proyecto (si están cargados)
+  const lims = $('pmmLim') && $('pmmLim').checked && typeof limitesDe === 'function' ? limitesDe(p.id) : [];
+  let piezas = [q.pts];
+  if ((prev.length || lims.length) && typeof polyDiferencia === 'function') piezas = polyDiferencia(q.pts, prev.map(o => o.pts), lims.length ? lims : null);
+  if (!piezas.length) { D.pts = []; pv.draw(); flashHint('Ese polígono queda ' + (lims.length ? 'fuera de los límites de ' + p.name + ' o ' : '') + 'dentro de los ya dibujados en ' + p.name + ': no se guardó.'); return; }
+  const nuevos = piezas.map((P, i) => Object.assign({}, q, { id: q.id + (i ? '_' + i : ''), pts: P }));
+  const recortado = piezas.length > 1 || Math.abs(polyArea(piezas[0]) - polyArea(q.pts)) > 0.5;
+  pmm.dib = null; pmmPintar();
+  await pmmGuardar(p.id, prev.concat(nuevos));
+  pmmPintar(); pv.draw(); flashHint('Polígono de minado guardado en ' + p.name + (recortado ? ', recortado contra ' + (lims.length ? 'los límites del proyecto y ' : '') + 'los ya dibujados' + (piezas.length > 1 ? ` (${piezas.length} partes)` : '') : '') + '.', true);
+}
+// resumen por clase calculada (Fe y M) de mis polígonos
+function pmmResumen(L) {
+  const g = new Map();
+  L.forEach(({ p, q }) => { const c = pmmCalc(p, q), s = c.s, k = c.fe.nom + (c.m.k !== c.fe.k ? ' · ' + c.m.nom : ''); const o = g.get(k) || { k, col: c.fe.col, n: 0, t: 0, a: 0, fw: 0, sw: 0, st: 0 }; o.n++; o.t += s.t; o.a += s.area; if (s.fe != null) { o.fw += s.fe * s.t; o.st += s.t; } if (s.sfe != null) { o.sw += s.sfe * s.t; o.ss = (o.ss || 0) + s.t; } g.set(k, o); });
+  const rows = [...g.values()].sort((a, b) => b.t - a.t), T = rows.reduce((s, o) => s + o.t, 0);
+  const min = L.reduce((s, { p, q }) => { const c = pmmCalc(p, q); return s + (c.grupo === 'Mineral' ? c.s.t : 0); }, 0);
+  return `<table class="pm-t pmm-tab"><thead><tr><th>Mis polígonos (calculado)</th><th>Pol.</th><th>t</th><th>Fe</th><th>S/FeS</th></tr></thead><tbody>${rows.map(o => `<tr><td><i class="pm-sw" style="background:${o.col}"></i>${esc(o.k)}</td><td>${o.n}</td><td>${Math.round(o.t).toLocaleString('es-PE')}</td><td>${o.st ? (o.fw / o.st).toFixed(1) : '—'}</td><td>${o.ss ? (o.sw / o.ss).toFixed(2) : '—'}</td></tr>`).join('')}</tbody></table><small class="pm-nota">Mineral (Fe > 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(T).toLocaleString('es-PE')} t. Fe y S/FeS ponderados por tonelaje (densidad según Fe).</small>`;
+}
+function pmmPintar() {
+  const box = $('pmmBox'); if (!box) return;
+  const propios = (t2.projs || []).filter(p => !p.ro);
+  const sp = $('pmmProy'), prev = sp.value; sp.innerHTML = propios.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">(marca un proyecto tuyo)</option>'; if (propios.some(p => p.id === prev)) sp.value = prev;
+  const sc = $('pmmClase'), pc = sc.value; sc.innerHTML = '<option value="auto">Automática (la calcula con las leyes)</option>' + pmE().clases.map(c => `<option value="${c.k}">${esc(c.nom)} (elegida)</option>`).join(''); if ([...sc.options].some(o => o.value === pc)) sc.value = pc;
+  $('pmmVer').value = pmm.ver;
+  const D = pmm.dib; $('pmmDib').hidden = !!D; $('pmmEdit').hidden = !D;
+  const L = pmManuales();
+  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q, p), tx = pmmTexto(p, q), s = tx.c.s; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(tx.elegida || tx.cal)}</b> · ${esc(p.name)}${tx.elegida ? `<small>Calculado: ${esc(tx.cal)}</small>` : ''}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.${s.n && s.nLey < s.n ? ' (' + s.nLey + ' con ley)' : ''}${tx.c.nota ? ' · ' + tx.c.nota : ''}</small></span>${p.ro ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') + pmmResumen(L) : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
+}
+(() => {
+  const pop = $('pmPop'); if (!pop) return;
+  const box = document.createElement('details'); box.className = 'pm-opc'; box.id = 'pmmBox';
+  box.innerHTML = `<summary>✏ Mis polígonos de minado (por proyecto)</summary>
+    <div class="pm-grid"><label>Proyecto <select id="pmmProy"></select></label><label>Clase <select id="pmmClase"></select></label>
+    <label>Mostrar <select id="pmmVer"><option value="ambos">Automáticos y míos</option><option value="auto">Solo automáticos</option><option value="mios">Solo míos</option></select></label></div>
+    <label class="chk"><input type="checkbox" id="pmmLim" checked> Cortar con los límites del proyecto</label>
+    <div class="btnrow" id="pmmDib"><button type="button" class="btn small" id="pmmEmpezar">✏ Dibujar polígono</button></div>
+    <div class="btnrow" id="pmmEdit" hidden><button type="button" class="btn small" id="pmmOk">Cerrar y guardar</button><button type="button" class="btn sec small" id="pmmUndo">Deshacer vértice</button><button type="button" class="btn sec small" id="pmmCancel">Cancelar</button></div>
+    <div id="pmmLista" class="pmm-lista"></div>`;
+  pop.insertBefore(box, $('pmRes'));
+  box.addEventListener('toggle', pmmPintar);
+  $('pmmVer').onchange = e => { pmm.ver = e.target.value; try { localStorage.setItem('bhl-pmm-ver', pmm.ver); } catch (er) {} pv.draw(); };
+  $('pmmEmpezar').onclick = () => {
+    const pid = $('pmmProy').value, p = (t2.projs || []).find(x => x.id === pid);
+    if (!p) { flashHint('Marca en la lista un proyecto tuyo para dibujar sus polígonos.'); return; }
+    if (!pm.on) { pm.on = true; $('pmVer').checked = true; try { localStorage.setItem('bhl-pm', '1'); } catch (e) {} }
+    pmm.dib = { pid, pname: p.name, clase: $('pmmClase').value, pts: [] }; pmmPintar(); pv.draw();
+    flashHint(`Toca en el plano los vértices del polígono de ${p.name}; toca el primero para cerrarlo.`, true);
+  };
+  $('pmmOk').onclick = pmmCerrar;
+  $('pmmUndo').onclick = () => { if (pmm.dib) { pmm.dib.pts.pop(); pv.draw(); } };
+  $('pmmCancel').onclick = () => { pmm.dib = null; pmmPintar(); pv.draw(); };
+  $('pmmClase').onchange = e => { if (pmm.dib) { pmm.dib.clase = e.target.value; pv.draw(); } };
+  box.addEventListener('click', async e => {
+    const d = e.target.closest('[data-pmmdel]'); if (!d) return;
+    if (d.dataset.ok !== '1') { d.dataset.ok = '1'; d.textContent = '¿Quitar?'; setTimeout(() => { d.dataset.ok = ''; d.textContent = '🗑'; }, 3000); return; }
+    const p = lib.projects.find(x => x.id === d.dataset.pid); if (!p) return;
+    await pmmGuardar(p.id, (p.polMinado || []).filter(q => q.id !== d.dataset.pmmdel)); pmmPintar(); pv.draw();
+  });
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => {
+    const D = pmm.dib;
+    if (D) { if (D.pts.length >= 3 && Math.hypot(v2px(D.pts[0].x - x), v2px(D.pts[0].y - y)) < 14) { pmmCerrar(); return; } D.pts.push({ x, y }); pv.draw(); return; }
+    return tap0 ? tap0(x, y) : undefined;
+  };
+  const v2px = d => d * pv.v.s;
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { pmmDibujar(ctx, v); } catch (e) {} };
+  const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (box.open) pmmPintar(); } catch (e) {} return r; };
+})();
+
+
+/* ===== V58: fotos del frente con ubicación (se comparten con el equipo) ===== */
+const FOTO_MAT = ['Alta Ley', 'Baja Ley', 'Evaluación', 'Marginal', 'Desmonte', 'Mezcla', 'Otro'];
+const FOTO_COL = { 'Alta Ley': '#e040fb', 'Baja Ley': '#ff8a1f', 'Evaluación': '#30d158', 'Marginal': '#4cc9f0', 'Desmonte': '#9a9a9a', 'Mezcla': '#ffd60a', 'Otro': '#ffffff' };
+const fotos = { lista: [], pend: null, ubicar: null, ver: true, busy: false, url: new Map() };
+async function fotosInit() {
+  fotos.lista = (await idbGet('fotos')) || [];
+  try { fotos.ver = localStorage.getItem('bhl-fotos-ver') !== '0'; } catch (e) {}
+  fotosPintarLista(); pv.draw();
+}
+const fotosGuardar = () => idbSet('fotos', fotos.lista);
+// ---- imagen: se achica en el equipo (máx. 1600 px, ~250 KB) y una miniatura para la lista ----
+function fotoLeerImg(file) { return new Promise((ok, no) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => { ok(im); setTimeout(() => URL.revokeObjectURL(u), 1000); }; im.onerror = () => no(new Error('No se pudo abrir la imagen.')); im.src = u; }); }
+function fotoAchicar(im, max, q) {
+  const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * s), h = Math.round(im.naturalHeight * s);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h);
+  return { url: cv.toDataURL('image/jpeg', q), w, h, blob: () => new Promise(r => cv.toBlob(r, 'image/jpeg', q)) };
+}
+// ---- GPS guardado en la foto (EXIF), si el iPhone lo dejó ----
+async function fotoExifGPS(file) {
+  try {
+    const b = new DataView(await file.slice(0, 256 * 1024).arrayBuffer()); if (b.getUint16(0) !== 0xFFD8) return null;
+    let o = 2; while (o + 4 < b.byteLength) { const m = b.getUint16(o), l = b.getUint16(o + 2); if (m === 0xFFE1 && b.getUint32(o + 4) === 0x45786966) { o += 10; break; } o += 2 + l; if (m === 0xFFDA) return null; }
+    const le = b.getUint16(o) === 0x4949, u16 = p => b.getUint16(o + p, le), u32 = p => b.getUint32(o + p, le);
+    const ifd = p => { const n = u16(p), r = {}; for (let i = 0; i < n; i++) { const e = p + 2 + i * 12; r[u16(e)] = { t: u16(e + 2), c: u32(e + 4), v: e + 8 }; } return r; };
+    const i0 = ifd(u32(4)); if (!i0[0x8825]) return null; const g = ifd(u32(i0[0x8825].v));
+    const rat = (e, k) => { const p = u32(e.v); return u32(p + k * 8) / u32(p + k * 8 + 4); }, dms = e => rat(e, 0) + rat(e, 1) / 60 + rat(e, 2) / 3600;
+    if (!g[2] || !g[4]) return null;
+    const ref = e => String.fromCharCode(b.getUint8(e.v + o));
+    let lat = dms(g[2]), lon = dms(g[4]); if (g[1] && ref(g[1]) === 'S') lat = -lat; if (g[3] && ref(g[3]) === 'W') lon = -lon;
+    return isFinite(lat) && isFinite(lon) && lat && lon ? { lat, lon } : null;
+  } catch (e) { return null; }
+}
+function fotoProyCerca(x, y) { let best = null, bd = 40; (t2.holes || []).forEach(h => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h.pname; } }); return best || ''; }
+async function fotoNueva(file) {
+  try {
+    const im = await fotoLeerImg(file), full = fotoAchicar(im, 1600, 0.78), mini = fotoAchicar(im, 260, 0.6);
+    const bl = await full.blob(), buf = await bl.arrayBuffer();
+    let pos = null, origen = '';
+    if (typeof gps !== 'undefined' && gps.on && gps.pos) { const p = gpsXY(); pos = { x: p.x, y: p.y, acc: Math.round(p.acc) }; origen = 'GPS'; }
+    if (!pos) { const g = await fotoExifGPS(file); if (g) { const u = wgsAUtm(g.lat, g.lon); pos = { x: u.x + (gps.cal ? gps.cal.dx : 0), y: u.y + (gps.cal ? gps.cal.dy : 0), acc: null }; origen = 'foto'; } }
+    const id = 'F' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    fotos.pend = { id, buf, mini: mini.url, w: full.w, h: full.h, pos, origen, fecha: new Date(file.lastModified && Date.now() - file.lastModified < 864e5 * 3 ? file.lastModified : Date.now()).toISOString() };
+    fotoFormulario();
+  } catch (e) { flashHint(e.message); }
+}
+function fotoFormulario() {
+  const f = fotos.pend, d = $('fotoDlg'); if (!f) return;
+  d.innerHTML = `<div class="foto-card"><div class="topo-h"><b>📷 Foto del frente</b><button type="button" data-fx="cancelar" aria-label="Cancelar">✕</button></div>
+    <img src="${f.mini}" alt="" class="foto-prev">
+    <p class="msg">${f.pos ? `Ubicación por ${f.origen}${f.pos.acc ? ' (± ' + f.pos.acc + ' m)' : ''}: E ${f.pos.x.toFixed(1)} · N ${f.pos.y.toFixed(1)}` : '<b>Sin ubicación:</b> al guardar, toca en el plano dónde tomaste la foto.'}</p>
+    <label>Material que ves<select id="fotoMat">${FOTO_MAT.map(m => `<option>${m}</option>`).join('')}</select></label>
+    <label>Comentario<input type="text" id="fotoTxt" maxlength="140" placeholder="p. ej. contacto con caliza, agua en el frente…"></label>
+    <div class="btnrow"><button type="button" class="btn small" data-fx="guardar">${f.pos ? 'Guardar' : 'Guardar y ubicar en el plano'}</button>${f.pos ? '<button type="button" class="btn sec small" data-fx="mover">Ubicar a mano</button>' : ''}</div></div>`;
+  d.hidden = false;
+}
+async function fotoConfirmar(pos) {
+  const f = fotos.pend; if (!f) return;
+  const m = { id: f.id, fecha: f.fecha, x: pos.x, y: pos.y, acc: pos.acc || null, origen: pos.origen || f.origen || 'plano', material: f.material, texto: f.texto, proyecto: fotoProyCerca(pos.x, pos.y), w: f.w, h: f.h, mini: f.mini, mio: true, de: '', nube: false };
+  await idbSet('foto:' + f.id, f.buf); fotos.lista.push(m); await fotosGuardar(); fotos.pend = null; fotos.ubicar = null;
+  $('fotoDlg').hidden = true; if ($('fotoPan')) $('fotoPan').hidden = true; fotosPintarLista(); pv.draw(); flashHint('Foto guardada en el plano' + (navigator.onLine ? '.' : '; se sube a la nube cuando haya señal.'), true);
+  fotosNube();
+}
+// ---- nube: imagen en el almacenamiento de Supabase, datos y miniatura en la tabla ----
+async function fotosNube() {
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || fotos.busy) return;
+  fotos.busy = true; let cambio = false;
+  try {
+    const tk = await rest.token(), uid = sync.session.uid || jwtSub(tk);
+    for (const m of fotos.lista.filter(x => x.mio && !x.nube && !x.borrar)) {
+      const buf = await idbGet('foto:' + m.id); if (!buf) continue;
+      const path = `${uid}/${m.id}.jpg`;
+      const r = await fetch(`${SYNC.url}/storage/v1/object/bhl-fotos/${path}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: new Blob([buf], { type: 'image/jpeg' }) });
+      if (!r.ok) throw new Error('No se pudo subir la foto (' + r.status + ')');
+      const data = Object.assign({}, m); ['mini', 'mio', 'de', 'nube', 'path'].forEach(k => delete data[k]);
+      await rest.rpc('bhl_foto_guardar', { p_id: m.id, p_data: data, p_thumb: m.mini, p_path: path });
+      m.nube = true; m.path = path; cambio = true;
+    }
+    for (const m of fotos.lista.filter(x => x.borrar)) {
+      try {
+        await rest.rpc('bhl_foto_borrar', { p_id: m.id });
+        if (m.path) await fetch(`${SYNC.url}/storage/v1/object/bhl-fotos/${m.path}`, { method: 'DELETE', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}` } });
+        fotos.lista = fotos.lista.filter(x => x !== m);
+      } catch (e) { delete m.borrar; flashHint('No se pudo quitar la foto: ' + e.message); }
+      cambio = true;
+    }
+    const desde = (await idbGet('fotos-since')) || '1970-01-01T00:00:00Z';
+    const rem = (await rest.rpc('bhl_foto_lista', { p_desde: desde })) || [];
+    let ult = desde;
+    for (const r of rem) {
+      if (r.updated_at > ult) ult = r.updated_at;
+      const i = fotos.lista.findIndex(x => x.id === r.id);
+      if (r.deleted) { if (i >= 0) { fotos.lista.splice(i, 1); await idbSet('foto:' + r.id, null); cambio = true; } continue; }
+      const m = Object.assign({}, r.data, { id: r.id, mini: r.thumb, path: r.path, mio: !!r.mio, de: r.mio ? '' : r.de, nube: true });
+      if (i >= 0) fotos.lista[i] = Object.assign(fotos.lista[i], m); else fotos.lista.push(m); cambio = true;
+    }
+    if (ult !== desde) await idbSet('fotos-since', ult);
+  } catch (e) { console.warn('fotos nube', e); }
+  finally { fotos.busy = false; if (cambio) { await fotosGuardar(); fotosPintarLista(); pv.draw(); } }
+}
+async function fotoImagenURL(m) {
+  if (fotos.url.has(m.id)) return fotos.url.get(m.id);
+  let buf = await idbGet('foto:' + m.id);
+  if (!buf && m.path && typeof sync !== 'undefined' && sync.session) {
+    const tk = await rest.token(); const r = await fetch(`${SYNC.url}/storage/v1/object/authenticated/bhl-fotos/${m.path}`, { headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}` } });
+    if (r.ok) { buf = await r.arrayBuffer(); try { await idbSet('foto:' + m.id, buf); } catch (e) {} }
+  }
+  if (!buf) return m.mini || '';
+  const u = URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' })); fotos.url.set(m.id, u); return u;
+}
+async function fotoAbrir(m) {
+  const d = $('fotoDlg'), fh = new Date(m.fecha);
+  const puedo = m.mio || (typeof esAdmin === 'function' && esAdmin());
+  d.innerHTML = `<div class="foto-card foto-ver"><div class="topo-h"><b>📷 ${fh.toLocaleDateString('es-PE')} ${fh.toTimeString().slice(0, 5)}${m.de ? ' · ' + esc(m.de) : ''}</b><button type="button" data-fx="cerrar" aria-label="Cerrar">✕</button></div>
+    <img src="${m.mini || ''}" alt="Foto del frente" class="foto-img" id="fotoImg">
+    <p><b style="color:${FOTO_COL[m.material] || 'inherit'}">${esc(m.material || '')}</b>${m.texto ? ' · ' + esc(m.texto) : ''}</p>
+    <p class="msg">${m.proyecto ? esc(m.proyecto) + ' · ' : ''}E ${(+m.x).toFixed(1)} · N ${(+m.y).toFixed(1)} · ubicación por ${esc(m.origen || '—')}${m.nube ? ' · ☁' : ' · aún no sube a la nube'}</p>
+    <div class="btnrow"><button type="button" class="btn sec small" data-fx="centrar" data-id="${m.id}">Ver en el plano</button><button type="button" class="btn sec small" data-fx="bajar" data-id="${m.id}">Guardar imagen</button>${puedo ? `<button type="button" class="btn sec small" data-fx="borrar" data-id="${m.id}">Quitar</button>` : ''}</div></div>`;
+  d.hidden = false;
+  const u = await fotoImagenURL(m); const im = $('fotoImg'); if (im && u) im.src = u;
+}
+function fotosPintarLista() {
+  const el = $('fotoLista'); if (!el) return;
+  const filtro = ($('fotoFiltro') || {}).value || '7', lim = filtro === 'todo' ? 0 : Date.now() - (+filtro) * 864e5;
+  const L = fotos.lista.filter(m => new Date(m.fecha).getTime() >= lim).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  $('fotoCnt').textContent = fotos.lista.length ? `(${fotos.lista.length})` : '';
+  el.innerHTML = L.length ? L.map(m => `<button type="button" class="foto-it" data-fx="abrir" data-id="${m.id}"><img src="${m.mini || ''}" alt=""><span><b style="color:${FOTO_COL[m.material] || 'inherit'}">${esc(m.material || '')}</b><small>${new Date(m.fecha).toLocaleDateString('es-PE')} ${new Date(m.fecha).toTimeString().slice(0, 5)}${m.proyecto ? ' · ' + esc(m.proyecto) : ''}${m.de ? ' · ' + esc(m.de) : ''}${m.nube ? '' : ' · ⏳'}</small>${m.texto ? `<small>${esc(m.texto)}</small>` : ''}</span></button>`).join('') : '<p class="msg">No hay fotos en este periodo.</p>';
+}
+// ---- dibujo en el plano: marca de cámara con el color del material ----
+function fotosDibujar(ctx, v) {
+  if (!fotos.ver || !fotos.lista.length) return;
+  ctx.save();
+  fotos.lista.forEach(m => {
+    const x = v.sx(m.x), y = v.sy(m.y); if (x < -20 || x > v.W + 20 || y < -20 || y > v.H + 20) return;
+    const c = FOTO_COL[m.material] || '#fff';
+    ctx.fillStyle = 'rgba(15,18,22,.85)'; ctx.strokeStyle = c; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = c; ctx.fillRect(x - 6, y - 3.5, 12, 8); ctx.fillRect(x - 2.5, y - 5.5, 5, 2.5); ctx.fillStyle = 'rgba(15,18,22,.95)'; ctx.beginPath(); ctx.arc(x, y + 0.5, 2.6, 0, Math.PI * 2); ctx.fill();
+    if (v.v.s > 3 && m.texto) { ctx.font = '600 10.5px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,14,.8)'; const t = m.texto.slice(0, 40); ctx.strokeText(t, x + 15, y); ctx.fillStyle = c; ctx.fillText(t, x + 15, y); }
+  });
+  if (fotos.ubicar) { ctx.fillStyle = 'rgba(255,214,10,.95)'; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Toca en el plano dónde tomaste la foto', v.W / 2, 56); }
+  ctx.restore();
+}
+(() => {
+  const wrap = $('cad2wrap'); if (!wrap) return;
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'fotoBtn'; b.className = 'foto-btn'; b.title = 'Fotos del frente'; b.innerHTML = '📷<span id="fotoCnt"></span>';
+  wrap.appendChild(b);
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'environment'); inp.hidden = true; inp.id = 'fotoCam'; wrap.appendChild(inp);
+  const inp2 = document.createElement('input'); inp2.type = 'file'; inp2.accept = 'image/*'; inp2.hidden = true; inp2.id = 'fotoGal'; wrap.appendChild(inp2);
+  const pan = document.createElement('div'); pan.className = 'topo-pop foto-pan'; pan.id = 'fotoPan'; pan.hidden = true;
+  pan.innerHTML = `<div class="topo-h"><b>📷 Fotos del frente</b><button type="button" data-fx="panel" aria-label="Cerrar">✕</button></div>
+    <div class="btnrow"><button type="button" class="btn small" data-fx="camara">Tomar foto</button><button type="button" class="btn sec small" data-fx="galeria">Elegir de la galería</button></div>
+    <div class="foto-fil"><label class="chk"><input type="checkbox" id="fotoVer"> Ver en el plano</label><select id="fotoFiltro"><option value="1">Hoy</option><option value="7" selected>7 días</option><option value="30">30 días</option><option value="todo">Todas</option></select></div>
+    <div class="foto-lista" id="fotoLista"></div>
+    <p class="note">La foto toma tu posición del GPS (📍) si está prendido; si no, la ubicación guardada en la foto o la que toques en el plano. Todo el equipo ve las fotos.</p>`;
+  wrap.appendChild(pan);
+  const dlg = document.createElement('div'); dlg.className = 'foto-dlg'; dlg.id = 'fotoDlg'; dlg.hidden = true; document.body.appendChild(dlg);
+  $('fotoVer').checked = fotos.ver;
+  b.onclick = () => { pan.hidden = !pan.hidden; if (!pan.hidden) { fotosPintarLista(); fotosNube(); } };
+  $('fotoVer').onchange = e => { fotos.ver = e.target.checked; try { localStorage.setItem('bhl-fotos-ver', fotos.ver ? '1' : '0'); } catch (er) {} pv.draw(); };
+  $('fotoFiltro').onchange = fotosPintarLista;
+  inp.onchange = () => { const f = inp.files[0]; inp.value = ''; if (f) fotoNueva(f); };
+  inp2.onchange = () => { const f = inp2.files[0]; inp2.value = ''; if (f) fotoNueva(f); };
+  const accion = async e => {
+    const t = e.target.closest('[data-fx]'); if (!t) return; const fx = t.dataset.fx, m = t.dataset.id ? fotos.lista.find(x => x.id === t.dataset.id) : null;
+    if (fx === 'panel') pan.hidden = true;
+    else if (fx === 'camara') inp.click();
+    else if (fx === 'galeria') inp2.click();
+    else if (fx === 'abrir' && m) fotoAbrir(m);
+    else if (fx === 'cerrar') dlg.hidden = true;
+    else if (fx === 'cancelar') { fotos.pend = null; fotos.ubicar = null; dlg.hidden = true; pv.draw(); }
+    else if (fx === 'guardar' || fx === 'mover') {
+      const f = fotos.pend; if (!f) return; f.material = $('fotoMat').value; f.texto = $('fotoTxt').value.trim();
+      if (fx === 'guardar' && f.pos) { fotoConfirmar(Object.assign({ origen: f.origen }, f.pos)); return; }
+      dlg.hidden = true; pan.hidden = true; fotos.ubicar = true; pv.draw(); flashHint('Toca en el plano dónde tomaste la foto.', true);
+    }
+    else if (fx === 'centrar' && m) { dlg.hidden = true; pan.hidden = true; if (pv.v.s < 3) pv.v.s = 5; pv.v.ox = m.x - pv.W / 2 / pv.v.s; pv.v.oy = m.y + pv.H / 2 / pv.v.s; pv.draw(); }
+    else if (fx === 'bajar' && m) { const u = await fotoImagenURL(m); const bl = await (await fetch(u)).blob(); save(`Foto_${(m.proyecto || 'frente').replace(/[^\w-]+/g, '_')}_${m.fecha.slice(0, 16).replace(/[:T]/g, '-')}.jpg`, bl, $('fotoDlg').querySelector('.msg')); }
+    else if (fx === 'borrar' && m) {
+      if (t.dataset.ok !== '1') { t.dataset.ok = '1'; t.textContent = '¿Quitar para todos?'; return; }
+      dlg.hidden = true;
+      if (m.nube) { m.borrar = true; await fotosGuardar(); fotosNube(); } else { fotos.lista = fotos.lista.filter(x => x !== m); await fotosGuardar(); }
+      await idbSet('foto:' + m.id, null); fotosPintarLista(); pv.draw();
+    }
+  };
+  pan.addEventListener('click', accion); dlg.addEventListener('click', accion);
+  // tocar el plano: ubicar la foto nueva, o abrir la foto tocada
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => {
+    if (fotos.ubicar && fotos.pend) { fotoConfirmar({ x, y, origen: 'plano' }); return; }
+    if (fotos.ver && fotos.lista.length) { const tol = 14 / pv.v.s; const m = fotos.lista.map(m => ({ m, d: Math.hypot(m.x - x, m.y - y) })).sort((a, b) => a.d - b.d)[0]; if (m && m.d < tol) { fotoAbrir(m.m); return; } }
+    return tap0 ? tap0(x, y) : undefined;
+  };
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { fotosDibujar(ctx, v); } catch (e) {} };
+  fotosInit();
+})();
+
+// ===== V67: recorte de polígonos (el nuevo se corta contra los ya dibujados) e imán de vértices tipo CAD =====
+// polyDiferencia(A, Bs): devuelve la parte de A que queda fuera de todos los Bs, como lista de anillos simples
+// (los huecos se unen al borde con un corte de ancho cero, así siguen siendo un solo contorno).
+function polyDiferencia(A, Bs, Cs) {
+  // V69: Cs = límites; si vienen, el resultado además queda dentro de la unión de los límites
+  if (!A || A.length < 3) return [];
+  const bA = bboxOf(A), cerca = B => { if (!B || B.length < 3) return false; const b = bboxOf(B); return !(b.x0 > bA.x1 || b.x1 < bA.x0 || b.y0 > bA.y1 || b.y1 < bA.y0); };
+  Bs = (Bs || []).filter(cerca);
+  const conC = !!(Cs && Cs.length); Cs = conC ? Cs.filter(cerca) : [];
+  if (conC && !Cs.length) return [];
+  if (!Bs.length && !conC) return [A.map(q => ({ x: q.x, y: q.y }))];
+  const ox = bA.x0, oy = bA.y0; // coordenadas locales: menos error numérico con UTM
+  const L = P => P.map(q => ({ x: q.x - ox, y: q.y - oy }));
+  const a = L(A), bs = Bs.map(L), cs = Cs.map(L), rings = [a].concat(bs, cs);
+  const TOL = 1e-3, EPS = 2e-3;
+  const segs = [];
+  rings.forEach(R => { for (let i = 0; i < R.length; i++) { const p = R[i], q = R[(i + 1) % R.length]; if (Math.hypot(q.x - p.x, q.y - p.y) > TOL) segs.push({ p, q, ts: [0, 1] }); } });
+  // cortar cada segmento en sus cruces y donde otro vértice cae encima
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i], sx0 = Math.min(s.p.x, s.q.x) - TOL, sx1 = Math.max(s.p.x, s.q.x) + TOL, sy0 = Math.min(s.p.y, s.q.y) - TOL, sy1 = Math.max(s.p.y, s.q.y) + TOL;
+    const dx = s.q.x - s.p.x, dy = s.q.y - s.p.y, LL = dx * dx + dy * dy, Ls = Math.sqrt(LL);
+    for (let j = 0; j < segs.length; j++) {
+      if (i === j) continue; const o = segs[j];
+      if (Math.max(o.p.x, o.q.x) < sx0 || Math.min(o.p.x, o.q.x) > sx1 || Math.max(o.p.y, o.q.y) < sy0 || Math.min(o.p.y, o.q.y) > sy1) continue;
+      [o.p, o.q].forEach(e => { const t = ((e.x - s.p.x) * dx + (e.y - s.p.y) * dy) / LL; if (t > 0 && t < 1) { const d = Math.abs((e.x - s.p.x) * dy - (e.y - s.p.y) * dx) / Ls; if (d < TOL) s.ts.push(t); } });
+      const ex = o.q.x - o.p.x, ey = o.q.y - o.p.y, den = dx * ey - dy * ex;
+      if (Math.abs(den) > 1e-12) { const t = ((o.p.x - s.p.x) * ey - (o.p.y - s.p.y) * ex) / den, u = ((o.p.x - s.p.x) * dy - (o.p.y - s.p.y) * dx) / den; if (t > 0 && t < 1 && u >= -1e-9 && u <= 1 + 1e-9) s.ts.push(t); }
+    }
+  }
+  const inR = (x, y) => pointInPoly(x, y, a) && !bs.some(B => pointInPoly(x, y, B)) && (!conC || cs.some(C => pointInPoly(x, y, C)));
+  const key = (x, y) => Math.round(x / 2e-4) + ',' + Math.round(y / 2e-4);
+  const verts = new Map(), out = new Map(), vis = new Set();
+  const V = (x, y) => { const k = key(x, y); if (!verts.has(k)) verts.set(k, { x, y, k }); return verts.get(k); };
+  segs.forEach(s => {
+    const ts = [...new Set(s.ts)].sort((m, n) => m - n), dx = s.q.x - s.p.x, dy = s.q.y - s.p.y;
+    for (let i = 0; i + 1 < ts.length; i++) {
+      const p = { x: s.p.x + dx * ts[i], y: s.p.y + dy * ts[i] }, q = { x: s.p.x + dx * ts[i + 1], y: s.p.y + dy * ts[i + 1] };
+      const l = Math.hypot(q.x - p.x, q.y - p.y); if (l < TOL) continue;
+      const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, nx = -(q.y - p.y) / l * EPS, ny = (q.x - p.x) / l * EPS;
+      const izq = inR(mx + nx, my + ny), der = inR(mx - nx, my - ny);
+      if (izq === der) continue;
+      let u = V(p.x, p.y), w = V(q.x, q.y); if (u === w) continue; if (!izq) [u, w] = [w, u];
+      const ek = u.k + '>' + w.k; if (vis.has(ek)) continue; vis.add(ek);
+      if (!out.has(u.k)) out.set(u.k, []); out.get(u.k).push({ u, w, used: false });
+    }
+  });
+  // enlazar en anillos: en cada vértice se toma el giro más a la izquierda (la zona queda a la izquierda)
+  const anillos = [];
+  out.forEach(list => list.forEach(e0 => {
+    if (e0.used) return; const R = []; let e = e0, guard = 0;
+    while (e && !e.used && guard++ < 100000) {
+      e.used = true; R.push({ x: e.u.x, y: e.u.y });
+      const cand = (out.get(e.w.k) || []).filter(f => !f.used); if (!cand.length) break;
+      const ain = Math.atan2(e.w.y - e.u.y, e.w.x - e.u.x);
+      let best = null, bv = -Infinity;
+      cand.forEach(f => { let d = Math.atan2(f.w.y - f.u.y, f.w.x - f.u.x) - ain; while (d <= -Math.PI) d += 2 * Math.PI; while (d > Math.PI) d -= 2 * Math.PI; if (d > bv) { bv = d; best = f; } });
+      e = best;
+    }
+    if (R.length >= 3) anillos.push(R);
+  }));
+  const sArea = R => { let s = 0; for (let i = 0; i < R.length; i++) { const p = R[i], q = R[(i + 1) % R.length]; s += p.x * q.y - q.x * p.y; } return s / 2; };
+  const ext = anillos.filter(R => sArea(R) > 0.05), hue = anillos.filter(R => sArea(R) < -0.05);
+  ext.forEach(R => { R.huecos = []; });
+  hue.forEach(H => { const p = H[0], c = ext.filter(R => pointInPoly(p.x + (H[1].x - p.x) * 0.5, p.y + (H[1].y - p.y) * 0.5, R)).sort((m, n) => sArea(m) - sArea(n))[0]; if (c) c.huecos.push(H); });
+  return ext.map(R => {
+    let P = R.slice();
+    R.huecos.forEach(H => {
+      // unir el hueco al borde por el par de vértices más cercano
+      let bi = 0, bj = 0, bd = Infinity;
+      P.forEach((p, i) => H.forEach((h, j) => { const d = (p.x - h.x) ** 2 + (p.y - h.y) ** 2; if (d < bd) { bd = d; bi = i; bj = j; } }));
+      const hh = H.slice(bj).concat(H.slice(0, bj));
+      P = P.slice(0, bi + 1).concat(hh, [hh[0], P[bi]], P.slice(bi + 1));
+    });
+    return P.map(q => ({ x: +(q.x + ox).toFixed(3), y: +(q.y + oy).toFixed(3) }));
+  }).filter(P => polyArea(P) >= 0.5);
+}
+
+// límites cerrados de un proyecto: por el código en la capa/archivo o, si no lo tiene, por la mayoría de taladros que encierra
+function limitesDe(pid) {
+  const out = [];
+  (t2.lims || []).forEach(Lm => {
+    if (!Lm.closed || !Lm.pts || Lm.pts.length < 3 || t2.limOff.has(Lm.layer) || (typeof limVisible === 'function' && !limVisible(Lm))) return;
+    const pc = typeof projForLim === 'function' ? projForLim(Lm) : '';
+    if (pc) { if (pid == null || pc === pid) out.push(Lm.pts); return; }
+    const b = bboxOf(Lm.pts), cnt = new Map();
+    t2.holes.forEach(h => { if (h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, Lm.pts)) cnt.set(h.pid, (cnt.get(h.pid) || 0) + 1); });
+    if (!cnt.size) return;
+    if (pid == null) { out.push(Lm.pts); return; }
+    const top = [...cnt.entries()].sort((m, n) => n[1] - m[1])[0][0]; if (top === pid) out.push(Lm.pts);
+  });
+  return out;
+}
+
+// ---- Imán: hace coincidir el clic con vértices de polígonos, límites y taladros (tecla 1 o botón Imán) ----
+const snap = { on: true, hover: null };
+try { const s = localStorage.getItem('bhl-snap'); if (s != null) snap.on = s === '1'; } catch (e) {}
+function snapActivo() { return snap.on && ((typeof pmm !== 'undefined' && pmm.dib) || (enFull && t2.tool === 'pen')); }
+function snapFuentes() {
+  const polys = [];
+  t2.shapes.forEach(s => polys.push({ P: s.pts, c: true }));
+  if (typeof pmManuales === 'function' && typeof pm !== 'undefined' && pm.on && pmVerMios()) pmManuales().forEach(({ q }) => polys.push({ P: q.pts, c: true }));
+  (t2.lims || []).forEach(Lm => { if (!t2.limOff.has(Lm.layer) && (typeof limVisible !== 'function' || limVisible(Lm))) polys.push({ P: Lm.pts, c: !!Lm.closed }); });
+  const D = (typeof pmm !== 'undefined' && pmm.dib) ? pmm.dib.pts : t2.draft;
+  if (D && D.length) polys.push({ P: D, c: false, borr: true });
+  return polys;
+}
+function snapPt(x, y) {
+  const tol = 14 / pv.v.s; let best = null, bd = tol;
+  const polys = snapFuentes();
+  polys.forEach(({ P }) => P.forEach(q => { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = { x: q.x, y: q.y, k: 'v' }; } }));
+  t2.holes.forEach(h => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = { x: h.x, y: h.y, k: 'p' }; } });
+  if (best) return best;
+  bd = tol * 0.75;
+  polys.forEach(({ P, c, borr }) => { if (borr) return; const n = c ? P.length : P.length - 1; for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % P.length], dx = b.x - a.x, dy = b.y - a.y, LL = dx * dx + dy * dy; if (!LL) continue; const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / LL)), px = a.x + t * dx, py = a.y + t * dy, d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = { x: px, y: py, k: 'e' }; } } });
+  return best;
+}
+function snapAplicar(x, y) { if (!snapActivo()) return { x, y }; const s = snapPt(x, y); return s ? { x: s.x, y: s.y } : { x, y }; }
+function snapToggle(v) {
+  snap.on = v == null ? !snap.on : !!v; try { localStorage.setItem('bhl-snap', snap.on ? '1' : '0'); } catch (e) {}
+  if (!snap.on) snap.hover = null; snapPintar(); pv.draw();
+  flashHint(snap.on ? 'Imán activado: los vértices se pegan a vértices, bordes y taladros cercanos (tecla 1 para apagar).' : 'Imán desactivado (tecla 1 para activarlo).', true);
+}
+function snapPintar() { document.querySelectorAll('.snap-btn').forEach(b => { b.setAttribute('aria-pressed', String(snap.on)); b.classList.toggle('on', snap.on); }); }
+function snapDibujar(ctx, v) {
+  const h = snap.hover; if (!h || !snapActivo()) return;
+  const x = v.sx(h.x), y = v.sy(h.y), D = (typeof pmm !== 'undefined' && pmm.dib) ? pmm.dib.pts : t2.draft;
+  ctx.save();
+  if (D && D.length && h.raw) { const l = D[D.length - 1]; ctx.strokeStyle = 'rgba(255,214,10,.75)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(v.sx(l.x), v.sy(l.y)); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); }
+  if (h.k) {
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2.2; ctx.beginPath();
+    if (h.k === 'v') ctx.rect(x - 7, y - 7, 14, 14);
+    else if (h.k === 'p') ctx.arc(x, y, 8, 0, Math.PI * 2);
+    else { ctx.moveTo(x - 7, y - 7); ctx.lineTo(x + 7, y + 7); ctx.lineTo(x - 7, y + 7); ctx.lineTo(x + 7, y - 7); ctx.closePath(); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+(() => {
+  // botón en la barra de pantalla completa
+  const rail = $('fsRail');
+  if (rail) {
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'fsSnap'; b.className = 'snap-btn'; b.title = 'Imán: pegar a vértices y taladros (tecla 1)';
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3h-4v8a2 2 0 0 1-4 0V3z"/><path d="M6 7h4M14 7h4"/></svg><span>Imán (1)</span>';
+    const ref = rail.querySelector('button[data-tool="pick"]'); rail.insertBefore(b, ref ? ref.nextSibling : rail.firstChild);
+    b.onclick = () => snapToggle();
+  }
+  const ed = $('pmmEdit');
+  if (ed) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sec small snap-btn'; b.textContent = '🧲 Imán (1)'; b.title = 'Pegar los vértices a vértices, bordes y taladros cercanos (tecla 1)'; ed.appendChild(b); b.onclick = () => snapToggle(); }
+  snapPintar();
+  [['avRecLim', 'bhl-reclim'], ['pmmLim', 'bhl-pmmlim']].forEach(([id, k]) => { const el = $(id); if (!el) return; try { const v = localStorage.getItem(k); if (v != null) el.checked = v === '1'; } catch (e) {} el.addEventListener('change', () => { try { localStorage.setItem(k, el.checked ? '1' : '0'); } catch (e) {} }); });
+  const rc = $('avRecorte');
+  if (rc) { try { const v = localStorage.getItem('bhl-recorte'); if (v != null) rc.checked = v === '1'; } catch (e) {} rc.addEventListener('change', () => { try { localStorage.setItem('bhl-recorte', rc.checked ? '1' : '0'); } catch (e) {} }); }
+  document.addEventListener('keydown', e => {
+    if (e.key !== '1' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('input, select, textarea')) return;
+    if (!(enFull || (typeof pmm !== 'undefined' && pmm.dib))) return;
+    e.preventDefault(); snapToggle();
+  });
+  // el clic toma el punto del imán (dibujo de avance y de polígonos de minado)
+  const tap0 = pv.onTap;
+  pv.onTap = (x, y) => { const s = snapAplicar(x, y); snap.hover = null; return tap0 ? tap0(s.x, s.y) : undefined; };
+  const d0 = pv.onDraw;
+  pv.onDraw = (fase, x, y) => { if (fase === 'start' && t2.tool === 'pen') { const s = snapAplicar(x, y); x = s.x; y = s.y; } return d0 ? d0(fase, x, y) : undefined; };
+  const m0 = pv.onMove;
+  pv.onMove = (x, y) => {
+    if (m0) m0(x, y);
+    if (!snapActivo()) { if (snap.hover) { snap.hover = null; pv.draw(); } return; }
+    const s = snapPt(x, y), h = s ? Object.assign(s, { raw: true }) : { x, y, raw: true };
+    snap.hover = h; pv.draw();
+  };
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { snapDibujar(ctx, v); } catch (e) {} };
+})();
+
+// ===== V71: iPhone / pantallas angostas =====
+// La barra del plano no entraba (Límites, Bloques, Minado, Topo, Nivel sup. e Imprimir quedaban fuera de la pantalla).
+// En el teléfono la barra queda en «Ver ley» + «Aa» + «☰ Capas»; Capas abre una hoja con todo lo demás.
+const movil = () => matchMedia('(max-width: 760px)').matches;
+(() => {
+  const anl = document.querySelector('.anl'); if (!anl) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b capas-btn'; b.id = 'capasBtn';
+  b.innerHTML = '<span class="cb-i">☰</span><span class="cb-t">Capas</span>'; b.title = 'Límites, bloques, minado, topografía, nivel superior e imprimir';
+  anl.appendChild(b);
+  const hoja = document.createElement('div'); hoja.className = 'capas-hoja'; hoja.id = 'capasHoja'; hoja.hidden = true;
+  document.body.appendChild(hoja);
+  const fondo = document.createElement('div'); fondo.className = 'capas-fondo'; fondo.hidden = true; document.body.appendChild(fondo);
+  const cerrar = () => { hoja.hidden = true; fondo.hidden = true; };
+  fondo.onclick = cerrar;
+  const SELS = [['letraSel', 'Tamaño de letra de las leyes'], ['limWSel', 'Líneas de los límites'], ['blqSel', 'Texto de los bloques del modelo']];
+  const BTNS = [['pmBtn', '⛏', 'Polígonos de minado', 'Por ley de Fe o M1–M5, y tus polígonos'], ['topoBtn', '⛰', 'Topografía', 'Relieve, minado y avance entre fechas'], ['supBtn', '↑', 'Nivel superior', 'Leyes del banco de arriba'], ['printVista', '🖨', 'Imprimir / PDF', 'Lo que se ve en el plano']];
+  function abrir() {
+    const filas = [];
+    SELS.forEach(([id, nom]) => { const s = $(id); if (!s) return; filas.push(`<label class="ch-sel"><span>${nom}</span><select data-orig="${id}">${[...s.options].map(o => `<option value="${esc(o.value)}"${o.value === s.value ? ' selected' : ''}>${esc(o.textContent)}</option>`).join('')}</select></label>`); });
+    BTNS.forEach(([id, ic, nom, sub]) => { const o = $(id); if (!o) return; const on = o.getAttribute('aria-pressed') === 'true'; filas.push(`<button type="button" class="ch-row${on ? ' on' : ''}" data-orig="${id}"><i>${ic}</i><span><b>${nom}</b><small>${sub}</small></span><em>${on ? 'Activo' : '›'}</em></button>`); });
+    hoja.innerHTML = `<div class="ch-h"><b>Capas y herramientas</b><button type="button" class="ch-x">Listo</button></div><div class="ch-b">${filas.join('')}</div>`;
+    hoja.querySelector('.ch-x').onclick = cerrar;
+    hoja.querySelectorAll('select[data-orig]').forEach(s => s.onchange = () => { const o = $(s.dataset.orig); o.value = s.value; o.dispatchEvent(new Event('change', { bubbles: true })); });
+    hoja.querySelectorAll('button[data-orig]').forEach(x => x.onclick = () => { cerrar(); setTimeout(() => $(x.dataset.orig).click(), 30); });
+    hoja.hidden = false; fondo.hidden = false;
+  }
+  b.onclick = abrir;
+  // al pasar a la pantalla completa o volver, la hoja se cierra
+  window.addEventListener('resize', () => { if (!movil()) cerrar(); });
+})();
+// Mensaje del plano vacío: en el teléfono la lista de proyectos no está «a la izquierda»
+(() => {
+  const r0 = typeof renderPlan2 === 'function' ? renderPlan2 : null; if (!r0 || !pv) return;
+  const ft = CanvasRenderingContext2D.prototype.fillText;
+  pv.render = function (ctx, v) {
+    if (!movil()) return r0(ctx, v);
+    ctx.fillText = function (t, x, y, w) { if (t === 'Marca uno o varios proyectos a la izquierda') t = 'Elige los proyectos con el botón «Proyectos»'; return ft.call(this, t, x, y, w); };
+    try { return r0(ctx, v); } finally { delete ctx.fillText; }
+  };
+})();
+// En el teléfono no hay Apple Pencil: aviso corto que tapa menos el plano
+(() => { try { if (movil() && typeof TOOL_HINT !== 'undefined') { TOOL_HINT.pen = 'Lápiz: toca cada vértice y toca el primero para cerrar.'; TOOL_HINT.pan = 'Mover: arrastra y pellizca. Toca un taladro para quitarlo o agregarlo.'; } } catch (e) {} })();
+
+// ===== V73: enviar por WhatsApp (hoja de Compartir del iPhone / Android) =====
+async function compartirArchivo(blob, nombre, texto, msgEl) {
+  try {
+    const f = new File([blob], nombre, { type: blob.type || 'application/octet-stream' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], text: texto || '' }); return true; }
+  } catch (e) { if (e && e.name === 'AbortError') return false; }
+  await save(nombre, blob, msgEl || $('t2Msg')); return true;
+}
+const cvBlob = (cv, tipo, q) => new Promise(res => cv.toBlob(res, tipo || 'image/png', q || 0.9));
+function cvTexto(g, t, x, y, font, color, max) { g.font = font; g.fillStyle = color; let s = String(t); if (max) while (s.length > 3 && g.measureText(s).width > max) s = s.slice(0, -2); if (max && s !== String(t)) s += '…'; g.fillText(s, x, y); }
+
+// Copia del plano encuadrada en los polígonos del avance (sin paneles encima)
+function planoDelAvance(a) {
+  const P = a ? avShapes(a) : t2.shapes.map(x => x.pts); const pts = P.flat();
+  const keys = a ? a.keys : [...t2.sel];
+  keys.forEach(k => { const h = t2.holeBy.get(k); if (h) pts.push(h); });
+  const cv = document.createElement('canvas'), W = 1000, H = 640; cv.width = W; cv.height = H;
+  if (!pts.length) { const g0 = cv.getContext('2d'); g0.drawImage(pv.cv, 0, 0, W, H); return cv; }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+  const m = Math.max(6, 0.12 * Math.max(x1 - x0, y1 - y0)); x0 -= m; x1 += m; y0 -= m; y1 += m;
+  const v0 = Object.assign({}, pv.v), W0 = pv.W, H0 = pv.H, d0 = pv.dpr, cv0 = pv.cv, ctx0 = pv.ctx;
+  try {
+    pv.cv = cv; pv.ctx = cv.getContext('2d'); pv.dpr = 1; pv.W = W; pv.H = H;
+    const s = Math.min(W / (x1 - x0), H / (y1 - y0)); pv.v.s = s; pv.v.ox = (x0 + x1) / 2 - W / 2 / s; pv.v.oy = (y0 + y1) / 2 + H / 2 / s;
+    pv.drawNow();
+  } finally { pv.cv = cv0; pv.ctx = ctx0; pv.dpr = d0; pv.W = W0; pv.H = H0; Object.assign(pv.v, v0); pv.draw(); }
+  return cv;
+}
+// Resumen del avance como imagen: datos grandes + el plano tal como se ve
+async function avanceImagen() {
+  const a = t2.viewing ? t2.avs.find(x => x.id === t2.viewing) : null;
+  const r = a ? a.result : t2.result; if (!r) return null;
+  const fecha = a ? a.fecha : ($('avFecha').value || todayISO()), nombre = a ? a.nombre : $('avNombre').value.trim(), nombres = (a ? a.projectNames : r.projectNames) || [];
+  const W = 1080, P = 48, fe = (r.fields.fe || {}).mean, sfe = (r.fields.sfe || {}).mean;
+  const plano = planoDelAvance(a), ph = plano.width ? Math.round((W - 2 * P) * Math.min(1.1, plano.height / plano.width)) : 0;
+  const otras = AVG_FIELDS.filter(F => !['fe', 'sfe'].includes(F.k) && (r.fields[F.k] || {}).mean != null);
+  const H = 400 + Math.ceil(otras.length / 4) * 92 + (ph ? ph + 40 : 0) + 70;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#b5502b'; g.fillRect(0, 0, W, 12);
+  g.textBaseline = 'alphabetic';
+  cvTexto(g, `Avance ${fmtDate(fecha)}${nombre ? ' · ' + nombre : ''}`, P, 84, '700 46px system-ui, sans-serif', '#1b2120', W - 2 * P);
+  cvTexto(g, (nombres.length > 1 ? 'Proyectos ' : 'Proyecto ') + nombres.join(' + '), P, 128, '500 30px system-ui, sans-serif', '#5d6865', W - 2 * P);
+  // datos grandes
+  const cls = fe != null ? PM_ESQ.fe.clases[PM_ESQ.fe.clase(fe)] : null, mat = matSFe(sfe);
+  const kp = [['Tonelaje', r.tonnage ? Math.round(r.tonnage).toLocaleString('es-PE') + ' t' : '—', '#1b2120'], ['Fe' + (cls ? ' · ' + cls.nom : ''), fe != null ? fe.toFixed(1) : '—', cls ? cls.colL : '#1b2120'], ['S/FeS', sfe != null ? sfe.toFixed(2) : '—', '#1b2120'], ['Material', mat || '—', '#1b2120']];
+  const cw = (W - 2 * P - 3 * 16) / 4;
+  kp.forEach(([t, v, c], i) => {
+    const x = P + i * (cw + 16), y = 160;
+    g.fillStyle = '#f1f3f2'; g.beginPath(); g.roundRect ? g.roundRect(x, y, cw, 150, 18) : g.rect(x, y, cw, 150); g.fill();
+    cvTexto(g, t.toUpperCase(), x + 18, y + 40, '600 22px system-ui, sans-serif', '#5d6865', cw - 30);
+    cvTexto(g, v, x + 18, y + 108, `700 ${String(v).length > 9 ? 30 : 46}px system-ui, sans-serif`, c, cw - 30);
+  });
+  let y = 350;
+  cvTexto(g, `${r.n} taladros${r.nEst ? ` (${r.nEst} estimados)` : ''} · ponderado por tonelaje`, P, y, '500 24px system-ui, sans-serif', '#5d6865');
+  y += 30;
+  otras.forEach((F, i) => {
+    const x = P + (i % 4) * (cw + 16), yy = y + Math.floor(i / 4) * 92;
+    g.fillStyle = '#f7f8f8'; g.fillRect(x, yy, cw, 78);
+    cvTexto(g, F.label, x + 14, yy + 30, '600 21px system-ui, sans-serif', '#5d6865', cw - 20);
+    cvTexto(g, fmt(r.fields[F.k].mean, F.dec, '—'), x + 14, yy + 66, '700 30px ui-monospace, Menlo, monospace', '#1b2120', cw - 20);
+  });
+  y += Math.ceil(otras.length / 4) * 92 + 20;
+  if (ph) {
+    const sh = Math.round(plano.width * ph / (W - 2 * P));
+    g.drawImage(plano, 0, Math.max(0, (plano.height - sh) / 2), plano.width, Math.min(sh, plano.height), P, y, W - 2 * P, ph);
+    g.strokeStyle = '#d3d8d5'; g.lineWidth = 2; g.strokeRect(P, y, W - 2 * P, ph); y += ph + 20;
+  }
+  cvTexto(g, 'BlastHole Leyes · ' + new Date().toLocaleString('es-PE'), P, H - 30, '500 20px system-ui, sans-serif', '#9aa6a1');
+  return { blob: await cvBlob(cv, 'image/png'), nombre: `Avance_${fecha}${nombre ? '_' + nombre.replace(/[^\w-]+/g, '_') : ''}.png`, texto: summaryText(r, fecha, nombre, nombres) };
+}
+(() => {
+  const c = $('btnCopyAv'); if (!c) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.id = 'btnShareAv'; b.textContent = '📤 Enviar (WhatsApp)'; b.title = 'Imagen del resumen y el plano, para WhatsApp o correo';
+  c.after(b);
+  const sync0 = () => { b.disabled = c.disabled; };
+  new MutationObserver(sync0).observe(c, { attributes: true, attributeFilter: ['disabled'] }); sync0();
+  b.onclick = async () => { b.disabled = true; try { const im = await avanceImagen(); if (im) await compartirArchivo(im.blob, im.nombre, im.texto); } catch (e) { setMsg('t2Msg', 'err', 'No se pudo armar la imagen: ' + e.message); } b.disabled = c.disabled; };
+})();
+
+// Foto del frente con sus datos escritos encima (material, comentario, fecha, proyecto, coordenadas, autor)
+async function fotoConDatos(m) {
+  const u = await fotoImagenURL(m); if (!u) return null;
+  const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+  const W = im.naturalWidth || im.width, H = im.naturalHeight || im.height, k = W / 1080, banda = Math.round(170 * k);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H + banda; const g = cv.getContext('2d');
+  g.drawImage(im, 0, 0, W, H);
+  g.fillStyle = '#14181a'; g.fillRect(0, H, W, banda);
+  const col = (typeof FOTO_COL !== 'undefined' && FOTO_COL[m.material]) || '#ffd60a', P = 30 * k, fh = new Date(m.fecha);
+  g.fillStyle = col; g.fillRect(0, H, 14 * k, banda);
+  cvTexto(g, (m.material || 'Frente') + (m.texto ? ' · ' + m.texto : ''), P, H + 62 * k, `700 ${46 * k}px system-ui, sans-serif`, col, W - 2 * P);
+  cvTexto(g, `${fh.toLocaleDateString('es-PE')} ${fh.toTimeString().slice(0, 5)}${m.proyecto ? ' · ' + m.proyecto : ''}${m.de ? ' · ' + m.de : ''}`, P, H + 112 * k, `500 ${32 * k}px system-ui, sans-serif`, '#e8ecef', W - 2 * P);
+  cvTexto(g, `E ${(+m.x).toFixed(1)} · N ${(+m.y).toFixed(1)}`, P, H + 152 * k, `500 ${30 * k}px ui-monospace, Menlo, monospace`, '#9aa6a1', W - 2 * P);
+  return { blob: await cvBlob(cv, 'image/jpeg', 0.86), nombre: `Foto_${(m.proyecto || 'frente').replace(/[^\w-]+/g, '_')}_${m.fecha.slice(0, 16).replace(/[:T]/g, '-')}.jpg`, texto: `${m.material || ''}${m.texto ? ' · ' + m.texto : ''} · ${fh.toLocaleDateString('es-PE')} ${fh.toTimeString().slice(0, 5)}${m.proyecto ? ' · ' + m.proyecto : ''}` };
+}
+(() => {
+  if (typeof fotoAbrir !== 'function') return;
+  const f0 = fotoAbrir;
+  fotoAbrir = async function (m) {
+    const r = await f0.apply(this, arguments);
+    const row = document.querySelector('#fotoDlg .btnrow'); if (!row || row.querySelector('[data-env]')) return r;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.dataset.env = '1'; b.textContent = '📤 Enviar con datos';
+    b.onclick = async e => { e.stopPropagation(); b.disabled = true; try { const x = await fotoConDatos(m); if (x) await compartirArchivo(x.blob, x.nombre, x.texto, document.querySelector('#fotoDlg .msg')); } catch (er) {} b.disabled = false; };
+    row.prepend(b); return r;
+  };
+})();
+
+// Lupa al dibujar con el dedo (ver PlanView): activa con el Lápiz del avance o al dibujar un polígono de minado
+pv.wantsAim = () => (enFull && t2.tool === 'pen') || (typeof pmm !== 'undefined' && !!pmm.dib);
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
@@ -6964,6 +8113,7 @@ async function sincronizar() {
     }
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
     try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
+    try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
     sync.compForzar = false;
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
