@@ -872,13 +872,20 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
   .cadwrap.full .gps-btn { top: auto; bottom: 12px; right: 310px; }
   .cadwrap.full.nopanel .foto-btn, .cadwrap.full.nopanel .gps-btn { right: 12px; }
 }
+
+/* V71b: iPhone real (app instalada) */
+/* la pantalla completa ocupa todo el alto en iOS (antes quedaba una franja blanca abajo) */
+.cadwrap.full { top: 0; bottom: 0; height: 100vh !important; height: 100lvh !important; }
+html:has(.cadwrap.full), html:has(.cadwrap.full) body { background: var(--model, #111518); }
+/* en la versión de pruebas la franja morada tapaba la barra de arriba de la pantalla completa */
+body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v71</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v72</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7622,6 +7629,8 @@ const movil = () => matchMedia('(max-width: 760px)').matches;
     try { return r0(ctx, v); } finally { delete ctx.fillText; }
   };
 })();
+// En el teléfono no hay Apple Pencil: aviso corto que tapa menos el plano
+(() => { try { if (movil() && typeof TOOL_HINT !== 'undefined') { TOOL_HINT.pen = 'Lápiz: toca cada vértice y toca el primero para cerrar.'; TOOL_HINT.pan = 'Mover: arrastra y pellizca. Toca un taladro para quitarlo o agregarlo.'; } } catch (e) {} })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
