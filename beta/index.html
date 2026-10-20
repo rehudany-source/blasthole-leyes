@@ -890,7 +890,7 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v73</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v74</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7884,6 +7884,7 @@ const rest = {
   pull: since => rest.rpc('bhl_pull', { p_since: since }),
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
   compartidos: () => rest.rpc('bhl_compartidos', {}),
+  compartidosFirma: () => rest.rpc('bhl_compartidos_firma', {}),
 };
 // Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
 async function bajarCompartidos(T, forzar) {
@@ -7891,9 +7892,13 @@ async function bajarCompartidos(T, forzar) {
   const ult = sync.compAt || 0;
   if (!forzar && Date.now() - ult < 3 * 60 * 1000) return 0;
   sync.compAt = Date.now();
+  // V74: primero una firma chica; lo compartido (≈7 MB) solo se baja si algo cambió
+  let firma = null;
+  if (T.compartidosFirma) { try { firma = await T.compartidosFirma(); } catch (e) { firma = null; } }
+  if (firma && !forzar && firma === (await idbGet('comp-firma'))) return 0;
   let res = (await T.compartidos()) || [];
   if (Array.isArray(res)) res = { limites: res }; // servidor antiguo
-  const firma = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
+  const firmaArr = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
   const pref = r => 'comp:' + r.de + ':' + r.id;
   const grupos = {
     'limites-comp': (res.limites || []).filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true })),
@@ -7904,8 +7909,9 @@ async function bajarCompartidos(T, forzar) {
   for (const [k, arr] of Object.entries(grupos)) {
     arr.forEach(x => { delete x._dirty; });
     const prev = (await idbGet(k)) || [];
-    if (firma(prev) !== firma(arr)) { await idbSet(k, arr); n++; }
+    if (firmaArr(prev) !== firmaArr(arr)) { await idbSet(k, arr); n++; }
   }
+  if (firma) await idbSet('comp-firma', firma);
   return n;
 }
 function traducirError(m) {
@@ -7966,7 +7972,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
