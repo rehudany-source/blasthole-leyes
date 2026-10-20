@@ -816,13 +816,69 @@ body.app .foto-pan { position: fixed; left: 8px; right: 8px; width: auto; top: a
 .pm-grid { display: grid; gap: 4px; font-size: .8rem; } .pm-grid input { width: 4.5em; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
 .pmm-lista { display: grid; gap: 4px; max-height: 320px; overflow: auto; } .pmm-it { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; } .pmm-it small { display: block; color: var(--muted); } .pmm-it .q { border: 0; background: none; cursor: pointer; }
 .pm-grid select { font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; max-width: 100%; }
+
+/* ===== V71: iPhone ===== */
+.capas-btn, .capas-hoja, .capas-fondo { display: none; }
+@media (max-width: 760px) {
+  .anl #limWSel, .anl #blqSel, .anl #pmBtn, .anl #topoBtn, .anl #supBtn, .anl #printVista { display: none !important; }
+  body.app .cadwrap:not(.full) .anl { right: 8px; }
+  .anl #anSel { flex: 1 1 auto; min-width: 0; }
+  .anl .capas-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 8px; font-size: 15px !important; }
+  .anl .capas-btn .cb-i { font-size: 16px; }
+  body.app .cadwrap.full .fs-anl .anl .capas-btn .cb-t { display: none; }
+  .capas-fondo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.35); }
+  .capas-hoja:not([hidden]) { display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; max-height: 78vh; background: var(--panel, #fff); color: var(--ink); border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.3); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .ch-h { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  .ch-h b { font: 700 1.05rem var(--f-body); }
+  .ch-x { font: 700 .95rem var(--f-body); background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 0 16px; min-height: 40px; }
+  .ch-b { overflow-y: auto; padding: 8px 12px 14px; display: grid; gap: 8px; -webkit-overflow-scrolling: touch; }
+  .ch-sel { display: grid; gap: 4px; font: 600 .82rem var(--f-body); color: var(--muted); }
+  .ch-sel select { font-size: 16px; min-height: 44px; border-radius: 10px; }
+  .ch-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; text-align: left; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; font: inherit; cursor: pointer; }
+  .ch-row i { font-style: normal; font-size: 22px; text-align: center; }
+  .ch-row b { display: block; font: 600 1rem var(--f-body); }
+  .ch-row small { color: var(--muted); font-size: .8rem; }
+  .ch-row em { font-style: normal; color: var(--muted); font-size: .8rem; }
+  .ch-row.on { border-color: #b65cff; } .ch-row.on em { color: #b65cff; font-weight: 700; }
+  /* ventanas de Minado y Topo: hoja inferior que se desplaza */
+  body .topo-pop { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 72vh; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 18px 18px 0 0; z-index: 80; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 40px rgba(0,0,0,.3); }
+  .topo-pop select, .topo-pop input:not([type=checkbox]) { font-size: 16px; }
+  /* en pantalla completa: la barra de arriba sin flechas sueltas */
+  body.app .cadwrap.full .fs-anl .anl { font-size: 0; gap: 6px; }
+  body.app .cadwrap.full .fs-anl .anl select { font-size: 15px; min-width: 64px; }
+  body.app .cadwrap.full .fs-anl #letraSel { min-width: 56px; }
+  .anl #letraSel { flex: none; min-width: 58px; }
+  body.app .cadwrap.full .fs-filbtn { max-width: 30vw; padding: 0 10px; }
+  body.app .cadwrap.full .fs-anl { flex: 1; min-width: 0; }
+  body.app .cadwrap.full .fs-anl .anl #anSel { min-width: 70px; }
+  /* herramientas de dibujo SIEMPRE visibles abajo; el panel del avance encima de ellas y más bajo */
+  .cadwrap.full .fs-rail, .cadwrap.full:not(.nopanel) .fs-rail { display: grid !important; z-index: 6; }
+  .cadwrap.full:not(.nopanel) .fs-panel { bottom: calc(84px + var(--sb, 0px)); max-height: 38%; }
+  /* cámara y GPS a la derecha, a media altura: no tapan el aviso de arriba ni el panel */
+  .cadwrap.full .foto-btn { top: 30%; bottom: auto; }
+  .cadwrap.full .gps-btn { top: calc(30% + 58px); bottom: auto; }
+  /* que el contenido no quede debajo de la barra de pestañas */
+  body.app .main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* V71: iPhone acostado (poca altura): herramientas a la izquierda y panel a la derecha, el plano en el medio */
+@media (max-width: 1000px) and (max-height: 500px) and (orientation: landscape) {
+  .cadwrap.full .fs-rail, .cadwrap.full:not(.nopanel) .fs-rail { display: flex !important; flex-direction: column; grid-auto-flow: row; left: calc(8px + env(safe-area-inset-left, 0px)); right: auto; top: calc(var(--tb) + 6px); bottom: calc(6px + var(--sb)); width: 66px; max-height: none; overflow-y: auto; padding: 4px; }
+  .cadwrap.full .fs-rail button { width: 100%; min-height: 46px; flex: none; }
+  .cadwrap.full:not(.nopanel) .fs-panel, .cadwrap.full .fs-panel { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); width: 290px; top: calc(var(--tb) + 6px); bottom: calc(6px + var(--sb)); max-height: none; }
+  .cadwrap.full .fs-hint:not(:empty) { left: 86px; right: 306px; width: auto; max-width: none; font-size: .78rem; padding: 6px 10px; }
+  .cadwrap.full.nopanel .fs-hint:not(:empty) { right: 10px; }
+  .cadwrap.full .foto-btn { top: auto; bottom: 70px; right: 310px; }
+  .cadwrap.full .gps-btn { top: auto; bottom: 12px; right: 310px; }
+  .cadwrap.full.nopanel .foto-btn, .cadwrap.full.nopanel .gps-btn { right: 12px; }
+}
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v70</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v71</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7524,6 +7580,47 @@ function snapDibujar(ctx, v) {
     snap.hover = h; pv.draw();
   };
   const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { snapDibujar(ctx, v); } catch (e) {} };
+})();
+
+// ===== V71: iPhone / pantallas angostas =====
+// La barra del plano no entraba (Límites, Bloques, Minado, Topo, Nivel sup. e Imprimir quedaban fuera de la pantalla).
+// En el teléfono la barra queda en «Ver ley» + «Aa» + «☰ Capas»; Capas abre una hoja con todo lo demás.
+const movil = () => matchMedia('(max-width: 760px)').matches;
+(() => {
+  const anl = document.querySelector('.anl'); if (!anl) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'anl-b capas-btn'; b.id = 'capasBtn';
+  b.innerHTML = '<span class="cb-i">☰</span><span class="cb-t">Capas</span>'; b.title = 'Límites, bloques, minado, topografía, nivel superior e imprimir';
+  anl.appendChild(b);
+  const hoja = document.createElement('div'); hoja.className = 'capas-hoja'; hoja.id = 'capasHoja'; hoja.hidden = true;
+  document.body.appendChild(hoja);
+  const fondo = document.createElement('div'); fondo.className = 'capas-fondo'; fondo.hidden = true; document.body.appendChild(fondo);
+  const cerrar = () => { hoja.hidden = true; fondo.hidden = true; };
+  fondo.onclick = cerrar;
+  const SELS = [['letraSel', 'Tamaño de letra de las leyes'], ['limWSel', 'Líneas de los límites'], ['blqSel', 'Texto de los bloques del modelo']];
+  const BTNS = [['pmBtn', '⛏', 'Polígonos de minado', 'Por ley de Fe o M1–M5, y tus polígonos'], ['topoBtn', '⛰', 'Topografía', 'Relieve, minado y avance entre fechas'], ['supBtn', '↑', 'Nivel superior', 'Leyes del banco de arriba'], ['printVista', '🖨', 'Imprimir / PDF', 'Lo que se ve en el plano']];
+  function abrir() {
+    const filas = [];
+    SELS.forEach(([id, nom]) => { const s = $(id); if (!s) return; filas.push(`<label class="ch-sel"><span>${nom}</span><select data-orig="${id}">${[...s.options].map(o => `<option value="${esc(o.value)}"${o.value === s.value ? ' selected' : ''}>${esc(o.textContent)}</option>`).join('')}</select></label>`); });
+    BTNS.forEach(([id, ic, nom, sub]) => { const o = $(id); if (!o) return; const on = o.getAttribute('aria-pressed') === 'true'; filas.push(`<button type="button" class="ch-row${on ? ' on' : ''}" data-orig="${id}"><i>${ic}</i><span><b>${nom}</b><small>${sub}</small></span><em>${on ? 'Activo' : '›'}</em></button>`); });
+    hoja.innerHTML = `<div class="ch-h"><b>Capas y herramientas</b><button type="button" class="ch-x">Listo</button></div><div class="ch-b">${filas.join('')}</div>`;
+    hoja.querySelector('.ch-x').onclick = cerrar;
+    hoja.querySelectorAll('select[data-orig]').forEach(s => s.onchange = () => { const o = $(s.dataset.orig); o.value = s.value; o.dispatchEvent(new Event('change', { bubbles: true })); });
+    hoja.querySelectorAll('button[data-orig]').forEach(x => x.onclick = () => { cerrar(); setTimeout(() => $(x.dataset.orig).click(), 30); });
+    hoja.hidden = false; fondo.hidden = false;
+  }
+  b.onclick = abrir;
+  // al pasar a la pantalla completa o volver, la hoja se cierra
+  window.addEventListener('resize', () => { if (!movil()) cerrar(); });
+})();
+// Mensaje del plano vacío: en el teléfono la lista de proyectos no está «a la izquierda»
+(() => {
+  const r0 = typeof renderPlan2 === 'function' ? renderPlan2 : null; if (!r0 || !pv) return;
+  const ft = CanvasRenderingContext2D.prototype.fillText;
+  pv.render = function (ctx, v) {
+    if (!movil()) return r0(ctx, v);
+    ctx.fillText = function (t, x, y, w) { if (t === 'Marca uno o varios proyectos a la izquierda') t = 'Elige los proyectos con el botón «Proyectos»'; return ft.call(this, t, x, y, w); };
+    try { return r0(ctx, v); } finally { delete ctx.fillText; }
+  };
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
