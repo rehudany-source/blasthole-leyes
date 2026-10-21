@@ -789,22 +789,6 @@ body.app .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-
 body.app .v3d-bar { gap: 6px 8px; margin-bottom: 8px; } body.app .v3d-bar .btn.small { padding: 6px 10px; font-size: .78rem; }
 body.app #tab3 .note { display: none; }
 body.app .v3d-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); }
-/* V75: elegir proyectos dentro de la vista 3D */
-.v3d-proy { position: relative; }
-.v3d-proy > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-weight: 600; font-size: .85rem; user-select: none; }
-.v3d-proy > summary::-webkit-details-marker { display: none; }
-.v3d-proy > summary b { background: var(--accent, #b4532a); color: #fff; border-radius: 10px; padding: 0 7px; font-size: .78rem; min-width: 20px; text-align: center; }
-.v3d-proy > summary::after { content: '▾'; font-size: .75rem; opacity: .7; }
-.v3d-proy[open] > summary::after { content: '▴'; }
-.v3d-proy-in { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: min(340px, 86vw); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.28); padding: 10px; display: grid; gap: 8px; }
-.v3d-proy-fil { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.v3d-proy-fil select { width: 100%; min-width: 0; }
-.v3d-proy-bt { display: flex; gap: 6px; }
-.v3d-proy-list { max-height: min(46vh, 420px); overflow: auto; display: grid; gap: 1px; }
-.v3d-proy-list .pitem { padding: 6px 6px; }
-.v3d-bar #v3dEx, .v3d-bar #v3dDet, .v3d-bar #v3dCurv { width: auto; max-width: 190px; }
-body.app .v3d-proy { width: auto; }
-
 .topo-mina { width: 3.6em; padding: 1px 4px; font: inherit; font-weight: 700; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
 .pm-pop { width: min(430px, calc(100% - 20px)); }
 .pm-sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
@@ -900,6 +884,14 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
 :root[data-theme="sol"] { --bg: #ffffff; --panel: #ffffff; --ink: #000000; --muted: #2b2f31; --line: #7d8488; --accent: #a8401c; --accent-ink: #fff; --ok: #146b34; --warn: #7a5200; --bad: #a3150c; --chip: #e9ecec; --model: #ffffff; --model-grid: #d5dadc; color-scheme: light; }
 :root[data-theme="sol"] body { font-weight: 500; }
 :root[data-theme="sol"] .anl, :root[data-theme="sol"] .cadwrap.full .fs-top, :root[data-theme="sol"] .cadwrap.full .fs-rail, :root[data-theme="sol"] .cadwrap.full .fs-panel { background: #000; border-color: #000; }
+
+/* V75: elegir proyectos en 3D */
+.v3d-proy { top: 46px; left: 0; width: min(420px, calc(100% - 10px)); max-height: 70vh; overflow-y: auto; z-index: 20; }
+#tab3 { position: relative; }
+.v3d-plist { max-height: 42vh; overflow-y: auto; margin: 8px 0; }
+
+body:not(.app) .v3d-capas { display: block; } body:not(.app) .v3d-capas > summary { display: none; }
+body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 </style>
 
 <div class="wrap">
@@ -1318,11 +1310,6 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
   <section class="tab" id="tab3" hidden>
     <div class="v3d-bar">
       <span class="v3d-topo" id="v3dTopo"></span>
-      <details class="v3d-proy" id="v3dProy"><summary>Proyectos <b id="v3dProyN">0</b></summary><div class="v3d-proy-in">
-        <div class="v3d-proy-fil"><select id="v3dFMina" aria-label="Mina"></select><select id="v3dFNivel" aria-label="Nivel"></select></div>
-        <div class="v3d-proy-bt"><button type="button" class="btn sec small" id="v3dPAll">Todos</button><button type="button" class="btn sec small" id="v3dPNone">Ninguno</button></div>
-        <div class="v3d-proy-list" id="v3dPList"></div>
-      </div></details>
       <details class="v3d-capas" id="v3dCapas" open><summary>Capas y altura</summary><div class="v3d-capas-in">
       <label class="chk"><input type="checkbox" id="v3d_tal" checked> Taladros</label>
       <label class="chk"><input type="checkbox" id="v3d_av" checked> Avances</label>
@@ -1331,8 +1318,6 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
       <label class="chk"><input type="checkbox" id="v3d_gps" checked> GPS</label>
       <label class="chk"><input type="checkbox" id="v3dFull"> Toda la topografía</label>
       <label>Altura <select id="v3dEx"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label>
-      <label>Detalle <select id="v3dDet"><option value="alto">Alto</option><option value="max">Máximo</option><option value="normal">Normal (más rápido)</option></select></label>
-      <label>Curvas <select id="v3dCurv"><option value="0">No</option><option value="1">cada 1 m</option><option value="2">cada 2 m</option><option value="5">cada 5 m</option><option value="10">cada 10 m</option></select></label>
       </div></details>
       <button type="button" class="btn sec small" id="v3dArriba">Vista de planta</button>
       <button type="button" class="btn sec small" id="v3dIrMi">📍 Ir a mi ubicación</button>
@@ -1340,7 +1325,7 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
     </div>
     <div class="v3d-wrap" id="v3dWrap"><canvas id="v3dCv"></canvas><canvas id="v3dTxt"></canvas><div class="v3d-info" id="v3dInfo" hidden></div></div>
     <p class="msg" id="v3dMsg"></p>
-    <p class="note">Gira arrastrando con un dedo o el mouse · mueve con dos dedos (o clic derecho / Shift + arrastrar) · zoom pellizcando o con la rueda · toca un taladro para ver su ley. Elige qué proyectos ver con «Proyectos» (es la misma selección de la pestaña 2); coloreados con la ley elegida en «Ver ley», sobre la topografía «Hoy» de ⛰ Topo; lo minado entre «Antes» y «Hoy» sale en naranja después de calcular el avance entre fechas.</p>
+    <p class="note">Gira arrastrando con un dedo o el mouse · mueve con dos dedos (o clic derecho / Shift + arrastrar) · zoom pellizcando o con la rueda · toca un taladro para ver su ley. Se ven los proyectos marcados en la pestaña 2, coloreados con la ley elegida en «Ver ley», sobre la topografía «Hoy» de ⛰ Topo; lo minado entre «Antes» y «Hoy» sale en naranja después de calcular el avance entre fechas.</p>
   </section>
 </div>
 
@@ -6201,7 +6186,7 @@ async function topoRecortar() {
   topo.lista.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
   const cuenta = {}, fuera = [];
   topo.lista.forEach(t => { const k = minaDe(t) || '?'; cuenta[k] = (cuenta[k] || 0) + 1; if (cuenta[k] > TOPO_POR_MINA) fuera.push(t); });
-  for (const q of fuera) { topo.lista = topo.lista.filter(x => x.id !== q.id); await idbSet('topo:' + q.id, null); await topoTinBorrar(q.id); topo.dems.delete(q.id); topo.img.delete(q.id); }
+  for (const q of fuera) { topo.lista = topo.lista.filter(x => x.id !== q.id); await idbSet('topo:' + q.id, null); topo.dems.delete(q.id); topo.img.delete(q.id); }
   return fuera;
 }
 function topoFecha(nombre, lastMod) {
@@ -6239,16 +6224,6 @@ function topoDefaults() {
   if (!ids.includes(topo.ant) || topo.ant === topo.act) topo.ant = (topo.lista.find(t => t.id !== topo.act && minaDe(t) === ma) || topo.lista.find(t => t.id !== topo.act) || {}).id || '';
   try { localStorage.setItem('bhl-topo-sel', JSON.stringify({ act: topo.act, ant: topo.ant, ver: topo.ver })); } catch (e) {}
 }
-// V75: superficie original compacta (coordenadas relativas, float32) · solo se guarda en el equipo donde se cargó el .msr
-function topoTinDe(t) {
-  try {
-    if (!t || !t.nT || t.nT > 8e6) return null;
-    const ox = Math.round(t.org[0]), oy = Math.round(t.org[1]), V = new Float32Array(t.nV * 3);
-    for (let i = 0; i < t.nV; i++) { V[i * 3] = t.V[i * 3] - ox; V[i * 3 + 1] = t.V[i * 3 + 1] - oy; V[i * 3 + 2] = t.V[i * 3 + 2]; }
-    return { ox, oy, V, F: new Int32Array(t.F) };
-  } catch (e) { return null; }
-}
-async function topoTinBorrar(id) { try { await idbSet('topotin:' + id, null); if (typeof v3 !== 'undefined' && v3.tinC && v3.tinC.id === id) v3.tinC = null; } catch (e) {} }
 async function topoDem(id) {
   if (!id) return null; if (topo.dems.has(id)) return topo.dems.get(id);
   const meta = topo.lista.find(t => t.id === id); if (!meta) return null;
@@ -6263,14 +6238,11 @@ async function cargarTopo(f) {
   const t = leerMSR(buf);
   if (!t || !t.nT) throw new Error('No se encontraron triángulos en el archivo. ¿Es una superficie de MinePlan?');
   const dem = msrADem(t, TOPO_CEL);
-  const tin = topoTinDe(t); // V75: la superficie tal cual (triángulos de MinePlan) para la vista 3D en detalle
   const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
   const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
   const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const meta = { id, nombre, fecha, mina: topoMina(nombre) || minaPorUbicacion(dem), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
   if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
-  if (tin && await idbSet('topotin:' + id, tin)) meta.tin = true;
-  if (typeof v3 !== 'undefined') { v3.tinC = null; v3.built = ''; }
   topo.lista = topo.lista.filter(x => x.id !== id).concat(meta).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const borradas = await topoRecortar();
   await idbSet('topos', topo.lista);
@@ -6278,6 +6250,8 @@ async function cargarTopo(f) {
   topo.dems.set(id, dem); topo.img.delete(id); topo.dif = null;
   topo.ant = topo.act && topo.act !== id ? topo.act : topo.ant; topo.act = id; topoDefaults();
   await topoCalcMinados(); pv.draw(); topoPintar();
+  // V75: alta resolución (1 m) para la vista 3D
+  try { if (typeof topoHDGuardar === 'function') await topoHDGuardar(id, t); } catch (e) { console.warn('topo hd', e); }
   try { topoNube(); } catch (e) {}
   return { fecha, nT: t.nT };
 }
@@ -6430,7 +6404,7 @@ function topoInfo(extra) {
       try { await rest.rpc('bhl_topo_borrar', { p_id: t.id }); nota = 'Quitada de este equipo y de la nube (ya no la verá el equipo).'; }
       catch (er) { const oc = (await idbGet('topos-ocultas')) || []; oc.push(t.id); await idbSet('topos-ocultas', oc); nota = 'Quitada solo de este equipo: ' + er.message + '.'; }
     }
-    topo.lista = topo.lista.filter(x => x.id !== t.id); await idbSet('topos', topo.lista); await idbSet('topo:' + t.id, null); await topoTinBorrar(t.id); topo.dems.delete(t.id); topo.img.delete(t.id); topo.dif = null;
+    topo.lista = topo.lista.filter(x => x.id !== t.id); await idbSet('topos', topo.lista); await idbSet('topo:' + t.id, null); topo.dems.delete(t.id); topo.img.delete(t.id); topo.dif = null;
     if (nota) setTimeout(() => topoInfo(nota), 50);
     topoDefaults(); await topoCalcMinados(); topoPintar(); pv.draw();
   });
@@ -6479,7 +6453,7 @@ async function topoNube() {
     const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
     const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
     // 1) las que vinieron de la nube y alguien quitó
-    for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); await topoTinBorrar(m.id); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
+    for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
     // 2) subir las de este equipo que aún no están
     for (const m of topo.lista) {
       if (remIds.has(m.id)) { if (!m.nube) { m.nube = true; cambio = true; } continue; }
@@ -6488,7 +6462,6 @@ async function topoNube() {
       const gem = rem.find(r => String(r.nombre).toUpperCase() === String(m.nombre).toUpperCase() && !topo.lista.some(x => x.id === r.id));
       if (gem) {
         const Zl = await idbGet('topo:' + m.id); await idbSet('topo:' + gem.id, Zl); await idbSet('topo:' + m.id, null);
-        const Tl = await idbGet('topotin:' + m.id); if (Tl) { await idbSet('topotin:' + gem.id, Tl); await idbSet('topotin:' + m.id, null); if (v3.tinC) v3.tinC = null; }
         if (topo.dems.has(m.id)) { topo.dems.set(gem.id, topo.dems.get(m.id)); topo.dems.delete(m.id); } topo.img.delete(m.id);
         if (topo.act === m.id) topo.act = gem.id; if (topo.ant === m.id) topo.ant = gem.id;
         m.id = gem.id; m.nube = true; m.de = gem.mio ? '' : gem.de; cambio = true; continue;
@@ -6659,54 +6632,26 @@ function m4Look(e, c, u) {
   return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1];
 }
 function m4Mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
-const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; varying vec3 vc; varying vec3 vn; varying vec3 vw;
-void main(){ vec3 q = vec3(p.x, p.y, p.z * ex); gl_Position = M * vec4(q, 1.0); gl_PointSize = ps; vc = c; vn = vec3(n.x, n.y, n.z / max(ex, 0.01)); vw = p; }`;
-const V3_FS = `#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
-varying vec3 vc; varying vec3 vn; varying vec3 vw; uniform float al; uniform float pt; uniform float lit; uniform float exf;
-uniform sampler2D dm; uniform vec4 dr; uniform float dOn; uniform float cv; uniform float oz; uniform float fl;
-void main(){
-  if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; }
+const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; varying vec3 vc; varying vec3 vn;
+void main(){ vec3 q = vec3(p.x, p.y, p.z * ex); gl_Position = M * vec4(q, 1.0); gl_PointSize = ps;
+  vn = vec3(n.x, n.y, n.z / max(ex, 0.01)); vc = c; }`;
+// V75: luz calculada por píxel (antes por vértice): bancos, bermas y rampas se ven nítidos; las caras de los bancos un poco más oscuras
+const V3_FS = `precision mediump float; varying vec3 vc; varying vec3 vn; uniform float al; uniform float pt; uniform float lit;
+void main(){ if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; }
   vec3 col = vc;
-  if (lit > 0.5) {
-    if (dOn > 0.5) { vec2 uv = (vw.xy - dr.xy) / dr.zw; if (uv.x >= 0.0 && uv.y >= 0.0 && uv.x <= 1.0 && uv.y <= 1.0 && texture2D(dm, uv).r > 0.5) col = vec3(1.0, 0.5, 0.1); }
-    vec3 nn = normalize(vn);
-#ifdef DER
-    if (fl > 0.5) { vec3 q = vec3(vw.xy, vw.z * exf); vec3 fn = normalize(cross(dFdx(q), dFdy(q))); if (fn.z < 0.0) fn = -fn; nn = fn; }
-#endif
-    vec3 L1 = normalize(vec3(-0.5, 0.6, 0.75)), L2 = normalize(vec3(0.6, -0.45, 0.45));
-    float d1 = max(dot(nn, L1), 0.0), d2 = max(dot(nn, L2), 0.0), sky = 0.5 + 0.5 * nn.z;
-    col = col * (0.22 + 0.70 * d1 + 0.16 * d2 + 0.16 * sky);
-#ifdef DER
-    if (cv > 0.0) { float h = (vw.z + oz) / cv, f = fract(h), w = max(fwidth(h), 1e-4); float ln = 1.0 - smoothstep(0.0, w * 1.3, min(f, 1.0 - f));
-      float mj = abs(mod(floor(h + 0.5), 5.0)) < 0.5 ? 1.0 : 0.6; col = mix(col, col * 0.45, ln * mj); }
-#endif
-  }
-  gl_FragColor = vec4(col, al);
-}`;
-// V75: nivel de detalle de la topografía 3D (alto por defecto)
-function v3Det() { try { const v = localStorage.getItem('bhl-3d-det'); return v === 'max' || v === 'normal' ? v : 'alto'; } catch (e) { return 'alto'; } }
-function v3EsMovil() { return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform || '')); }
+  if (lit > 0.5) { vec3 nn = normalize(vn); vec3 L = normalize(vec3(-0.45, 0.55, 0.7)); float d = max(dot(nn, L), 0.0); float hemi = 0.5 + 0.5 * nn.z;
+    float cara = mix(0.80, 1.0, smoothstep(0.55, 0.92, nn.z)); col = vc * (0.20 + 0.36 * hemi + 0.70 * d) * cara; }
+  gl_FragColor = vec4(col, al); }`;
 function v3Init() {
   if (v3.gl) return true;
   const cv = $('v3dCv'); if (!cv) return false;
   const gl = cv.getContext('webgl', { antialias: true, preserveDrawingBuffer: true }) || cv.getContext('experimental-webgl');
   if (!gl) { $('v3dMsg').textContent = 'Este equipo no permite gráficos 3D (WebGL).'; return false; }
   v3.u32 = !!gl.getExtension('OES_element_index_uint');
-  v3.der = !!gl.getExtension('OES_standard_derivatives');
-  v3.maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048;
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
-  const mkProg = der => { const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, V3_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, (der ? '#extension GL_OES_standard_derivatives : enable\n#define DER 1\n' : '') + V3_FS)); gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr)); return pr; };
-  let pr; try { pr = mkProg(v3.der); } catch (e) { v3.der = false; pr = mkProg(false); }
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, V3_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, V3_FS)); gl.linkProgram(pr);
   v3.gl = gl; v3.prog = pr;
-  v3.loc = { p: gl.getAttribLocation(pr, 'p'), c: gl.getAttribLocation(pr, 'c'), n: gl.getAttribLocation(pr, 'n'), M: gl.getUniformLocation(pr, 'M'), ex: gl.getUniformLocation(pr, 'ex'), ps: gl.getUniformLocation(pr, 'ps'), lit: gl.getUniformLocation(pr, 'lit'), al: gl.getUniformLocation(pr, 'al'), pt: gl.getUniformLocation(pr, 'pt'),
-    dm: gl.getUniformLocation(pr, 'dm'), dr: gl.getUniformLocation(pr, 'dr'), dOn: gl.getUniformLocation(pr, 'dOn'), cv: gl.getUniformLocation(pr, 'cv'), oz: gl.getUniformLocation(pr, 'oz'), exf: gl.getUniformLocation(pr, 'exf'), fl: gl.getUniformLocation(pr, 'fl') };
-  // textura vacía para cuando no hay «minado entre fechas»
-  v3.tex0 = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, v3.tex0); gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 1, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array([0]));
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  v3.loc = { p: gl.getAttribLocation(pr, 'p'), c: gl.getAttribLocation(pr, 'c'), n: gl.getAttribLocation(pr, 'n'), M: gl.getUniformLocation(pr, 'M'), ex: gl.getUniformLocation(pr, 'ex'), ps: gl.getUniformLocation(pr, 'ps'), lit: gl.getUniformLocation(pr, 'lit'), al: gl.getUniformLocation(pr, 'al'), pt: gl.getUniformLocation(pr, 'pt') };
   v3Eventos(cv);
   return true;
 }
@@ -6716,51 +6661,7 @@ function v3Malla(arrP, arrC, arrN, idx) {
   if (idx) { const I = v3.u32 ? new Uint32Array(idx) : new Uint16Array(idx); o.i = mk(I, gl.ELEMENT_ARRAY_BUFFER); o.ni = I.length; o.it = v3.u32 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT; }
   return o;
 }
-function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; if (v3.mask) { gl.deleteTexture(v3.mask.tex); v3.mask = null; } }
-async function v3Tin(id) {
-  if (!id) return null; if (v3.tinC && v3.tinC.id === id) return v3.tinC.T;
-  let T = null; try { T = await idbGet('topotin:' + id); } catch (e) {}
-  v3.tinC = { id, T: T && T.V && T.F ? T : null }; return v3.tinC.T;
-}
-// V75: terreno con los triángulos originales del .msr (recortado a la zona de los proyectos)
-function v3TerrenoTin(T, R, cx, cy, zmin, zmax, maxTri) {
-  const V = T.V, F = T.F, nV = V.length / 3, rx0 = R.x0 - T.ox, rx1 = R.x1 - T.ox, ry0 = R.y0 - T.oy, ry1 = R.y1 - T.oy, dx = T.ox - cx, dy = T.oy - cy;
-  const map = new Int32Array(nV).fill(-1), I = new Uint32Array(Math.min(F.length, maxTri * 3 + 3)); let ni = 0, nv = 0;
-  for (let f = 0; f + 2 < F.length; f += 3) {
-    const a = F[f], b = F[f + 1], c = F[f + 2]; if (a >= nV || b >= nV || c >= nV) continue;
-    const ax = V[a * 3], bx = V[b * 3], cx2 = V[c * 3]; if ((ax < rx0 && bx < rx0 && cx2 < rx0) || (ax > rx1 && bx > rx1 && cx2 > rx1)) continue;
-    const ay = V[a * 3 + 1], by = V[b * 3 + 1], cy2 = V[c * 3 + 1]; if ((ay < ry0 && by < ry0 && cy2 < ry0) || (ay > ry1 && by > ry1 && cy2 > ry1)) continue;
-    if (ni + 3 > I.length) return null; // demasiados triángulos para este equipo
-    for (const k of [a, b, c]) { if (map[k] < 0) map[k] = nv++; I[ni++] = map[k]; }
-  }
-  if (!ni) return null;
-  const P = new Float32Array(nv * 3), C = new Float32Array(nv * 3), N = new Float32Array(nv * 3), zr = Math.max(1, zmax - zmin);
-  for (let k = 0; k < nV; k++) { const q = map[k]; if (q < 0) continue; const z = V[k * 3 + 2]; P[q * 3] = V[k * 3] + dx; P[q * 3 + 1] = V[k * 3 + 1] + dy; P[q * 3 + 2] = z - zmin;
-    const t = Math.max(0, Math.min(1, (z - zmin) / zr)); C[q * 3] = 0.42 + 0.33 * t; C[q * 3 + 1] = 0.40 + 0.25 * t; C[q * 3 + 2] = 0.36 + 0.10 * t; }
-  for (let i = 0; i < ni; i += 3) { const a = I[i] * 3, b = I[i + 1] * 3, c = I[i + 2] * 3;
-    const ux = P[b] - P[a], uy = P[b + 1] - P[a + 1], uz = P[b + 2] - P[a + 2], vx = P[c] - P[a], vy = P[c + 1] - P[a + 1], vz = P[c + 2] - P[a + 2];
-    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
-    for (const o of [a, b, c]) { N[o] += nx; N[o + 1] += ny; N[o + 2] += nz; } }
-  for (let q = 0; q < nv * 3; q += 3) { const l = Math.hypot(N[q], N[q + 1], N[q + 2]) || 1; N[q] /= l; N[q + 1] /= l; N[q + 2] /= l; if (!N[q + 2] && !N[q] && !N[q + 1]) N[q + 2] = 1; }
-  const o = v3Malla(P, C, N, I.subarray(0, ni)); o.flat = true; o.tin = true; o.nTri = ni / 3; return o;
-}
-// V75: lo minado entre fechas va como textura (bordes nítidos, no depende del tamaño de los triángulos)
-function v3Mascara(D, R, cx, cy) {
-  const gl = v3.gl;
-  const i0 = Math.max(0, Math.floor((R.x0 - D.x0) / D.cel)), i1 = Math.min(D.W - 1, Math.ceil((R.x1 - D.x0) / D.cel));
-  const j0 = Math.max(0, Math.floor((R.y0 - D.y0) / D.cel)), j1 = Math.min(D.H - 1, Math.ceil((R.y1 - D.y0) / D.cel));
-  if (i1 < i0 || j1 < j0) return null;
-  const st = Math.max(1, Math.ceil(Math.max(i1 - i0 + 1, j1 - j0 + 1) / (v3.maxTex || 2048)));
-  const w = Math.floor((i1 - i0) / st) + 1, h = Math.floor((j1 - j0) / st) + 1, B = new Uint8Array(w * h); let hay = false;
-  for (let b = 0; b < h; b++) for (let a = 0; a < w; a++) if (D.M[(j0 + b * st) * D.W + i0 + a * st]) { B[b * w + a] = 255; hay = true; }
-  if (!hay) return null;
-  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, w, h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, B);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  const c = D.cel * st;
-  return { tex, dr: [D.x0 + i0 * D.cel - cx, D.y0 + j0 * D.cel - cy, w * c, h * c] };
-}
+function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
 function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
 function v3Region() {
   const d = v3.dem; let b = null;
@@ -6771,9 +6672,13 @@ function v3Region() {
 async function v3Construir() {
   if (!v3Init()) return;
   v3.dem = topo.act ? await topoDem(topo.act) : null;
-  if (topo.dif && !topo.dif._v3) topo.dif._v3 = (v3.difN = (v3.difN || 0) + 1);
-  const firma = [topo.act, v3.full, t2.holes.length, t2.projs.map(p => p.id).join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, topo.dif ? topo.dif._v3 : 0, v3.ver.dif, v3Det()].join('|');
+  const firma = [topo.act, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
   const R = v3Region();
+  // V75: alrededor de los proyectos se usa la topografía de 1 m (si la hay)
+  v3.hd = false;
+  if (R && v3.dem && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(topo.act, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
+  else if (R && firma === v3.built && v3.hdDem) { v3.dem = v3.hdDem; v3.hd = true; }
+  v3.hdDem = v3.hd ? v3.dem : null;
   if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
   if (firma === v3.built) { v3Dibujar(); return; }
   v3Borrar(); v3.built = firma;
@@ -6783,30 +6688,19 @@ async function v3Construir() {
   if (d) {
     const i0 = Math.max(0, Math.floor((R.x0 - d.x0) / d.cel)), i1 = Math.min(d.W - 1, Math.ceil((R.x1 - d.x0) / d.cel));
     const j0 = Math.max(0, Math.floor((R.y0 - d.y0) / d.cel)), j1 = Math.min(d.H - 1, Math.ceil((R.y1 - d.y0) / d.cel));
-    const det = v3Det(), movil = v3EsMovil();
-    const maxV = !v3.u32 ? 62000 : det === 'normal' ? 270000 : det === 'max' ? (movil ? 2.6e6 : 7e6) : (movil ? 1.2e6 : 3e6);
-    const st = Math.max(1, Math.ceil(Math.sqrt((i1 - i0 + 1) * (j1 - j0 + 1) / maxV)));
+    const lim = v3.u32 ? ((typeof movil === 'function' && movil()) ? 800 : 1300) : 250, st = Math.max(1, Math.ceil(Math.max(i1 - i0, j1 - j0) / lim));
     const nx = Math.floor((i1 - i0) / st) + 1, ny = Math.floor((j1 - j0) / st) + 1;
     for (let j = j0; j <= j1; j += st) for (let i = i0; i <= i1; i += st) { const z = d.Z[j * d.W + i]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
     v3.org = [cx, cy, zmin];
     const P = new Float32Array(nx * ny * 3), C = new Float32Array(nx * ny * 3), N = new Float32Array(nx * ny * 3), ok = new Uint8Array(nx * ny);
     const D = topo.dif && v3.ver.dif ? topo.dif : null;
-    if (D) v3.mask = v3Mascara(D, R, cx, cy);
-    // V75: con los triángulos originales del .msr (si se cargó en este equipo) se ve todo el detalle de crestas y pies de banco
-    let terTin = null; v3.tinUsada = false; v3.tinFalta = false;
-    if (det !== 'normal' && v3.u32) {
-      const T = await v3Tin(topo.act);
-      if (T) { try { terTin = v3TerrenoTin(T, R, cx, cy, zmin, zmax, maxV * 2); } catch (e) { terTin = null; } v3.tinUsada = !!terTin; }
-      else v3.tinFalta = true;
-    }
-    if (terTin) { v3.buf.ter = terTin; v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0); }
-    else {
     for (let b = 0; b < ny; b++) for (let a = 0; a < nx; a++) {
       const i = i0 + a * st, j = j0 + b * st, k = b * nx + a, z = d.Z[j * d.W + i];
       const x = d.x0 + (i + 0.5) * d.cel, y = d.y0 + (j + 0.5) * d.cel;
       P[k * 3] = x - cx; P[k * 3 + 1] = y - cy; P[k * 3 + 2] = (z === z ? z : zmin) - zmin; ok[k] = z === z ? 1 : 0;
       const t = z === z ? (z - zmin) / Math.max(1, zmax - zmin) : 0;
-      const r = 0.42 + 0.33 * t, g = 0.40 + 0.25 * t, bl = 0.36 + 0.10 * t;
+      let r = 0.50 + 0.30 * t, g = 0.45 + 0.24 * t, bl = 0.38 + 0.14 * t; // tierra: abajo más oscuro, arriba más claro
+      if (D) { const di = Math.floor((x - D.x0) / D.cel), dj = Math.floor((y - D.y0) / D.cel); if (di >= 0 && dj >= 0 && di < D.W && dj < D.H && D.M[dj * D.W + di]) { r = 1; g = 0.5; bl = 0.1; } }
       C[k * 3] = r; C[k * 3 + 1] = g; C[k * 3 + 2] = bl;
     }
     const zz = (a, b) => { a = Math.max(0, Math.min(nx - 1, a)); b = Math.max(0, Math.min(ny - 1, b)); return P[(b * nx + a) * 3 + 2]; };
@@ -6817,7 +6711,6 @@ async function v3Construir() {
     if (!v3.u32 && nx * ny > 65535) I.length = 0;
     v3.buf.ter = v3Malla(P, C, N, I);
     v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
-    }
   } else {
     const zs = t2.holes.map(h => h.z).filter(z => z); zmin = zs.length ? Math.min(...zs) - 20 : 0; zmax = zs.length ? Math.max(...zs) : 100;
     v3.org = [cx, cy, zmin]; v3.span = Math.max(R.x1 - R.x0, R.y1 - R.y0);
@@ -6862,8 +6755,7 @@ async function v3Construir() {
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
   v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
   if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
-  $('v3dMsg').innerHTML = (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Elige proyectos en «Proyectos» para ver sus taladros. ') +
-    (d && v3.tinFalta ? '<span class="note">Para ver la topografía con todo su detalle (triángulos originales), vuelve a cargar el .msr de esta fecha en este equipo con «Cargar archivos».</span>' : '');
+  $('v3dMsg').innerHTML = (d ? (v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
   v3Dibujar();
 }
 function v3MVP() {
@@ -6887,11 +6779,7 @@ function v3Pintar() {
     gl.bindBuffer(gl.ARRAY_BUFFER, o.c); gl.enableVertexAttribArray(L.c); gl.vertexAttribPointer(L.c, 3, gl.FLOAT, false, 0, 0);
     if (o.n) { gl.bindBuffer(gl.ARRAY_BUFFER, o.n); gl.enableVertexAttribArray(L.n); gl.vertexAttribPointer(L.n, 3, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(L.n); gl.vertexAttrib3f(L.n, 0, 0, 1); }
     gl.uniform1f(L.lit, lit); gl.uniform1f(L.pt, pt); gl.uniform1f(L.ps, ps || 1);
-    const mk = lit && v3.mask; gl.uniform1f(L.dOn, mk ? 1 : 0); if (mk) gl.uniform4fv(L.dr, v3.mask.dr);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, mk ? v3.mask.tex : v3.tex0); gl.uniform1i(L.dm, 0);
-    gl.uniform1f(L.cv, lit && v3.der ? (v3.curv || 0) : 0); gl.uniform1f(L.fl, lit && o.flat && v3.der ? 1 : 0);
   };
-  gl.uniform1f(L.oz, v3.org[2] || 0); gl.uniform1f(L.exf, v3.ex);
   const B = v3.buf;
   if (B.ter && B.ter.ni) { usar(B.ter, 1, 0); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, B.ter.i); gl.drawElements(gl.TRIANGLES, B.ter.ni, B.ter.it, 0); gl.disable(gl.POLYGON_OFFSET_FILL); }
   if (B.ln) { usar(B.ln, 0, 0); gl.drawArrays(gl.LINES, 0, B.ln.cnt); }
@@ -6953,42 +6841,7 @@ function v3Mover(dx, dy) {
   const sx = Math.cos(c.yaw), sy = Math.sin(c.yaw), fx = -Math.sin(c.yaw), fy = Math.cos(c.yaw);
   c.tx += (-dx * sx + dy * fx) * k; c.ty += (-dx * sy + dy * fy) * k;
 }
-// V75: elegir los proyectos desde la vista 3D (misma selección que la pestaña 2)
-function v3ProyPintar() {
-  const box = $('v3dPList'); if (!box) return;
-  const cp = (src, dst) => { const a = $(src), b = $(dst); if (!a || !b) return; b.innerHTML = a.innerHTML; b.value = a.value; };
-  cp('fMina', 'v3dFMina'); cp('fNivel', 'v3dFNivel');
-  const vis = visibleProjects(), sel = t2.selIds || new Set(), n = lib.projects.filter(p => t2.selIds && t2.selIds.has(p.id)).length;
-  $('v3dProyN').textContent = n;
-  if (!lib.projects.length) { box.innerHTML = '<p class="note">Guarda primero un proyecto en la pestaña «Proyectos».</p>'; return; }
-  box.innerHTML = vis.length ? vis.map(p => `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${sel.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)} ${tipoBadge(p)}</span><span class="pm">${p.holes.length} tal.</span></label>`).join('') : '<p class="note">No hay proyectos con ese filtro.</p>';
-}
-let v3ProyT = 0;
-function v3ProyCambio() {
-  t2.fitted = false; refreshT2(); v3ProyPintar(); v3.camOk = false;
-  clearTimeout(v3ProyT); v3ProyT = setTimeout(() => v3Mostrar(), 250); // espera un poco si marcan varios seguidos
-}
-(() => {
-  if (!$('v3dProy')) return;
-  $('v3dPList').addEventListener('change', e => {
-    const cb = e.target.closest('input[type=checkbox]'); if (!cb) return;
-    if (!t2.selIds) t2.selIds = new Set();
-    if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id);
-    v3ProyCambio();
-  });
-  $('v3dPAll').onclick = () => { if (!t2.selIds) t2.selIds = new Set(); visibleProjects().forEach(p => t2.selIds.add(p.id)); v3ProyCambio(); };
-  $('v3dPNone').onclick = () => { t2.selIds = new Set(); v3ProyCambio(); };
-  $('v3dFMina').onchange = e => { $('fMina').value = e.target.value; $('fMina').dispatchEvent(new Event('change')); v3ProyPintar(); v3.camOk = false; v3Mostrar(); };
-  $('v3dFNivel').onchange = e => { $('fNivel').value = e.target.value; $('fNivel').dispatchEvent(new Event('change')); v3ProyPintar(); v3.camOk = false; v3Mostrar(); };
-  $('v3dProy').addEventListener('toggle', () => { if ($('v3dProy').open) v3ProyPintar(); });
-  document.addEventListener('pointerdown', e => { const d = $('v3dProy'); if (d && d.open && !d.contains(e.target)) d.open = false; });
-  // detalle y curvas de nivel
-  try { $('v3dDet').value = v3Det(); v3.curv = +(localStorage.getItem('bhl-3d-curv') || 0); $('v3dCurv').value = String(v3.curv); } catch (e) {}
-  $('v3dDet').onchange = e => { try { localStorage.setItem('bhl-3d-det', e.target.value); } catch (er) {} v3.built = ''; v3Mostrar(); };
-  $('v3dCurv').onchange = e => { v3.curv = +e.target.value; try { localStorage.setItem('bhl-3d-curv', e.target.value); } catch (er) {} v3Dibujar(); };
-})();
 async function v3Mostrar() {
-  try { v3ProyPintar(); } catch (e) {}
   $('v3dMsg').textContent = 'Preparando la vista 3D…';
   try { if (typeof refreshT2 === 'function' && !t2.holes.length && t2.selIds && t2.selIds.size) refreshT2(); } catch (e) {}
   try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; }
@@ -7007,6 +6860,40 @@ async function v3Mostrar() {
     const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
   };
   setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
+})();
+// ===== V75: elegir los proyectos desde la vista 3D (es la misma selección de la pestaña 2) =====
+(() => {
+  const bar = document.querySelector('.v3d-bar'); if (!bar) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.id = 'v3dProyBtn';
+  const pop = document.createElement('div'); pop.className = 'topo-pop v3d-proy'; pop.id = 'v3dProyPop'; pop.hidden = true;
+  bar.prepend(b); $('tab3').appendChild(pop);
+  const pintarBtn = () => { const n = (t2.selIds || new Set()).size; b.textContent = `📁 Proyectos${n ? ' (' + n + ')' : ''} ▾`; };
+  const opts = sel => [...$(sel).options].map(o => `<option value="${esc(o.value)}"${o.value === $(sel).value ? ' selected' : ''}>${esc(o.textContent)}</option>`).join('');
+  function pintar() {
+    const vis = visibleProjects();
+    pop.innerHTML = `<div class="topo-h"><b>📁 Proyectos en 3D</b><button type="button" data-v="x" aria-label="Cerrar">✕</button></div>
+      <div class="grid2"><label class="f">Mina<select data-f="fMina">${opts('fMina')}</select></label><label class="f">Nivel<select data-f="fNivel">${opts('fNivel')}</select></label></div>
+      <div class="plist v3d-plist">${vis.length ? vis.map(p => `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)} ${tipoBadge(p)}</span><span class="pm">${p.holes.length} tal.</span></label>`).join('') : '<p class="note">No hay proyectos con ese filtro.</p>'}</div>
+      <div class="btnrow"><button type="button" class="btn sec small" data-v="all">Marcar los de la lista</button><button type="button" class="btn sec small" data-v="none">Ninguno</button><button type="button" class="btn small" data-v="ok">Ver en 3D</button></div>
+      <p class="note">Es la misma selección de la pestaña 2. La vista se arma alrededor de los proyectos marcados.</p>`;
+  }
+  let cambio = false;
+  const aplicar = () => { pintarBtn(); if (!cambio) return; cambio = false; t2.fitted = false; refreshT2(); v3.camOk = false; v3Mostrar(); };
+  b.onclick = () => { if (pop.hidden) { pintar(); pop.hidden = false; } else { pop.hidden = true; aplicar(); } };
+  pop.addEventListener('change', e => {
+    const f = e.target.closest('select[data-f]');
+    if (f) { const o = $(f.dataset.f); o.value = f.value; o.dispatchEvent(new Event('change', { bubbles: true })); pintar(); cambio = true; return; }
+    const cb = e.target.closest('input[type=checkbox][data-id]'); if (!cb) return;
+    if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id); cambio = true; pintarBtn();
+  });
+  pop.addEventListener('click', e => {
+    const x = e.target.closest('button[data-v]'); if (!x) return;
+    if (x.dataset.v === 'all') { visibleProjects().forEach(p => t2.selIds.add(p.id)); cambio = true; pintar(); pintarBtn(); }
+    else if (x.dataset.v === 'none') { t2.selIds = new Set(); cambio = true; pintar(); pintarBtn(); }
+    else { pop.hidden = true; aplicar(); }
+  });
+  pintarBtn();
+  const m0 = v3Mostrar; v3Mostrar = async function () { pintarBtn(); return m0.apply(this, arguments); };
 })();
 
 
@@ -7960,6 +7847,83 @@ async function fotoConDatos(m) {
 
 // Lupa al dibujar con el dedo (ver PlanView): activa con el Lápiz del avance o al dibujar un polígono de minado
 pv.wantsAim = () => (enFull && t2.tool === 'pen') || (typeof pmm !== 'undefined' && !!pmm.dib);
+
+// ===== V75: topografía en alta resolución (1 m) para la vista 3D =====
+// Al cargar el .msr se arma, además del DEM de 2 m (plano y avance), uno de 1 m cortado en mosaicos de 400 m.
+// Los mosaicos se suben a la nube aparte y la vista 3D baja solo los que rodean a los proyectos marcados.
+const HD_TILE = 400, HD_CEL = 1;
+const topoHD = { cache: new Map(), sinHD: new Set() };
+async function topoHDGuardar(id, t) {
+  const b = t.bbox || null;
+  // tamaño estimado a 1 m: si es enorme (o es un teléfono con una mina muy grande) se queda solo con 2 m
+  const dem = msrADem(t, HD_CEL);
+  const max = (typeof movil === 'function' && movil()) ? 12e6 : 45e6;
+  if (dem.W * dem.H > max) return 0;
+  const tiles = {};
+  const tx0 = Math.floor(dem.x0 / HD_TILE), tx1 = Math.floor((dem.x0 + dem.W * HD_CEL) / HD_TILE);
+  const ty0 = Math.floor(dem.y0 / HD_TILE), ty1 = Math.floor((dem.y0 + dem.H * HD_CEL) / HD_TILE);
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+    const gx0 = tx * HD_TILE, gy0 = ty * HD_TILE;
+    const i0 = Math.max(0, Math.round((gx0 - dem.x0) / HD_CEL)), i1 = Math.min(dem.W, Math.round((gx0 + HD_TILE - dem.x0) / HD_CEL));
+    const j0 = Math.max(0, Math.round((gy0 - dem.y0) / HD_CEL)), j1 = Math.min(dem.H, Math.round((gy0 + HD_TILE - dem.y0) / HD_CEL));
+    const W = i1 - i0, H = j1 - j0; if (W <= 0 || H <= 0) continue;
+    const Z = new Float32Array(W * H); let hay = false;
+    for (let j = 0; j < H; j++) { const o = (j0 + j) * dem.W + i0; for (let i = 0; i < W; i++) { const z = dem.Z[o + i]; Z[j * W + i] = z; if (z === z) hay = true; } }
+    if (!hay) continue;
+    const pk = await topoEmpacar({ W, H, x0: dem.x0 + i0 * HD_CEL, y0: dem.y0 + j0 * HD_CEL, cel: HD_CEL, nT: 0, mina: '-' }, Z);
+    tiles[tx + ',' + ty] = pk;
+  }
+  await idbSet('topohd:' + id, tiles);
+  topoHD.cache.set(id, tiles); topoHD.sinHD.delete(id);
+  const m = topo.lista.find(x => x.id === id); if (m) { m.hd = true; m.hdNube = false; await idbSet('topos', topo.lista); }
+  return Object.keys(tiles).length;
+}
+// sube los mosaicos de las topografías que ya están en la nube y aún no tienen los suyos
+async function topoHDSubir() {
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine) return;
+  for (const m of topo.lista.filter(x => x.hd && x.nube && !x.hdNube && !x.de)) {
+    const tiles = (await idbGet('topohd:' + m.id)) || null; if (!tiles) continue;
+    const arr = Object.entries(tiles).map(([k, pk]) => { const [tx, ty] = k.split(',').map(Number); return { tx, ty, meta: pk.meta, data: pk.data }; });
+    try {
+      let lote = [], tam = 0;
+      const enviar = async () => { if (lote.length) await rest.rpc('bhl_topo_hd_subir', { p_topo: m.id, p_tiles: lote }); lote = []; tam = 0; };
+      for (const t of arr) { if (tam + t.data.length > 1.5e6) await enviar(); lote.push(t); tam += t.data.length; }
+      await enviar();
+      m.hdNube = true; await idbSet('topos', topo.lista);
+    } catch (e) { console.warn('topo hd', e); }
+  }
+}
+(() => { if (typeof topoNube !== 'function') return; const t0 = topoNube; topoNube = async function () { const r = await t0.apply(this, arguments); try { await topoHDSubir(); } catch (e) {} return r; }; })();
+// Mosaico de 1 m para una zona (la de la vista 3D). Devuelve null si esa topografía no tiene alta resolución.
+async function topoHDRegion(id, R) {
+  if (!id || !R || topoHD.sinHD.has(id)) return null;
+  if (R.x1 - R.x0 > 2400 || R.y1 - R.y0 > 2400) return null;
+  let tiles = topoHD.cache.get(id);
+  if (!tiles) { tiles = (await idbGet('topohd:' + id)) || (await idbGet('topohdc:' + id)) || {}; topoHD.cache.set(id, tiles); }
+  const quiero = [];
+  for (let ty = Math.floor(R.y0 / HD_TILE); ty <= Math.floor(R.y1 / HD_TILE); ty++) for (let tx = Math.floor(R.x0 / HD_TILE); tx <= Math.floor(R.x1 / HD_TILE); tx++) quiero.push([tx, ty]);
+  const faltan = quiero.filter(([tx, ty]) => !(tx + ',' + ty in tiles));
+  if (faltan.length && typeof sync !== 'undefined' && sync.session && navigator.onLine) {
+    try {
+      const rs = (await rest.rpc('bhl_topo_hd', { p_topo: id, p_tiles: faltan })) || [];
+      rs.forEach(r => { tiles[r.tx + ',' + r.ty] = { meta: r.meta, data: r.data }; });
+      faltan.forEach(([tx, ty]) => { if (!(tx + ',' + ty in tiles)) tiles[tx + ',' + ty] = null; }); // no existe (fuera de la topografía)
+      if (!rs.length && !Object.values(tiles).some(Boolean)) { topoHD.sinHD.add(id); return null; }
+      await idbSet('topohdc:' + id, tiles);
+    } catch (e) { console.warn('topo hd bajar', e); }
+  }
+  const usar = quiero.map(([tx, ty]) => tiles[tx + ',' + ty]).filter(Boolean);
+  if (!usar.length) { topoHD.sinHD.add(id); return null; }
+  const x0 = Math.floor(R.x0), y0 = Math.floor(R.y0), W = Math.ceil(R.x1 - x0), H = Math.ceil(R.y1 - y0);
+  const Z = new Float32Array(W * H).fill(NaN);
+  for (const pk of usar) {
+    const mt = pk.meta, Zt = await topoDesempacar(mt, pk.data);
+    const oi = Math.round((mt.x0 - x0) / HD_CEL), oj = Math.round((mt.y0 - y0) / HD_CEL);
+    for (let j = 0; j < mt.H; j++) { const J = oj + j; if (J < 0 || J >= H) continue;
+      for (let i = 0; i < mt.W; i++) { const I = oi + i; if (I < 0 || I >= W) continue; Z[J * W + I] = Zt[j * mt.W + i]; } }
+  }
+  return { x0, y0, cel: HD_CEL, W, H, Z, hd: true };
+}
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
