@@ -898,7 +898,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v75</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v76</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4094,11 +4094,16 @@ function renderPlan2(ctx, v) {
       let col;
       if (inSel) col = rc;
       else if (val != null && F && F.k === 'fe') { const rr = Math.round(val * 10) / 10; col = rr > 50 ? ACI[6] : rr >= 40 ? ACI[30] : rr >= 30 ? ACI[3] : rr >= 20 ? (planClaro() ? '#0e8fb0' : '#4cc9f0') : (planClaro() ? '#8a8f94' : '#9a9a9a'); }
+      else if (val != null && F && F.k === 'sfe' && typeof PM_ESQ !== 'undefined') { const fe = (has ? l.fe : le && le.fe); const E = PM_ESQ.m, c = fe != null ? E.clases[E.clase(fe, val)] : null; col = c ? (planClaro() ? c.colL : c.col) : anColor(val, br); }
       else if (val != null && F) col = anColor(val, br);
       else col = has || le ? CAD.ink : CAD.noLey;
       const rd = Math.max(1.5, Math.min(4.2, v.v.s * 0.4));
       ctx.globalAlpha = prev ? 0.38 : !has && !le ? 0.55 : 1;
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, has || le ? rd : rd * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = col;
+      // V76: muy alejado (vista de toda la mina) cada taladro es un cuadrito del tamaño de la malla: forman manchas de color como en MinePlan
+      if (v.v.s < 1.5) { const q = Math.max(1.6, 5.5 * v.v.s); ctx.fillRect(x - q / 2, y - q / 2, q, q); }
+      else { ctx.beginPath(); ctx.arc(x, y, has || le ? rd : rd * 0.7, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1;
       if (le) { ctx.beginPath(); ctx.arc(x, y, rd + 1.2, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1; ctx.stroke(); }
       return;
     }
@@ -6672,11 +6677,16 @@ function v3Region() {
 async function v3Construir() {
   if (!v3Init()) return;
   v3.dem = topo.act ? await topoDem(topo.act) : null;
-  const firma = [topo.act, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
+  // V76: Multimina: todas las minas en una sola malla
+  if (typeof multi !== 'undefined' && multi.on && typeof multiDem3D === 'function') {
+    let R0 = null; if (!v3.full && t2.holes.length) { const b = t2Bounds(); R0 = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
+    try { const md = await multiDem3D(R0); if (md) v3.dem = md; } catch (e) {}
+  }
+  const firma = [typeof multi !== 'undefined' ? (multi.on ? 'M' : '') + multi.pal : '', topo.act, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
   const R = v3Region();
   // V75: alrededor de los proyectos se usa la topografía de 1 m (si la hay)
   v3.hd = false;
-  if (R && v3.dem && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(topo.act, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
+  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(topo.act, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
   else if (R && firma === v3.built && v3.hdDem) { v3.dem = v3.hdDem; v3.hd = true; }
   v3.hdDem = v3.hd ? v3.dem : null;
   if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
@@ -6699,7 +6709,8 @@ async function v3Construir() {
       const x = d.x0 + (i + 0.5) * d.cel, y = d.y0 + (j + 0.5) * d.cel;
       P[k * 3] = x - cx; P[k * 3 + 1] = y - cy; P[k * 3 + 2] = (z === z ? z : zmin) - zmin; ok[k] = z === z ? 1 : 0;
       const t = z === z ? (z - zmin) / Math.max(1, zmax - zmin) : 0;
-      let r = 0.50 + 0.30 * t, g = 0.45 + 0.24 * t, bl = 0.38 + 0.14 * t; // tierra: abajo más oscuro, arriba más claro
+      let r = 0.50 + 0.30 * t, g = 0.45 + 0.24 * t, bl = 0.38 + 0.14 * t; // abajo más oscuro, arriba más claro
+      if (typeof multi !== 'undefined' && multi.pal === 'tierra') { r = 0.66 + 0.16 * t; g = 0.52 + 0.13 * t; bl = 0.24 + 0.09 * t; }
       if (D) { const di = Math.floor((x - D.x0) / D.cel), dj = Math.floor((y - D.y0) / D.cel); if (di >= 0 && dj >= 0 && di < D.W && dj < D.H && D.M[dj * D.W + di]) { r = 1; g = 0.5; bl = 0.1; } }
       C[k * 3] = r; C[k * 3 + 1] = g; C[k * 3 + 2] = bl;
     }
@@ -6755,7 +6766,7 @@ async function v3Construir() {
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
   v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
   if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
-  $('v3dMsg').innerHTML = (d ? (v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
+  $('v3dMsg').innerHTML = (d ? (d.multi ? `Multimina: todas las minas juntas (celda de ${d.cel} m). ` : v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
   v3Dibujar();
 }
 function v3MVP() {
@@ -7923,6 +7934,105 @@ async function topoHDRegion(id, R) {
       for (let i = 0; i < mt.W; i++) { const I = oi + i; if (I < 0 || I >= W) continue; Z[J * W + I] = Zt[j * mt.W + i]; } }
   }
   return { x0, y0, cel: HD_CEL, W, H, Z, hd: true };
+}
+
+// ===== V76: vista Multimina (como la de MinePlan): todas las minas juntas =====
+// · Topografía: además de «Hoy», la más reciente de cada una de las otras minas, en el plano y en 3D.
+// · Colores de la topografía: gris (como antes) o tierra (como MinePlan).
+// · Taladros alejados: se pintan como manchas de color por clase (Fe) o por material M (S/FeS).
+const multi = { on: false, pal: 'gris', dems: new Map(), img: new Map() };
+try { multi.on = localStorage.getItem('bhl-multi') === '1'; multi.pal = localStorage.getItem('bhl-topo-pal') || 'gris'; } catch (e) {}
+function multiIds() {
+  if (!multi.on) return [];
+  const act = topo.lista.find(t => t.id === topo.act), mAct = act ? minaDe(act) : null, porMina = new Map();
+  topo.lista.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).forEach(t => { const m = minaDe(t) || '?'; if (m === mAct || porMina.has(m)) return; porMina.set(m, t.id); });
+  return [...porMina.values()];
+}
+async function multiDem(id) {
+  if (multi.dems.has(id)) return multi.dems.get(id);
+  if (topo.dems.has(id)) { const d = topo.dems.get(id); multi.dems.set(id, d); return d; }
+  const meta = topo.lista.find(t => t.id === id); if (!meta) return null;
+  const Z = await idbGet('topo:' + id); if (!Z) return null;
+  const dem = { x0: meta.x0, y0: meta.y0, cel: meta.cel, W: meta.W, H: meta.H, Z: Z instanceof Float32Array ? Z : new Float32Array(Z) };
+  multi.dems.set(id, dem); return dem;
+}
+async function multiCargar() {
+  const ids = multiIds();
+  for (const k of [...multi.dems.keys()]) if (!ids.includes(k)) { multi.dems.delete(k); multi.img.delete(k); }
+  for (const id of ids) await multiDem(id);
+  pv.draw();
+}
+// paleta «tierra» (dorada, como MinePlan) para el relieve del plano
+(() => {
+  const f0 = topoImagen;
+  topoImagen = function (id, dem) {
+    if (multi.pal !== 'tierra') return f0.apply(this, arguments);
+    const key = 'T:' + id; if (topo.img.has(key)) return topo.img.get(key);
+    const { W, H, Z } = dem, st = W * H > 2.2e6 ? 2 : 1, cel = dem.cel * st, Wi = Math.ceil(W / st), Hi = Math.ceil(H / st);
+    const cv = document.createElement('canvas'); cv.width = Wi; cv.height = Hi; cv._st = st;
+    const cx = cv.getContext('2d'), im = cx.createImageData(Wi, Hi), d = im.data;
+    let zmin = Infinity, zmax = -Infinity; for (let k = 0; k < Z.length; k++) { const z = Z[k]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
+    const az = 315 * Math.PI / 180, alt = 45 * Math.PI / 180, ce = Math.cos(Math.PI / 2 - alt), se = Math.sin(Math.PI / 2 - alt);
+    const g = (i, j) => { i = Math.max(0, Math.min(W - 1, i)); j = Math.max(0, Math.min(H - 1, j)); return Z[j * W + i]; };
+    for (let jj = 0; jj < Hi; jj++) for (let ii = 0; ii < Wi; ii++) {
+      const i = ii * st, j = jj * st, z = Z[j * W + i]; const o = ((Hi - 1 - jj) * Wi + ii) * 4; if (z !== z) { d[o + 3] = 0; continue; }
+      let zl = g(i - st, j), zr = g(i + st, j), zd = g(i, j - st), zu = g(i, j + st); if (zl !== zl) zl = z; if (zr !== zr) zr = z; if (zd !== zd) zd = z; if (zu !== zu) zu = z;
+      const dx = (zr - zl) / (2 * cel), dy = (zu - zd) / (2 * cel), sl = Math.atan(1.6 * Math.hypot(dx, dy)), asp = Math.atan2(dy, -dx);
+      let sh = ce * Math.cos(sl) + se * Math.sin(sl) * Math.cos(az - Math.PI / 2 + asp); sh = Math.max(0, Math.min(1, sh));
+      const t = (z - zmin) / Math.max(1, zmax - zmin), k = 0.30 + 0.75 * sh;
+      d[o] = Math.min(255, (176 + 40 * t) * k); d[o + 1] = Math.min(255, (138 + 32 * t) * k); d[o + 2] = Math.min(255, (64 + 22 * t) * k); d[o + 3] = 235;
+    }
+    cx.putImageData(im, 0, 0); topo.img.set(key, cv); return cv;
+  };
+})();
+// el plano dibuja primero las otras minas y encima la topografía «Hoy»
+(() => {
+  const b0 = pv.before;
+  pv.before = (ctx, v) => {
+    if (topo.ver && multi.on) multiIds().forEach(id => {
+      const dem = multi.dems.get(id) || topo.dems.get(id); if (!dem) return;
+      const img = topoImagen(id, dem), ex = img.width * (img._st || 1) * dem.cel, ey = img.height * (img._st || 1) * dem.cel;
+      const x = v.sx(dem.x0), y = v.sy(dem.y0 + ey), w = ex * v.v.s, h = ey * v.v.s;
+      if (x > v.W || y > v.H || x + w < 0 || y + h < 0) return;
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x, y, w, h); ctx.restore();
+    });
+    if (b0) b0(ctx, v);
+  };
+})();
+// opciones en la ventana de Topografía
+(() => {
+  const ver = $('topoVer'); if (!ver) return;
+  const box = document.createElement('div'); box.className = 'multi-opc';
+  box.innerHTML = `<label class="chk"><input type="checkbox" id="multiOn"> Todas las minas juntas (Multimina: la más reciente de cada mina)</label>
+    <label class="f inl">Colores del relieve <select id="topoPal"><option value="gris">Gris</option><option value="tierra">Tierra (como MinePlan)</option></select></label>`;
+  ver.closest('label').after(box);
+  $('multiOn').checked = multi.on; $('topoPal').value = multi.pal;
+  $('multiOn').onchange = async e => { multi.on = e.target.checked; try { localStorage.setItem('bhl-multi', multi.on ? '1' : '0'); } catch (er) {} if (multi.on) { await multiCargar(); if (typeof fitMultimina === 'function') fitMultimina(); } pv.draw(); if (!$('tab3').hidden) { v3.built = ''; v3Mostrar(); } };
+  $('topoPal').onchange = e => { multi.pal = e.target.value; try { localStorage.setItem('bhl-topo-pal', multi.pal); } catch (er) {} pv.draw(); if (!$('tab3').hidden) { v3.built = ''; v3Mostrar(); } };
+  if (multi.on) setTimeout(() => { multiCargar().catch(() => {}); }, 1500);
+})();
+// encuadrar todas las minas
+function fitMultimina() {
+  const ds = [...multiIds().map(id => multi.dems.get(id)), topo.dems.get(topo.act)].filter(Boolean); if (!ds.length) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  ds.forEach(d => { x0 = Math.min(x0, d.x0); y0 = Math.min(y0, d.y0); x1 = Math.max(x1, d.x0 + d.W * d.cel); y1 = Math.max(y1, d.y0 + d.H * d.cel); });
+  pv.fit({ x0, y0, x1, y1 }); pv.draw();
+}
+// 3D: una sola malla con todas las minas (a la resolución que permita el equipo)
+async function multiDem3D(R) {
+  const ds = [topo.act ? await topoDem(topo.act) : null, ...(await Promise.all(multiIds().map(multiDem)))].filter(Boolean);
+  if (ds.length < 2) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  ds.forEach(d => { x0 = Math.min(x0, d.x0); y0 = Math.min(y0, d.y0); x1 = Math.max(x1, d.x0 + d.W * d.cel); y1 = Math.max(y1, d.y0 + d.H * d.cel); });
+  if (R) { x0 = Math.max(x0, R.x0); y0 = Math.max(y0, R.y0); x1 = Math.min(x1, R.x1); y1 = Math.min(y1, R.y1); }
+  if (x1 <= x0 || y1 <= y0) return null;
+  const lado = (typeof movil === 'function' && movil()) ? 900 : 2000, cel = Math.max(2, Math.ceil(Math.max(x1 - x0, y1 - y0) / lado));
+  const W = Math.ceil((x1 - x0) / cel), H = Math.ceil((y1 - y0) / cel), Z = new Float32Array(W * H).fill(NaN);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const x = x0 + (i + 0.5) * cel, y = y0 + (j + 0.5) * cel;
+    for (const d of ds) { const z = demZ(d, x, y); if (z != null && z === z) { Z[j * W + i] = z; break; } }
+  }
+  return { x0, y0, cel, W, H, Z, multi: true };
 }
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
