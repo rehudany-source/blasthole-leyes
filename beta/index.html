@@ -898,7 +898,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v77</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v78</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6243,8 +6243,10 @@ async function cargarTopo(f) {
   const t = leerMSR(buf);
   if (!t || !t.nT) throw new Error('No se encontraron triángulos en el archivo. ¿Es una superficie de MinePlan?');
   const dem = msrADem(t, TOPO_CEL);
-  const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
-  const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
+  // V78: «SURVEY 2110 (1).msr» (copia que hace Windows al bajar dos veces) es la misma topografía: reemplaza a la original
+  const nombre = f.name.replace(/\.msr$/i, '').replace(/\s*\(\d+\)\s*$/, '').trim(), fecha = topoFecha(f.name.replace(/\s*\(\d+\)(?=\.msr$)/i, ''), f.lastModified);
+  const sinCopia = n => String(n || '').replace(/\s*\(\d+\)\s*$/, '').trim().toUpperCase();
+  const viejo = topo.lista.find(x => sinCopia(x.nombre) === nombre.toUpperCase());
   const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const meta = { id, nombre, fecha, mina: topoMina(nombre) || minaPorUbicacion(dem), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
   if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
@@ -6368,6 +6370,26 @@ async function topoAvance() {
   const area = grandes.reduce((s, z) => s + z.area, 0), vol = grandes.reduce((s, z) => s + z.vol, 0);
   return { polys, area, vol, ma, mb };
 }
+async function topoDiagProyectos(zonas) {
+  if (!t2.holes.length) return '';
+  const A = await topoDem(topo.act), B = await topoDem(topo.ant); if (!A || !B) return '';
+  const ma = topo.lista.find(t => t.id === topo.act), mb = topo.lista.find(t => t.id === topo.ant);
+  const med = a => { const v = a.filter(x => x != null && x === x).sort((p, q) => p - q); return v.length ? v[Math.floor(v.length / 2)] : null; };
+  const f1 = v => v.toFixed(1).replace('.', ',') === '-0,0' ? '0.0' : v.toFixed(1);
+  const lineas = [];
+  t2.projs.forEach(p => {
+    const hs = t2.holes.filter(h => h.pid === p.id); if (!hs.length) return;
+    if (zonas.some(P => hs.some(h => pointInPoly(h.x, h.y, P)))) return; // este sí tiene avance
+    const za = med(hs.map(h => demZ(A, h.x, h.y))), zb = med(hs.map(h => demZ(B, h.x, h.y))), zc = med(hs.map(h => h.z || null));
+    if (za == null || zb == null) { lineas.push(`<b>${esc(p.name)}</b>: fuera de alguna de las dos topografías`); return; }
+    const baja = zb - za; let t = `<b>${esc(p.name)}</b>: bajó ${f1(baja)} m entre las dos fechas`;
+    if (zc != null && zc - zb > 1.5) t += `; el ${fmtDate(mb.fecha)} la superficie ya estaba ${f1(zc - zb)} m bajo el collar (se minó antes de esa fecha)`;
+    else if (Math.abs(baja) <= 1.5) t += ' (sin minado en ese tiempo)';
+    lineas.push(t);
+  });
+  if (!lineas.length) return '';
+  return `<br><b>Sin avance entre el ${fmtDate(mb.fecha)} y el ${fmtDate(ma.fecha)}:</b><br>` + lineas.slice(0, 12).join('<br>') + (lineas.length > 12 ? `<br>y ${lineas.length - 12} proyecto(s) más.` : '') + '<br>Si se minó en esas fechas, revisa que el levantamiento incluya esa zona, o compara con una topografía más antigua.';
+}
 function signedArea(P) { let s = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) s += (P[j].x * P[i].y - P[i].x * P[j].y); return s / 2; }
 function topoPintar() {
   const box = $('topoLista'); if (!box) return;
@@ -6424,11 +6446,13 @@ function topoInfo(extra) {
     const nf = n => Math.round(n).toLocaleString('es-PE');
     let txt = `Del ${fmtDate(r.mb.fecha)} al ${fmtDate(r.ma.fecha)} se minó <b>${nf(r.area)} m²</b> (≈ ${nf(r.vol)} m³), en naranja en el plano.`;
     if (r.ma.fecha < r.mb.fecha) txt += ' <span class="errc">Ojo: «Hoy» es más antigua que «Antes».</span>';
-    if (!r.polys.length) { topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.'); pv.draw(); return; }
+    if (!r.polys.length) { let dg = ''; try { dg = await topoDiagProyectos([]); } catch (e) {} topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.' + dg); pv.draw(); return; }
     // se usan como avance solo las zonas que tocan los taladros de los proyectos marcados
     const enMalla = t2.holes.length ? r.polys.filter(P => t2.holes.some(h => pointInPoly(h.x, h.y, P))) : [];
     if (enMalla.length) { if (t2.shapes.length) t2.shapes = []; enMalla.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null, topo: true })); t2.viewing = null; selectFromShapes(); computeT2(); if (typeof paintTools === 'function') paintTools(); }
     txt += enMalla.length ? ` Se dibujó como avance la(s) ${enMalla.length} zona(s) que caen sobre la malla: revisa el polígono y las leyes, y guarda el avance como siempre.` : (t2.holes.length ? ' Ninguna zona cae sobre los taladros de los proyectos marcados.' : ' Marca los proyectos de esa zona para convertirla en avance.');
+    // V78: proyectos marcados sin cambio entre las fechas: se explica por qué (ya estaba minado antes, o no cambió)
+    try { const dg = await topoDiagProyectos(enMalla); if (dg) txt += dg; } catch (e) {}
     topoInfo(txt); pv.draw();
   };
   topoInit().then(() => { topoPintar(); });
