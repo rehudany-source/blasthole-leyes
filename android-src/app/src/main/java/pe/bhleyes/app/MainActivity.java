@@ -66,6 +66,12 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         web = new WebView(this);
         setContentView(web);
+        // barras del sistema del mismo color claro que la app, con íconos oscuros (como en el iPhone)
+        try {
+            getWindow().setStatusBarColor(0xFFEEF0EE); getWindow().setNavigationBarColor(0xFFEEF0EE);
+            int f = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR; if (Build.VERSION.SDK_INT >= 26) f |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().getDecorView().setSystemUiVisibility(f);
+        } catch (Exception e) { }
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -221,9 +227,13 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (web.canGoBack()) { web.goBack(); return; }
-        new AlertDialog.Builder(this).setMessage("¿Salir de BlastHole Leyes?")
-                .setPositiveButton("Salir", (d, w) -> finish()).setNegativeButton("Cancelar", null).show();
+        // primero la página: cierra la ventana abierta, la pantalla completa o vuelve a «Avance»
+        web.evaluateJavascript("(window.bhlAtras && window.bhlAtras()) ? 1 : 0", r -> {
+            if ("1".equals(r)) return;
+            if (web.canGoBack()) { web.goBack(); return; }
+            new AlertDialog.Builder(this).setMessage("¿Salir de BlastHole Leyes?")
+                    .setPositiveButton("Salir", (d, w) -> finish()).setNegativeButton("Cancelar", null).show();
+        });
     }
 
     // ---- Puente con la página: guardar archivos (DXF, PDF, Excel, CSV...) e imprimir ----
