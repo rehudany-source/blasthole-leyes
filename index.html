@@ -884,13 +884,21 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
 :root[data-theme="sol"] { --bg: #ffffff; --panel: #ffffff; --ink: #000000; --muted: #2b2f31; --line: #7d8488; --accent: #a8401c; --accent-ink: #fff; --ok: #146b34; --warn: #7a5200; --bad: #a3150c; --chip: #e9ecec; --model: #ffffff; --model-grid: #d5dadc; color-scheme: light; }
 :root[data-theme="sol"] body { font-weight: 500; }
 :root[data-theme="sol"] .anl, :root[data-theme="sol"] .cadwrap.full .fs-top, :root[data-theme="sol"] .cadwrap.full .fs-rail, :root[data-theme="sol"] .cadwrap.full .fs-panel { background: #000; border-color: #000; }
+
+/* V75: elegir proyectos en 3D */
+.v3d-proy { top: 46px; left: 0; width: min(420px, calc(100% - 10px)); max-height: 70vh; overflow-y: auto; z-index: 20; }
+#tab3 { position: relative; }
+.v3d-plist { max-height: 42vh; overflow-y: auto; margin: 8px 0; }
+
+body:not(.app) .v3d-capas { display: block; } body:not(.app) .v3d-capas > summary { display: none; }
+body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v74</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v78</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4086,11 +4094,16 @@ function renderPlan2(ctx, v) {
       let col;
       if (inSel) col = rc;
       else if (val != null && F && F.k === 'fe') { const rr = Math.round(val * 10) / 10; col = rr > 50 ? ACI[6] : rr >= 40 ? ACI[30] : rr >= 30 ? ACI[3] : rr >= 20 ? (planClaro() ? '#0e8fb0' : '#4cc9f0') : (planClaro() ? '#8a8f94' : '#9a9a9a'); }
+      else if (val != null && F && F.k === 'sfe' && typeof PM_ESQ !== 'undefined') { const fe = (has ? l.fe : le && le.fe); const E = PM_ESQ.m, c = fe != null ? E.clases[E.clase(fe, val)] : null; col = c ? (planClaro() ? c.colL : c.col) : anColor(val, br); }
       else if (val != null && F) col = anColor(val, br);
       else col = has || le ? CAD.ink : CAD.noLey;
       const rd = Math.max(1.5, Math.min(4.2, v.v.s * 0.4));
       ctx.globalAlpha = prev ? 0.38 : !has && !le ? 0.55 : 1;
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, has || le ? rd : rd * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = col;
+      // V76: muy alejado (vista de toda la mina) cada taladro es un cuadrito del tamaño de la malla: forman manchas de color como en MinePlan
+      if (v.v.s < 1.5) { const q = Math.max(1.6, 5.5 * v.v.s); ctx.fillRect(x - q / 2, y - q / 2, q, q); }
+      else { ctx.beginPath(); ctx.arc(x, y, has || le ? rd : rd * 0.7, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1;
       if (le) { ctx.beginPath(); ctx.arc(x, y, rd + 1.2, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1; ctx.stroke(); }
       return;
     }
@@ -6230,8 +6243,10 @@ async function cargarTopo(f) {
   const t = leerMSR(buf);
   if (!t || !t.nT) throw new Error('No se encontraron triángulos en el archivo. ¿Es una superficie de MinePlan?');
   const dem = msrADem(t, TOPO_CEL);
-  const nombre = f.name.replace(/\.msr$/i, ''), fecha = topoFecha(f.name, f.lastModified);
-  const viejo = topo.lista.find(x => x.nombre.toUpperCase() === nombre.toUpperCase());
+  // V78: «SURVEY 2110 (1).msr» (copia que hace Windows al bajar dos veces) es la misma topografía: reemplaza a la original
+  const nombre = f.name.replace(/\.msr$/i, '').replace(/\s*\(\d+\)\s*$/, '').trim(), fecha = topoFecha(f.name.replace(/\s*\(\d+\)(?=\.msr$)/i, ''), f.lastModified);
+  const sinCopia = n => String(n || '').replace(/\s*\(\d+\)\s*$/, '').trim().toUpperCase();
+  const viejo = topo.lista.find(x => sinCopia(x.nombre) === nombre.toUpperCase());
   const id = viejo ? viejo.id : 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const meta = { id, nombre, fecha, mina: topoMina(nombre) || minaPorUbicacion(dem), nube: false, nT: t.nT, nV: t.nV, x0: dem.x0, y0: dem.y0, cel: dem.cel, W: dem.W, H: dem.H, cargada: new Date().toISOString() };
   if (!(await idbSet('topo:' + id, dem.Z))) throw new Error('No hay espacio en este equipo para guardar la topografía.');
@@ -6242,6 +6257,8 @@ async function cargarTopo(f) {
   topo.dems.set(id, dem); topo.img.delete(id); topo.dif = null;
   topo.ant = topo.act && topo.act !== id ? topo.act : topo.ant; topo.act = id; topoDefaults();
   await topoCalcMinados(); pv.draw(); topoPintar();
+  // V75: alta resolución (1 m) para la vista 3D
+  try { if (typeof topoHDGuardar === 'function') await topoHDGuardar(id, t); } catch (e) { console.warn('topo hd', e); }
   try { topoNube(); } catch (e) {}
   return { fecha, nT: t.nT };
 }
@@ -6353,6 +6370,26 @@ async function topoAvance() {
   const area = grandes.reduce((s, z) => s + z.area, 0), vol = grandes.reduce((s, z) => s + z.vol, 0);
   return { polys, area, vol, ma, mb };
 }
+async function topoDiagProyectos(zonas) {
+  if (!t2.holes.length) return '';
+  const A = await topoDem(topo.act), B = await topoDem(topo.ant); if (!A || !B) return '';
+  const ma = topo.lista.find(t => t.id === topo.act), mb = topo.lista.find(t => t.id === topo.ant);
+  const med = a => { const v = a.filter(x => x != null && x === x).sort((p, q) => p - q); return v.length ? v[Math.floor(v.length / 2)] : null; };
+  const f1 = v => v.toFixed(1).replace('.', ',') === '-0,0' ? '0.0' : v.toFixed(1);
+  const lineas = [];
+  t2.projs.forEach(p => {
+    const hs = t2.holes.filter(h => h.pid === p.id); if (!hs.length) return;
+    if (zonas.some(P => hs.some(h => pointInPoly(h.x, h.y, P)))) return; // este sí tiene avance
+    const za = med(hs.map(h => demZ(A, h.x, h.y))), zb = med(hs.map(h => demZ(B, h.x, h.y))), zc = med(hs.map(h => h.z || null));
+    if (za == null || zb == null) { lineas.push(`<b>${esc(p.name)}</b>: fuera de alguna de las dos topografías`); return; }
+    const baja = zb - za; let t = `<b>${esc(p.name)}</b>: bajó ${f1(baja)} m entre las dos fechas`;
+    if (zc != null && zc - zb > 1.5) t += `; el ${fmtDate(mb.fecha)} la superficie ya estaba ${f1(zc - zb)} m bajo el collar (se minó antes de esa fecha)`;
+    else if (Math.abs(baja) <= 1.5) t += ' (sin minado en ese tiempo)';
+    lineas.push(t);
+  });
+  if (!lineas.length) return '';
+  return `<br><b>Sin avance entre el ${fmtDate(mb.fecha)} y el ${fmtDate(ma.fecha)}:</b><br>` + lineas.slice(0, 12).join('<br>') + (lineas.length > 12 ? `<br>y ${lineas.length - 12} proyecto(s) más.` : '') + '<br>Si se minó en esas fechas, revisa que el levantamiento incluya esa zona, o compara con una topografía más antigua.';
+}
 function signedArea(P) { let s = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) s += (P[j].x * P[i].y - P[i].x * P[j].y); return s / 2; }
 function topoPintar() {
   const box = $('topoLista'); if (!box) return;
@@ -6409,11 +6446,13 @@ function topoInfo(extra) {
     const nf = n => Math.round(n).toLocaleString('es-PE');
     let txt = `Del ${fmtDate(r.mb.fecha)} al ${fmtDate(r.ma.fecha)} se minó <b>${nf(r.area)} m²</b> (≈ ${nf(r.vol)} m³), en naranja en el plano.`;
     if (r.ma.fecha < r.mb.fecha) txt += ' <span class="errc">Ojo: «Hoy» es más antigua que «Antes».</span>';
-    if (!r.polys.length) { topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.'); pv.draw(); return; }
+    if (!r.polys.length) { let dg = ''; try { dg = await topoDiagProyectos([]); } catch (e) {} topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.' + dg); pv.draw(); return; }
     // se usan como avance solo las zonas que tocan los taladros de los proyectos marcados
     const enMalla = t2.holes.length ? r.polys.filter(P => t2.holes.some(h => pointInPoly(h.x, h.y, P))) : [];
     if (enMalla.length) { if (t2.shapes.length) t2.shapes = []; enMalla.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null, topo: true })); t2.viewing = null; selectFromShapes(); computeT2(); if (typeof paintTools === 'function') paintTools(); }
     txt += enMalla.length ? ` Se dibujó como avance la(s) ${enMalla.length} zona(s) que caen sobre la malla: revisa el polígono y las leyes, y guarda el avance como siempre.` : (t2.holes.length ? ' Ninguna zona cae sobre los taladros de los proyectos marcados.' : ' Marca los proyectos de esa zona para convertirla en avance.');
+    // V78: proyectos marcados sin cambio entre las fechas: se explica por qué (ya estaba minado antes, o no cambió)
+    try { const dg = await topoDiagProyectos(enMalla); if (dg) txt += dg; } catch (e) {}
     topoInfo(txt); pv.draw();
   };
   topoInit().then(() => { topoPintar(); });
@@ -6622,12 +6661,16 @@ function m4Look(e, c, u) {
   return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1];
 }
 function m4Mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
-const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; uniform float lit; varying vec3 vc;
+const V3_VS = `attribute vec3 p; attribute vec3 c; attribute vec3 n; uniform mat4 M; uniform float ex; uniform float ps; varying vec3 vc; varying vec3 vn;
 void main(){ vec3 q = vec3(p.x, p.y, p.z * ex); gl_Position = M * vec4(q, 1.0); gl_PointSize = ps;
-  vec3 nn = normalize(vec3(n.x, n.y, n.z / max(ex, 0.01))); vec3 L = normalize(vec3(-0.5, 0.6, 0.75));
-  float d = max(dot(nn, L), 0.0); vc = mix(c, c * (0.38 + 0.72 * d), lit); }`;
-const V3_FS = `precision mediump float; varying vec3 vc; uniform float al; uniform float pt;
-void main(){ if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; } gl_FragColor = vec4(vc, al); }`;
+  vn = vec3(n.x, n.y, n.z / max(ex, 0.01)); vc = c; }`;
+// V75: luz calculada por píxel (antes por vértice): bancos, bermas y rampas se ven nítidos; las caras de los bancos un poco más oscuras
+const V3_FS = `precision mediump float; varying vec3 vc; varying vec3 vn; uniform float al; uniform float pt; uniform float lit;
+void main(){ if (pt > 0.5) { vec2 d = gl_PointCoord - vec2(0.5); if (dot(d, d) > 0.25) discard; }
+  vec3 col = vc;
+  if (lit > 0.5) { vec3 nn = normalize(vn); vec3 L = normalize(vec3(-0.45, 0.55, 0.7)); float d = max(dot(nn, L), 0.0); float hemi = 0.5 + 0.5 * nn.z;
+    float cara = mix(0.80, 1.0, smoothstep(0.55, 0.92, nn.z)); col = vc * (0.20 + 0.36 * hemi + 0.70 * d) * cara; }
+  gl_FragColor = vec4(col, al); }`;
 function v3Init() {
   if (v3.gl) return true;
   const cv = $('v3dCv'); if (!cv) return false;
@@ -6658,8 +6701,18 @@ function v3Region() {
 async function v3Construir() {
   if (!v3Init()) return;
   v3.dem = topo.act ? await topoDem(topo.act) : null;
-  const firma = [topo.act, v3.full, t2.holes.length, t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
+  // V76: Multimina: todas las minas en una sola malla
+  if (typeof multi !== 'undefined' && multi.on && typeof multiDem3D === 'function') {
+    let R0 = null; if (!v3.full && t2.holes.length) { const b = t2Bounds(); R0 = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
+    try { const md = await multiDem3D(R0); if (md) v3.dem = md; } catch (e) {}
+  }
+  const firma = [typeof multi !== 'undefined' ? (multi.on ? 'M' : '') + multi.pal : '', topo.act, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif].join('|');
   const R = v3Region();
+  // V75: alrededor de los proyectos se usa la topografía de 1 m (si la hay)
+  v3.hd = false;
+  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(topo.act, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
+  else if (R && firma === v3.built && v3.hdDem) { v3.dem = v3.hdDem; v3.hd = true; }
+  v3.hdDem = v3.hd ? v3.dem : null;
   if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
   if (firma === v3.built) { v3Dibujar(); return; }
   v3Borrar(); v3.built = firma;
@@ -6669,7 +6722,7 @@ async function v3Construir() {
   if (d) {
     const i0 = Math.max(0, Math.floor((R.x0 - d.x0) / d.cel)), i1 = Math.min(d.W - 1, Math.ceil((R.x1 - d.x0) / d.cel));
     const j0 = Math.max(0, Math.floor((R.y0 - d.y0) / d.cel)), j1 = Math.min(d.H - 1, Math.ceil((R.y1 - d.y0) / d.cel));
-    const lim = v3.u32 ? 520 : 250, st = Math.max(1, Math.ceil(Math.max(i1 - i0, j1 - j0) / lim));
+    const lim = v3.u32 ? ((typeof movil === 'function' && movil()) ? 800 : 1300) : 250, st = Math.max(1, Math.ceil(Math.max(i1 - i0, j1 - j0) / lim));
     const nx = Math.floor((i1 - i0) / st) + 1, ny = Math.floor((j1 - j0) / st) + 1;
     for (let j = j0; j <= j1; j += st) for (let i = i0; i <= i1; i += st) { const z = d.Z[j * d.W + i]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
     v3.org = [cx, cy, zmin];
@@ -6680,7 +6733,8 @@ async function v3Construir() {
       const x = d.x0 + (i + 0.5) * d.cel, y = d.y0 + (j + 0.5) * d.cel;
       P[k * 3] = x - cx; P[k * 3 + 1] = y - cy; P[k * 3 + 2] = (z === z ? z : zmin) - zmin; ok[k] = z === z ? 1 : 0;
       const t = z === z ? (z - zmin) / Math.max(1, zmax - zmin) : 0;
-      let r = 0.42 + 0.33 * t, g = 0.40 + 0.25 * t, bl = 0.36 + 0.10 * t;
+      let r = 0.50 + 0.30 * t, g = 0.45 + 0.24 * t, bl = 0.38 + 0.14 * t; // abajo más oscuro, arriba más claro
+      if (typeof multi !== 'undefined' && multi.pal === 'tierra') { r = 0.66 + 0.16 * t; g = 0.52 + 0.13 * t; bl = 0.24 + 0.09 * t; }
       if (D) { const di = Math.floor((x - D.x0) / D.cel), dj = Math.floor((y - D.y0) / D.cel); if (di >= 0 && dj >= 0 && di < D.W && dj < D.H && D.M[dj * D.W + di]) { r = 1; g = 0.5; bl = 0.1; } }
       C[k * 3] = r; C[k * 3 + 1] = g; C[k * 3 + 2] = bl;
     }
@@ -6736,7 +6790,7 @@ async function v3Construir() {
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
   v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
   if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
-  $('v3dMsg').innerHTML = (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
+  $('v3dMsg').innerHTML = (d ? (d.multi ? `Multimina: todas las minas juntas (celda de ${d.cel} m). ` : v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
   v3Dibujar();
 }
 function v3MVP() {
@@ -6841,6 +6895,40 @@ async function v3Mostrar() {
     const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
   };
   setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
+})();
+// ===== V75: elegir los proyectos desde la vista 3D (es la misma selección de la pestaña 2) =====
+(() => {
+  const bar = document.querySelector('.v3d-bar'); if (!bar) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.id = 'v3dProyBtn';
+  const pop = document.createElement('div'); pop.className = 'topo-pop v3d-proy'; pop.id = 'v3dProyPop'; pop.hidden = true;
+  bar.prepend(b); $('tab3').appendChild(pop);
+  const pintarBtn = () => { const n = (t2.selIds || new Set()).size; b.textContent = `📁 Proyectos${n ? ' (' + n + ')' : ''} ▾`; };
+  const opts = sel => [...$(sel).options].map(o => `<option value="${esc(o.value)}"${o.value === $(sel).value ? ' selected' : ''}>${esc(o.textContent)}</option>`).join('');
+  function pintar() {
+    const vis = visibleProjects();
+    pop.innerHTML = `<div class="topo-h"><b>📁 Proyectos en 3D</b><button type="button" data-v="x" aria-label="Cerrar">✕</button></div>
+      <div class="grid2"><label class="f">Mina<select data-f="fMina">${opts('fMina')}</select></label><label class="f">Nivel<select data-f="fNivel">${opts('fNivel')}</select></label></div>
+      <div class="plist v3d-plist">${vis.length ? vis.map(p => `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)} ${tipoBadge(p)}</span><span class="pm">${p.holes.length} tal.</span></label>`).join('') : '<p class="note">No hay proyectos con ese filtro.</p>'}</div>
+      <div class="btnrow"><button type="button" class="btn sec small" data-v="all">Marcar los de la lista</button><button type="button" class="btn sec small" data-v="none">Ninguno</button><button type="button" class="btn small" data-v="ok">Ver en 3D</button></div>
+      <p class="note">Es la misma selección de la pestaña 2. La vista se arma alrededor de los proyectos marcados.</p>`;
+  }
+  let cambio = false;
+  const aplicar = () => { pintarBtn(); if (!cambio) return; cambio = false; t2.fitted = false; refreshT2(); v3.camOk = false; v3Mostrar(); };
+  b.onclick = () => { if (pop.hidden) { pintar(); pop.hidden = false; } else { pop.hidden = true; aplicar(); } };
+  pop.addEventListener('change', e => {
+    const f = e.target.closest('select[data-f]');
+    if (f) { const o = $(f.dataset.f); o.value = f.value; o.dispatchEvent(new Event('change', { bubbles: true })); pintar(); cambio = true; return; }
+    const cb = e.target.closest('input[type=checkbox][data-id]'); if (!cb) return;
+    if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id); cambio = true; pintarBtn();
+  });
+  pop.addEventListener('click', e => {
+    const x = e.target.closest('button[data-v]'); if (!x) return;
+    if (x.dataset.v === 'all') { visibleProjects().forEach(p => t2.selIds.add(p.id)); cambio = true; pintar(); pintarBtn(); }
+    else if (x.dataset.v === 'none') { t2.selIds = new Set(); cambio = true; pintar(); pintarBtn(); }
+    else { pop.hidden = true; aplicar(); }
+  });
+  pintarBtn();
+  const m0 = v3Mostrar; v3Mostrar = async function () { pintarBtn(); return m0.apply(this, arguments); };
 })();
 
 
@@ -7794,6 +7882,211 @@ async function fotoConDatos(m) {
 
 // Lupa al dibujar con el dedo (ver PlanView): activa con el Lápiz del avance o al dibujar un polígono de minado
 pv.wantsAim = () => (enFull && t2.tool === 'pen') || (typeof pmm !== 'undefined' && !!pmm.dib);
+
+// ===== V75: topografía en alta resolución (1 m) para la vista 3D =====
+// Al cargar el .msr se arma, además del DEM de 2 m (plano y avance), uno de 1 m cortado en mosaicos de 400 m.
+// Los mosaicos se suben a la nube aparte y la vista 3D baja solo los que rodean a los proyectos marcados.
+const HD_TILE = 400, HD_CEL = 1;
+const topoHD = { cache: new Map(), sinHD: new Set() };
+async function topoHDGuardar(id, t) {
+  const b = t.bbox || null;
+  // tamaño estimado a 1 m: si es enorme (o es un teléfono con una mina muy grande) se queda solo con 2 m
+  const dem = msrADem(t, HD_CEL);
+  const max = (typeof movil === 'function' && movil()) ? 12e6 : 45e6;
+  if (dem.W * dem.H > max) return 0;
+  const tiles = {};
+  const tx0 = Math.floor(dem.x0 / HD_TILE), tx1 = Math.floor((dem.x0 + dem.W * HD_CEL) / HD_TILE);
+  const ty0 = Math.floor(dem.y0 / HD_TILE), ty1 = Math.floor((dem.y0 + dem.H * HD_CEL) / HD_TILE);
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+    const gx0 = tx * HD_TILE, gy0 = ty * HD_TILE;
+    const i0 = Math.max(0, Math.round((gx0 - dem.x0) / HD_CEL)), i1 = Math.min(dem.W, Math.round((gx0 + HD_TILE - dem.x0) / HD_CEL));
+    const j0 = Math.max(0, Math.round((gy0 - dem.y0) / HD_CEL)), j1 = Math.min(dem.H, Math.round((gy0 + HD_TILE - dem.y0) / HD_CEL));
+    const W = i1 - i0, H = j1 - j0; if (W <= 0 || H <= 0) continue;
+    const Z = new Float32Array(W * H); let hay = false;
+    for (let j = 0; j < H; j++) { const o = (j0 + j) * dem.W + i0; for (let i = 0; i < W; i++) { const z = dem.Z[o + i]; Z[j * W + i] = z; if (z === z) hay = true; } }
+    if (!hay) continue;
+    const pk = await topoEmpacar({ W, H, x0: dem.x0 + i0 * HD_CEL, y0: dem.y0 + j0 * HD_CEL, cel: HD_CEL, nT: 0, mina: '-' }, Z);
+    tiles[tx + ',' + ty] = pk;
+  }
+  await idbSet('topohd:' + id, tiles);
+  topoHD.cache.set(id, tiles); topoHD.sinHD.delete(id);
+  const m = topo.lista.find(x => x.id === id); if (m) { m.hd = true; m.hdNube = false; await idbSet('topos', topo.lista); }
+  return Object.keys(tiles).length;
+}
+// sube los mosaicos de las topografías que ya están en la nube y aún no tienen los suyos
+async function topoHDSubir() {
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine) return;
+  for (const m of topo.lista.filter(x => x.hd && x.nube && !x.hdNube && !x.de)) {
+    const tiles = (await idbGet('topohd:' + m.id)) || null; if (!tiles) continue;
+    const arr = Object.entries(tiles).map(([k, pk]) => { const [tx, ty] = k.split(',').map(Number); return { tx, ty, meta: pk.meta, data: pk.data }; });
+    try {
+      let lote = [], tam = 0;
+      const enviar = async () => { if (lote.length) await rest.rpc('bhl_topo_hd_subir', { p_topo: m.id, p_tiles: lote }); lote = []; tam = 0; };
+      for (const t of arr) { if (tam + t.data.length > 1.5e6) await enviar(); lote.push(t); tam += t.data.length; }
+      await enviar();
+      m.hdNube = true; await idbSet('topos', topo.lista);
+    } catch (e) { console.warn('topo hd', e); }
+  }
+}
+(() => { if (typeof topoNube !== 'function') return; const t0 = topoNube; topoNube = async function () { const r = await t0.apply(this, arguments); try { await topoHDSubir(); } catch (e) {} return r; }; })();
+// Mosaico de 1 m para una zona (la de la vista 3D). Devuelve null si esa topografía no tiene alta resolución.
+async function topoHDRegion(id, R) {
+  if (!id || !R || topoHD.sinHD.has(id)) return null;
+  if (R.x1 - R.x0 > 2400 || R.y1 - R.y0 > 2400) return null;
+  let tiles = topoHD.cache.get(id);
+  if (!tiles) { tiles = (await idbGet('topohd:' + id)) || (await idbGet('topohdc:' + id)) || {}; topoHD.cache.set(id, tiles); }
+  const quiero = [];
+  for (let ty = Math.floor(R.y0 / HD_TILE); ty <= Math.floor(R.y1 / HD_TILE); ty++) for (let tx = Math.floor(R.x0 / HD_TILE); tx <= Math.floor(R.x1 / HD_TILE); tx++) quiero.push([tx, ty]);
+  const faltan = quiero.filter(([tx, ty]) => !(tx + ',' + ty in tiles));
+  if (faltan.length && typeof sync !== 'undefined' && sync.session && navigator.onLine) {
+    try {
+      const rs = (await rest.rpc('bhl_topo_hd', { p_topo: id, p_tiles: faltan })) || [];
+      rs.forEach(r => { tiles[r.tx + ',' + r.ty] = { meta: r.meta, data: r.data }; });
+      faltan.forEach(([tx, ty]) => { if (!(tx + ',' + ty in tiles)) tiles[tx + ',' + ty] = null; }); // no existe (fuera de la topografía)
+      if (!rs.length && !Object.values(tiles).some(Boolean)) { topoHD.sinHD.add(id); return null; }
+      await idbSet('topohdc:' + id, tiles);
+    } catch (e) { console.warn('topo hd bajar', e); }
+  }
+  const usar = quiero.map(([tx, ty]) => tiles[tx + ',' + ty]).filter(Boolean);
+  if (!usar.length) { topoHD.sinHD.add(id); return null; }
+  const x0 = Math.floor(R.x0), y0 = Math.floor(R.y0), W = Math.ceil(R.x1 - x0), H = Math.ceil(R.y1 - y0);
+  const Z = new Float32Array(W * H).fill(NaN);
+  for (const pk of usar) {
+    const mt = pk.meta, Zt = await topoDesempacar(mt, pk.data);
+    const oi = Math.round((mt.x0 - x0) / HD_CEL), oj = Math.round((mt.y0 - y0) / HD_CEL);
+    for (let j = 0; j < mt.H; j++) { const J = oj + j; if (J < 0 || J >= H) continue;
+      for (let i = 0; i < mt.W; i++) { const I = oi + i; if (I < 0 || I >= W) continue; Z[J * W + I] = Zt[j * mt.W + i]; } }
+  }
+  return { x0, y0, cel: HD_CEL, W, H, Z, hd: true };
+}
+
+// ===== V76: vista Multimina (como la de MinePlan): todas las minas juntas =====
+// · Topografía: además de «Hoy», la más reciente de cada una de las otras minas, en el plano y en 3D.
+// · Colores de la topografía: gris (como antes) o tierra (como MinePlan).
+// · Taladros alejados: se pintan como manchas de color por clase (Fe) o por material M (S/FeS).
+const multi = { on: false, pal: 'gris', dems: new Map(), img: new Map() };
+try { multi.on = localStorage.getItem('bhl-multi') === '1'; multi.pal = localStorage.getItem('bhl-topo-pal') || 'gris'; } catch (e) {}
+function multiIds() {
+  if (!multi.on) return [];
+  const act = topo.lista.find(t => t.id === topo.act), mAct = act ? minaDe(act) : null, porMina = new Map();
+  topo.lista.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).forEach(t => { const m = minaDe(t) || '?'; if (m === mAct || porMina.has(m)) return; porMina.set(m, t.id); });
+  return [...porMina.values()];
+}
+async function multiDem(id) {
+  if (multi.dems.has(id)) return multi.dems.get(id);
+  if (topo.dems.has(id)) { const d = topo.dems.get(id); multi.dems.set(id, d); return d; }
+  const meta = topo.lista.find(t => t.id === id); if (!meta) return null;
+  const Z = await idbGet('topo:' + id); if (!Z) return null;
+  const dem = { x0: meta.x0, y0: meta.y0, cel: meta.cel, W: meta.W, H: meta.H, Z: Z instanceof Float32Array ? Z : new Float32Array(Z) };
+  multi.dems.set(id, dem); return dem;
+}
+async function multiCargar() {
+  const ids = multiIds();
+  for (const k of [...multi.dems.keys()]) if (!ids.includes(k)) { multi.dems.delete(k); multi.img.delete(k); }
+  for (const id of ids) await multiDem(id);
+  pv.draw();
+}
+// paleta «tierra» (dorada, como MinePlan) para el relieve del plano
+(() => {
+  const f0 = topoImagen;
+  topoImagen = function (id, dem) {
+    if (multi.pal !== 'tierra') return f0.apply(this, arguments);
+    const key = 'T:' + id; if (topo.img.has(key)) return topo.img.get(key);
+    const { W, H, Z } = dem, st = W * H > 2.2e6 ? 2 : 1, cel = dem.cel * st, Wi = Math.ceil(W / st), Hi = Math.ceil(H / st);
+    const cv = document.createElement('canvas'); cv.width = Wi; cv.height = Hi; cv._st = st;
+    const cx = cv.getContext('2d'), im = cx.createImageData(Wi, Hi), d = im.data;
+    let zmin = Infinity, zmax = -Infinity; for (let k = 0; k < Z.length; k++) { const z = Z[k]; if (z === z) { if (z < zmin) zmin = z; if (z > zmax) zmax = z; } }
+    const az = 315 * Math.PI / 180, alt = 45 * Math.PI / 180, ce = Math.cos(Math.PI / 2 - alt), se = Math.sin(Math.PI / 2 - alt);
+    const g = (i, j) => { i = Math.max(0, Math.min(W - 1, i)); j = Math.max(0, Math.min(H - 1, j)); return Z[j * W + i]; };
+    for (let jj = 0; jj < Hi; jj++) for (let ii = 0; ii < Wi; ii++) {
+      const i = ii * st, j = jj * st, z = Z[j * W + i]; const o = ((Hi - 1 - jj) * Wi + ii) * 4; if (z !== z) { d[o + 3] = 0; continue; }
+      let zl = g(i - st, j), zr = g(i + st, j), zd = g(i, j - st), zu = g(i, j + st); if (zl !== zl) zl = z; if (zr !== zr) zr = z; if (zd !== zd) zd = z; if (zu !== zu) zu = z;
+      const dx = (zr - zl) / (2 * cel), dy = (zu - zd) / (2 * cel), sl = Math.atan(1.6 * Math.hypot(dx, dy)), asp = Math.atan2(dy, -dx);
+      let sh = ce * Math.cos(sl) + se * Math.sin(sl) * Math.cos(az - Math.PI / 2 + asp); sh = Math.max(0, Math.min(1, sh));
+      const t = (z - zmin) / Math.max(1, zmax - zmin), k = 0.30 + 0.75 * sh;
+      d[o] = Math.min(255, (176 + 40 * t) * k); d[o + 1] = Math.min(255, (138 + 32 * t) * k); d[o + 2] = Math.min(255, (64 + 22 * t) * k); d[o + 3] = 235;
+    }
+    cx.putImageData(im, 0, 0); topo.img.set(key, cv); return cv;
+  };
+})();
+// el plano dibuja primero las otras minas y encima la topografía «Hoy»
+(() => {
+  const b0 = pv.before;
+  pv.before = (ctx, v) => {
+    if (topo.ver && multi.on) multiIds().forEach(id => {
+      const dem = multi.dems.get(id) || topo.dems.get(id); if (!dem) return;
+      const img = topoImagen(id, dem), ex = img.width * (img._st || 1) * dem.cel, ey = img.height * (img._st || 1) * dem.cel;
+      const x = v.sx(dem.x0), y = v.sy(dem.y0 + ey), w = ex * v.v.s, h = ey * v.v.s;
+      if (x > v.W || y > v.H || x + w < 0 || y + h < 0) return;
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x, y, w, h); ctx.restore();
+    });
+    if (b0) b0(ctx, v);
+  };
+})();
+// opciones en la ventana de Topografía
+(() => {
+  const ver = $('topoVer'); if (!ver) return;
+  const box = document.createElement('div'); box.className = 'multi-opc';
+  box.innerHTML = `<label class="chk"><input type="checkbox" id="multiOn"> Todas las minas juntas (Multimina: la más reciente de cada mina)</label>
+    <label class="f inl">Colores del relieve <select id="topoPal"><option value="gris">Gris</option><option value="tierra">Tierra (como MinePlan)</option></select></label>`;
+  ver.closest('label').after(box);
+  $('multiOn').checked = multi.on; $('topoPal').value = multi.pal;
+  $('multiOn').onchange = async e => { multi.on = e.target.checked; try { localStorage.setItem('bhl-multi', multi.on ? '1' : '0'); } catch (er) {} if (multi.on) { await multiCargar(); if (typeof fitMultimina === 'function') fitMultimina(); } pv.draw(); if (!$('tab3').hidden) { v3.built = ''; v3Mostrar(); } };
+  $('topoPal').onchange = e => { multi.pal = e.target.value; try { localStorage.setItem('bhl-topo-pal', multi.pal); } catch (er) {} pv.draw(); if (!$('tab3').hidden) { v3.built = ''; v3Mostrar(); } };
+  if (multi.on) setTimeout(() => { multiCargar().catch(() => {}); }, 1500);
+})();
+// encuadrar todas las minas
+function fitMultimina() {
+  const ds = [...multiIds().map(id => multi.dems.get(id)), topo.dems.get(topo.act)].filter(Boolean); if (!ds.length) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  ds.forEach(d => { x0 = Math.min(x0, d.x0); y0 = Math.min(y0, d.y0); x1 = Math.max(x1, d.x0 + d.W * d.cel); y1 = Math.max(y1, d.y0 + d.H * d.cel); });
+  pv.fit({ x0, y0, x1, y1 }); pv.draw();
+}
+// 3D: una sola malla con todas las minas (a la resolución que permita el equipo)
+async function multiDem3D(R) {
+  const ds = [topo.act ? await topoDem(topo.act) : null, ...(await Promise.all(multiIds().map(multiDem)))].filter(Boolean);
+  if (ds.length < 2) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  ds.forEach(d => { x0 = Math.min(x0, d.x0); y0 = Math.min(y0, d.y0); x1 = Math.max(x1, d.x0 + d.W * d.cel); y1 = Math.max(y1, d.y0 + d.H * d.cel); });
+  if (R) { x0 = Math.max(x0, R.x0); y0 = Math.max(y0, R.y0); x1 = Math.min(x1, R.x1); y1 = Math.min(y1, R.y1); }
+  if (x1 <= x0 || y1 <= y0) return null;
+  const lado = (typeof movil === 'function' && movil()) ? 900 : 2000, cel = Math.max(2, Math.ceil(Math.max(x1 - x0, y1 - y0) / lado));
+  const W = Math.ceil((x1 - x0) / cel), H = Math.ceil((y1 - y0) / cel), Z = new Float32Array(W * H).fill(NaN);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const x = x0 + (i + 0.5) * cel, y = y0 + (j + 0.5) * cel;
+    for (const d of ds) { const z = demZ(d, x, y); if (z != null && z === z) { Z[j * W + i] = z; break; } }
+  }
+  return { x0, y0, cel, W, H, Z, multi: true };
+}
+
+// ===== V77: app de Android (la misma app del iPhone dentro de una app instalable) =====
+// · Compartir (WhatsApp, correo): el WebView de Android no tiene navigator.share; se usa la hoja de compartir de Android.
+// · Botón «atrás» del teléfono: cierra primero la ventana abierta, luego la pantalla completa, luego vuelve a «Avance».
+(() => {
+  const AND = typeof window.BHLAndroid !== 'undefined' && window.BHLAndroid;
+  if (AND) document.body.classList.add('android');
+  if (AND && typeof AND.compartir === 'function' && typeof compartirArchivo === 'function') {
+    const c0 = compartirArchivo;
+    compartirArchivo = async function (blob, nombre, texto, msgEl) {
+      try {
+        const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(blob); });
+        AND.compartir(nombre, blob.type || 'application/octet-stream', b64); return true;
+      } catch (e) { return c0.apply(this, arguments); }
+    };
+  }
+  // Devuelve true si cerró algo (la app nativa no sale de la app en ese caso)
+  window.bhlAtras = function () {
+    const abierto = sel => { const el = typeof sel === 'string' ? document.querySelector(sel) : sel; return el && !el.hidden && getComputedStyle(el).display !== 'none' ? el : null; };
+    const hoja = abierto('#capasHoja'); if (hoja) { hoja.hidden = true; const f = document.querySelector('.capas-fondo'); if (f) f.hidden = true; return true; }
+    for (const id of ['fotoDlg', 'dlgTab', 'dlgCarga', 'v3dProyPop', 'pmPop', 'topoPop', 'fotoPan']) { const el = abierto('#' + id); if (el) { el.hidden = true; try { pv.draw(); } catch (e) {} return true; } }
+    const dlg = [...document.querySelectorAll('.dlg:not([hidden]), dialog[open]')].find(d => getComputedStyle(d).display !== 'none'); if (dlg) { if (dlg.close) dlg.close(); else dlg.hidden = true; return true; }
+    if (typeof t2 !== 'undefined' && t2.draft && t2.draft.length) { t2.draft = []; try { pv.draw(); paintHint(); } catch (e) {} return true; }
+    if (typeof pmm !== 'undefined' && pmm.dib) { pmm.dib = null; try { pmmPintar(); pv.draw(); } catch (e) {} return true; }
+    if (typeof enFull !== 'undefined' && enFull) { setFull(false); return true; }
+    if (typeof ES_APP !== 'undefined' && ES_APP && typeof appTab === 'function' && document.body.dataset.apptab && document.body.dataset.apptab !== 'avance') { appTab('avance'); return true; }
+    return false;
+  };
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
