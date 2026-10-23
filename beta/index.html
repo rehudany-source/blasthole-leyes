@@ -898,7 +898,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v76</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v77</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -8034,6 +8034,35 @@ async function multiDem3D(R) {
   }
   return { x0, y0, cel, W, H, Z, multi: true };
 }
+
+// ===== V77: app de Android (la misma app del iPhone dentro de una app instalable) =====
+// · Compartir (WhatsApp, correo): el WebView de Android no tiene navigator.share; se usa la hoja de compartir de Android.
+// · Botón «atrás» del teléfono: cierra primero la ventana abierta, luego la pantalla completa, luego vuelve a «Avance».
+(() => {
+  const AND = typeof window.BHLAndroid !== 'undefined' && window.BHLAndroid;
+  if (AND) document.body.classList.add('android');
+  if (AND && typeof AND.compartir === 'function' && typeof compartirArchivo === 'function') {
+    const c0 = compartirArchivo;
+    compartirArchivo = async function (blob, nombre, texto, msgEl) {
+      try {
+        const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(blob); });
+        AND.compartir(nombre, blob.type || 'application/octet-stream', b64); return true;
+      } catch (e) { return c0.apply(this, arguments); }
+    };
+  }
+  // Devuelve true si cerró algo (la app nativa no sale de la app en ese caso)
+  window.bhlAtras = function () {
+    const abierto = sel => { const el = typeof sel === 'string' ? document.querySelector(sel) : sel; return el && !el.hidden && getComputedStyle(el).display !== 'none' ? el : null; };
+    const hoja = abierto('#capasHoja'); if (hoja) { hoja.hidden = true; const f = document.querySelector('.capas-fondo'); if (f) f.hidden = true; return true; }
+    for (const id of ['fotoDlg', 'dlgTab', 'dlgCarga', 'v3dProyPop', 'pmPop', 'topoPop', 'fotoPan']) { const el = abierto('#' + id); if (el) { el.hidden = true; try { pv.draw(); } catch (e) {} return true; } }
+    const dlg = [...document.querySelectorAll('.dlg:not([hidden]), dialog[open]')].find(d => getComputedStyle(d).display !== 'none'); if (dlg) { if (dlg.close) dlg.close(); else dlg.hidden = true; return true; }
+    if (typeof t2 !== 'undefined' && t2.draft && t2.draft.length) { t2.draft = []; try { pv.draw(); paintHint(); } catch (e) {} return true; }
+    if (typeof pmm !== 'undefined' && pmm.dib) { pmm.dib = null; try { pmmPintar(); pv.draw(); } catch (e) {} return true; }
+    if (typeof enFull !== 'undefined' && enFull) { setFull(false); return true; }
+    if (typeof ES_APP !== 'undefined' && ES_APP && typeof appTab === 'function' && document.body.dataset.apptab && document.body.dataset.apptab !== 'avance') { appTab('avance'); return true; }
+    return false;
+  };
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
