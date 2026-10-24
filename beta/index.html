@@ -900,7 +900,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v81</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v82</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7005,13 +7005,25 @@ function pmCalcularHoles(lista) {
   // Antes salían solo de los muestreados: si se muestrea una fila sí y otra no, el radio quedaba en ~3 m y los
   // polígonos salían como islas sueltas por taladro. Ahora cada punto de la huella toma la clase del taladro con ley
   // más cercano (como los polígonos de MinePlan), y fuera de la huella no se pinta nada.
-  const todos = lista.filter(h => !h.dup).map(h => ({ x: h.x + mx, y: h.y + my }));
+  const todosH = lista.filter(h => !h.dup), todos = todosH.map(h => ({ x: h.x + mx, y: h.y + my }));
   const G = new Map(), gk = (x, y) => Math.floor(x / 10) + ',' + Math.floor(y / 10);
   todos.forEach((s, i) => { const k = gk(s.x, s.y); if (!G.has(k)) G.set(k, []); G.get(k).push(i); });
   const vecinos = (x, y, r) => { const out = [], i0 = Math.floor((x - r) / 10), i1 = Math.floor((x + r) / 10), j0 = Math.floor((y - r) / 10), j1 = Math.floor((y + r) / 10); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = G.get(i + ',' + j); if (a) out.push(...a); } return out; };
   const nn = todos.map((s, i) => { let d = Infinity; vecinos(s.x, s.y, 15).forEach(j => { if (j === i) return; const dd = Math.hypot(todos[j].x - s.x, todos[j].y - s.y); if (dd > 0.5 && dd < d) d = dd; }); return d; }).filter(d => d < Infinity).sort((a, b) => a - b);
   const esp = nn.length ? nn[Math.floor(nn.length / 2)] : 5, R = Math.max(2.5, Math.min(8, esp * 0.75));
-  const Rmax = Math.max(R, Math.min(20, esp * 2.6)); // hasta dónde llega la ley de un taladro muestreado dentro de la huella
+  // V82: un taladro sin ley solo toma la clase de sus vecinos si está ENTRE taladros muestreados (fila sí, fila no):
+  // con al menos 2 muestreados a ≤ 1.6 espaciamientos y por lados distintos. Un taladro sin ley en el borde o en una
+  // zona sin muestrear (desmonte) NO recibe ley ni polígono.
+  const Rmax = Math.max(R, esp * 1.6);
+  const Gs = new Map(); src.forEach((t, i) => { const k = gk(t.x, t.y); if (!Gs.has(k)) Gs.set(k, []); Gs.get(k).push(i); });
+  const conLey = new Set(src.map(t => t.h.ck));
+  const entre = h => {
+    const ang = []; const i0 = Math.floor((h.x - Rmax) / 10), i1 = Math.floor((h.x + Rmax) / 10), j0 = Math.floor((h.y - Rmax) / 10), j1 = Math.floor((h.y + Rmax) / 10);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) (Gs.get(i + ',' + j) || []).forEach(q => { const t = src[q], d = Math.hypot(t.x - h.x, t.y - h.y); if (d > 0.3 && d <= Rmax) ang.push(Math.atan2(t.y - h.y, t.x - h.x)); });
+    if (ang.length < 2) return false;
+    ang.sort((a, b) => a - b); let gap = 0; for (let k = 0; k < ang.length; k++) { const g = (k ? ang[k] - ang[k - 1] : ang[0] + 2 * Math.PI - ang[ang.length - 1]); if (g > gap) gap = g; }
+    return gap < Math.PI * 1.45; // los muestreados no están todos de un solo lado
+  };
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; todos.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); });
   const ar = (x1 - x0 + 2 * R) * (y1 - y0 + 2 * R), cel = ar < 6e5 ? 0.5 : ar < 2.5e6 ? 1 : 2; x0 = Math.floor(x0 - R - cel); y0 = Math.floor(y0 - R - cel);
   const W = Math.ceil((x1 + R + cel - x0) / cel), H = Math.ceil((y1 + R + cel - y0) / cel);
@@ -7019,7 +7031,8 @@ function pmCalcularHoles(lista) {
   const celDe = t => { const i = Math.floor((t.x - x0) / cel), j = Math.floor((t.y - y0) / cel); return i < 0 || j < 0 || i >= W || j >= H ? -1 : j * W + i; };
   // huella: celdas a menos de R de algún taladro del proyecto (con o sin ley)
   const F = new Uint8Array(W * H), rf = Math.ceil(R / cel);
-  todos.forEach(s => {
+  todos.forEach((s, ti) => {
+    const hh = todosH[ti]; if (!conLey.has(hh.ck) && !entre(s)) return; // sin ley y fuera de la zona muestreada: no se pinta
     const ci = Math.floor((s.x - x0) / cel), cj = Math.floor((s.y - y0) / cel);
     for (let j = cj - rf; j <= cj + rf; j++) { if (j < 0 || j >= H) continue; const yc = y0 + (j + 0.5) * cel;
       for (let i = ci - rf; i <= ci + rf; i++) { if (i < 0 || i >= W) continue; const xc = x0 + (i + 0.5) * cel; if (Math.hypot(xc - s.x, yc - s.y) <= R) F[j * W + i] = 1; } }
