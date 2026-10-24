@@ -892,13 +892,15 @@ body.esbeta .cadwrap.full { --st: calc(env(safe-area-inset-top, 0px) + 26px); }
 
 body:not(.app) .v3d-capas { display: block; } body:not(.app) .v3d-capas > summary { display: none; }
 body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.topo-umb { margin: 6px 0; } .topo-umb input { width: 100%; }
+.topo-tab { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: .8rem; } .topo-tab th, .topo-tab td { padding: 3px 5px; border-bottom: 1px solid var(--line); text-align: right; } .topo-tab th:first-child, .topo-tab td:first-child { text-align: left; } .topo-tab .si { color: #d96a00; font-weight: 700; }
 </style>
 
 <div class="wrap">
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v78</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v79</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1274,6 +1276,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
             <div class="topo-h"><b>⛰ Topografía</b><button type="button" id="topoCerrar" aria-label="Cerrar">✕</button></div>
             <div id="topoLista" class="topo-lista"></div>
             <label class="chk"><input type="checkbox" id="topoVer" checked> Ver relieve en el plano</label>
+            <div class="grid2 topo-umb"><label class="f" title="Por debajo de ~0.5 m la diferencia puede ser error de medición de la topografía">Diferencia mínima (m)<input type="number" id="topoDz" min="0.2" max="15" step="0.1" value="1.5" inputmode="decimal"></label><label class="f">Área mínima (m²)<input type="number" id="topoAmin" min="4" max="5000" step="4" value="100" inputmode="numeric"></label></div>
             <div class="btnrow"><button type="button" class="btn small" id="topoAvance">Avance entre las dos fechas</button><label class="btn sec small">Subir .msr<input type="file" id="topoFile" accept=".msr" hidden></label></div>
             <p class="msg" id="topoMsg"></p>
           </div>
@@ -6183,6 +6186,9 @@ pv.after = (ctx, v) => {
 /* ===== V48: topografía de MinePlan (.msr) ===== */
 const topo = { lista: [], act: '', ant: '', ver: true, dems: new Map(), img: new Map(), dif: null, minados: null };
 const TOPO_MAX = 6, TOPO_POR_MINA = 4, TOPO_CEL = 2, TOPO_BAJA = 1.5;
+// V79: el usuario elige desde cuántos metros de diferencia (y desde qué área) se cuenta como minado
+function topoBaja() { const v = parseFloat(($('topoDz') || {}).value); return v > 0 ? v : TOPO_BAJA; }
+function topoAreaMin() { const v = parseFloat(($('topoAmin') || {}).value); return v > 0 ? v : 100; }
 // V52: mina desde el nombre (TOPO_M14A_15_10_26, TOPO M14 15.10.26 → 14A, 14)
 function topoMina(nombre) { const m = String(nombre || '').toUpperCase().match(/(?:^|[^A-Z0-9])M(?:INA)?[\s_.-]*0*(\d{1,2}[A-Z]?)(?=[^0-9A-Z]|$)/); return m ? m[1] : ''; }
 const minaDe = t => t.mina || topoMina(t.nombre);
@@ -6350,10 +6356,11 @@ async function topoAvance() {
   if (!A || !B) return { err: 'Necesitas dos topografías cargadas (la de hoy y una anterior).' };
   const ma = topo.lista.find(t => t.id === topo.act), mb = topo.lista.find(t => t.id === topo.ant);
   const cel = A.cel, W = A.W, H = A.H, M = new Uint8Array(W * H), dz = new Float32Array(W * H);
+  const dzMin = topoBaja(), aMin = topoAreaMin();
   let n = 0;
   for (let j = 0; j < H; j++) { const y = A.y0 + (j + 0.5) * cel; for (let i = 0; i < W; i++) { const za = A.Z[j * W + i]; if (za !== za) continue; const x = A.x0 + (i + 0.5) * cel;
     const bi = Math.floor((x - B.x0) / B.cel), bj = Math.floor((y - B.y0) / B.cel); if (bi < 0 || bj < 0 || bi >= B.W || bj >= B.H) continue; const zb = B.Z[bj * B.W + bi]; if (zb !== zb) continue;
-    const d = zb - za; if (d > TOPO_BAJA) { M[j * W + i] = 1; dz[j * W + i] = d; n++; } } }
+    const d = zb - za; if (d > dzMin) { M[j * W + i] = 1; dz[j * W + i] = d; n++; } } }
   // limpieza: quita celdas sueltas (ruido de la triangulación)
   const M2 = new Uint8Array(W * H);
   for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) { let c = 0; for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) c += M[(j + b) * W + i + a]; M2[j * W + i] = c >= 5 ? 1 : 0; }
@@ -6362,13 +6369,32 @@ async function topoAvance() {
   for (let k = 0; k < W * H; k++) { if (!M2[k] || lab[k]) continue; L++; const st = [k]; lab[k] = L; let nc = 0, vol = 0;
     while (st.length) { const q = st.pop(); nc++; vol += dz[q] * cel * cel; const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (M2[r] && !lab[r]) { lab[r] = L; st.push(r); } }); }
     zonas.push({ L, area: nc * cel * cel, vol }); }
-  const grandes = zonas.filter(z => z.area >= 100);
+  const grandes = zonas.filter(z => z.area >= aMin);
   const Mf = new Uint8Array(W * H), keepL = new Set(grandes.map(z => z.L)); for (let k = 0; k < W * H; k++) if (keepL.has(lab[k])) Mf[k] = 1;
   const anillo = R => { let f = 0, dm = -1; R.forEach((q, i) => { const d = (q[0] - R[0][0]) ** 2 + (q[1] - R[0][1]) ** 2; if (d > dm) { dm = d; f = i; } }); return topoSimplificar(R.slice(0, f + 1), 0.6).concat(topoSimplificar(R.slice(f).concat([R[0]]), 0.6).slice(1, -1)); };
-  const polys = topoTrazar(Mf, W, H).map(R => anillo(R).map(([i, j]) => ({ x: A.x0 + i * cel, y: A.y0 + j * cel }))).filter(P => P.length >= 3 && polyArea(P) >= 100 && signedArea(P) > 0);
+  const polys = topoTrazar(Mf, W, H).map(R => anillo(R).map(([i, j]) => ({ x: A.x0 + i * cel, y: A.y0 + j * cel }))).filter(P => P.length >= 3 && polyArea(P) >= Math.min(aMin, 100) && signedArea(P) > 0);
   topo.dif = { x0: A.x0, y0: A.y0, cel, W, H, M: Mf, img: null };
   const area = grandes.reduce((s, z) => s + z.area, 0), vol = grandes.reduce((s, z) => s + z.vol, 0);
   return { polys, area, vol, ma, mb };
+}
+// Tabla por proyecto marcado: superficie (mediana) en cada fecha, la mayor bajada y el área que bajó más que el mínimo elegido
+function topoTablaProyectos(A, B, ma, mb) {
+  const dzMin = topoBaja(), filas = [];
+  t2.projs.forEach(p => {
+    const hs = t2.holes.filter(h => h.pid === p.id); if (!hs.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; hs.forEach(h => { x0 = Math.min(x0, h.x); x1 = Math.max(x1, h.x); y0 = Math.min(y0, h.y); y1 = Math.max(y1, h.y); });
+    const za = [], zb = []; let max = -Infinity, n = 0, tot = 0;
+    for (let y = y0 + A.cel / 2; y <= y1; y += A.cel) for (let x = x0 + A.cel / 2; x <= x1; x += A.cel) {
+      const a = demZ(A, x, y), b = demZ(B, x, y); if (a == null || b == null || a !== a || b !== b) continue;
+      za.push(a); zb.push(b); tot++; const d = b - a; if (d > max) max = d; if (d > dzMin) n++;
+    }
+    if (!tot) { filas.push(`<tr><td>${esc(p.name)}</td><td colspan="4">fuera de alguna topografía</td></tr>`); return; }
+    const med = v => { v.sort((p, q) => p - q); return v[Math.floor(v.length / 2)]; };
+    const area = n * A.cel * A.cel;
+    filas.push(`<tr><td>${esc(p.name)}</td><td>${med(zb).toFixed(1)}</td><td>${med(za).toFixed(1)}</td><td${max > dzMin ? ' class="si"' : ''}>${max.toFixed(1)}</td><td${area ? ' class="si"' : ''}>${Math.round(area).toLocaleString('es-PE')}</td></tr>`);
+  });
+  if (!filas.length) return '';
+  return `<table class="topo-tab"><thead><tr><th>Proyecto</th><th>Superficie ${fmtDate(mb.fecha).slice(0, 5)} (m)</th><th>Superficie ${fmtDate(ma.fecha).slice(0, 5)} (m)</th><th>Mayor bajada (m)</th><th>Área que bajó &gt; ${dzMin} m (m²)</th></tr></thead><tbody>${filas.join('')}</tbody></table>`;
 }
 async function topoDiagProyectos(zonas) {
   if (!t2.holes.length) return '';
@@ -6384,11 +6410,12 @@ async function topoDiagProyectos(zonas) {
     if (za == null || zb == null) { lineas.push(`<b>${esc(p.name)}</b>: fuera de alguna de las dos topografías`); return; }
     const baja = zb - za; let t = `<b>${esc(p.name)}</b>: bajó ${f1(baja)} m entre las dos fechas`;
     if (zc != null && zc - zb > 1.5) t += `; el ${fmtDate(mb.fecha)} la superficie ya estaba ${f1(zc - zb)} m bajo el collar (se minó antes de esa fecha)`;
-    else if (Math.abs(baja) <= 1.5) t += ' (sin minado en ese tiempo)';
+    else if (Math.abs(baja) <= topoBaja()) t += ' (sin minado en ese tiempo)';
     lineas.push(t);
   });
-  if (!lineas.length) return '';
-  return `<br><b>Sin avance entre el ${fmtDate(mb.fecha)} y el ${fmtDate(ma.fecha)}:</b><br>` + lineas.slice(0, 12).join('<br>') + (lineas.length > 12 ? `<br>y ${lineas.length - 12} proyecto(s) más.` : '') + '<br>Si se minó en esas fechas, revisa que el levantamiento incluya esa zona, o compara con una topografía más antigua.';
+  const tabla = topoTablaProyectos(A, B, ma, mb);
+  if (!lineas.length) return tabla;
+  return tabla + `<br><b>Sin avance entre el ${fmtDate(mb.fecha)} y el ${fmtDate(ma.fecha)}:</b><br>` + lineas.slice(0, 12).join('<br>') + (lineas.length > 12 ? `<br>y ${lineas.length - 12} proyecto(s) más.` : '') + '<br>Si se minó en esas fechas, revisa que el levantamiento incluya esa zona, o compara con una topografía más antigua.';
 }
 function signedArea(P) { let s = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) s += (P[j].x * P[i].y - P[i].x * P[j].y); return s / 2; }
 function topoPintar() {
@@ -6410,6 +6437,7 @@ function topoInfo(extra) {
   const b = $('topoBtn'), pop = $('topoPop'); if (!b || !pop) return;
   b.onclick = async () => { pop.hidden = !pop.hidden; if (!pop.hidden) { topoPintar(); if (topo.act) { await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw(); } } };
   $('topoCerrar').onclick = () => { pop.hidden = true; };
+  [['topoDz', 'bhl-topo-dz'], ['topoAmin', 'bhl-topo-amin']].forEach(([id, k]) => { const el = $(id); if (!el) return; try { const v = localStorage.getItem(k); if (v) el.value = v; } catch (e) {} el.addEventListener('change', () => { try { localStorage.setItem(k, el.value); } catch (e) {} }); });
   $('topoVer').onchange = e => { topo.ver = e.target.checked; topoDefaults(); topoPintar(); pv.draw(); };
   pop.addEventListener('change', async e => {
     if (e.target.dataset && e.target.dataset.topomina) {
@@ -6444,9 +6472,9 @@ function topoInfo(extra) {
     topoInfo('Comparando las dos topografías…'); await new Promise(r => setTimeout(r, 30));
     const r = await topoAvance(); if (r.err) { topoInfo(`<span class="errc">${esc(r.err)}</span>`); return; }
     const nf = n => Math.round(n).toLocaleString('es-PE');
-    let txt = `Del ${fmtDate(r.mb.fecha)} al ${fmtDate(r.ma.fecha)} se minó <b>${nf(r.area)} m²</b> (≈ ${nf(r.vol)} m³), en naranja en el plano.`;
+    let txt = `Del ${fmtDate(r.mb.fecha)} al ${fmtDate(r.ma.fecha)} se minó <b>${nf(r.area)} m²</b> (≈ ${nf(r.vol)} m³), en naranja en el plano (cuenta lo que bajó más de ${topoBaja()} m, en zonas de ${topoAreaMin()} m² o más).`;
     if (r.ma.fecha < r.mb.fecha) txt += ' <span class="errc">Ojo: «Hoy» es más antigua que «Antes».</span>';
-    if (!r.polys.length) { let dg = ''; try { dg = await topoDiagProyectos([]); } catch (e) {} topoInfo(txt + ' No hay zonas de más de 100 m² que hayan bajado más de 1.5 m.' + dg); pv.draw(); return; }
+    if (!r.polys.length) { let dg = ''; try { dg = await topoDiagProyectos([]); } catch (e) {} topoInfo(txt + ` No hay zonas de más de ${topoAreaMin()} m² que hayan bajado más de ${topoBaja()} m.` + dg); pv.draw(); return; }
     // se usan como avance solo las zonas que tocan los taladros de los proyectos marcados
     const enMalla = t2.holes.length ? r.polys.filter(P => t2.holes.some(h => pointInPoly(h.x, h.y, P))) : [];
     if (enMalla.length) { if (t2.shapes.length) t2.shapes = []; enMalla.forEach(P => t2.shapes.push({ id: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), pts: P, pid: '', w: null, topo: true })); t2.viewing = null; selectFromShapes(); computeT2(); if (typeof paintTools === 'function') paintTools(); }
