@@ -900,7 +900,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v80</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v81</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7016,6 +7016,7 @@ function pmCalcularHoles(lista) {
   const ar = (x1 - x0 + 2 * R) * (y1 - y0 + 2 * R), cel = ar < 6e5 ? 0.5 : ar < 2.5e6 ? 1 : 2; x0 = Math.floor(x0 - R - cel); y0 = Math.floor(y0 - R - cel);
   const W = Math.ceil((x1 + R + cel - x0) / cel), H = Math.ceil((y1 + R + cel - y0) / cel);
   const C = new Int8Array(W * H).fill(-1), D = new Float32Array(W * H).fill(Infinity), S = new Int32Array(W * H).fill(-1);
+  const celDe = t => { const i = Math.floor((t.x - x0) / cel), j = Math.floor((t.y - y0) / cel); return i < 0 || j < 0 || i >= W || j >= H ? -1 : j * W + i; };
   // huella: celdas a menos de R de algún taladro del proyecto (con o sin ley)
   const F = new Uint8Array(W * H), rf = Math.ceil(R / cel);
   todos.forEach(s => {
@@ -7060,7 +7061,8 @@ function pmCalcularHoles(lista) {
       const lab = new Int32Array(W * H); let L = 0;
       for (let k0 = 0; k0 < W * H; k0++) { if (C[k0] < 0 || lab[k0]) continue; L++; const ci = C[k0], st = [k0], z = [], tal = new Set(); lab[k0] = L;
         while (st.length) { const q = st.pop(); z.push(q); if (S[q] >= 0) tal.add(S[q]); const i = q % W, j = (q - i) / W; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) return; const r = jj * W + ii; if (C[r] === ci && !lab[r]) { lab[r] = L; st.push(r); } }); }
-        if (!tal.size) continue; const feZ = [...tal].reduce((s, q) => s + src[q].fe, 0) / tal.size, cz = pmClase(feZ, null);
+        const zs = new Set(z), dentro = src.filter(t => zs.has(celDe(t))), usar = dentro.length ? dentro : [...tal].map(q => src[q]);
+        if (!usar.length) continue; const feZ = usar.reduce((s, t) => s + t.fe * densFe(t.fe), 0) / usar.reduce((s, t) => s + densFe(t.fe), 0), cz = pmClase(feZ, null);
         if (cz > ci) z.forEach(q => { C[q] = cz; }); }
     }
   }
@@ -7080,10 +7082,14 @@ function pmCalcularHoles(lista) {
       let i0 = W, j0 = H, i1 = 0, j1 = 0; z.cel.forEach(q => { const i = q % W, j = (q - i) / W; if (i < i0) i0 = i; if (i > i1) i1 = i; if (j < j0) j0 = j; if (j > j1) j1 = j; });
       const w = i1 - i0 + 1, h = j1 - j0 + 1, Mz = new Uint8Array(w * h); z.cel.forEach(q => { const i = q % W, j = (q - i) / W; Mz[(j - j0) * w + (i - i0)] = 1; });
       const rings = topoTrazar(Mz, w, h).map(r => toXY(anillo(r.map(([a, b]) => [a + i0, b + j0])))).filter(P => P.length >= 3);
-      const tal = new Set(); z.cel.forEach(q => { if (S[q] >= 0) tal.add(S[q]); });
-      const ts = [...tal].map(i => src[i]);
-      const area = z.cel.length * cel * cel, dens = ts.length ? ts.reduce((s, t) => s + densFe(t.fe), 0) / ts.length : densFe(25);
-      const feP = ts.length ? ts.reduce((s, t) => s + t.fe, 0) / ts.length : null, sf = ts.filter(t => t.sfe != null), sfeP = sf.length ? sf.reduce((s, t) => s + t.sfe, 0) / sf.length : null;
+      // V81: la ley del polígono sale de los taladros que ESTÁN DENTRO del polígono (su ubicación cae en la zona).
+      // Antes se tomaban también vecinos de afuera cuya área de influencia entraba un poco al borde, y eso podía subir
+      // el S/FeS por encima de cualquier taladro de adentro. Solo si no hay ninguno adentro se usan los de su influencia.
+      const enZona = new Set(z.cel); let ts = src.filter(t => enZona.has(celDe(t)));
+      if (!ts.length) { const tal = new Set(); z.cel.forEach(q => { if (S[q] >= 0) tal.add(S[q]); }); ts = [...tal].map(i => src[i]); }
+      const wD = t => densFe(t.fe), sw = ts.reduce((s, t) => s + wD(t), 0);
+      const area = z.cel.length * cel * cel, dens = ts.length ? sw / ts.length : densFe(25);
+      const feP = ts.length ? ts.reduce((s, t) => s + t.fe * wD(t), 0) / sw : null, sf = ts.filter(t => t.sfe != null), swf = sf.reduce((s, t) => s + wD(t), 0), sfeP = sf.length ? sf.reduce((s, t) => s + t.sfe * wD(t), 0) / swf : null;
       return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
     }).filter(p => p.rings.length);
     return { c, polys };
