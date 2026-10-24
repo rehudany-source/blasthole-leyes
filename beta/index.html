@@ -900,7 +900,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v79</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v80</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7001,22 +7001,34 @@ function pmCalcularHoles(lista) {
     src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
   });
   if (src.length < 3) return { err: src.length ? 'Hay muy pocos taladros con ley para trazar polígonos.' : 'Los proyectos marcados no tienen taladros con ley.' };
-  // espaciamiento típico (mediana del vecino más cercano), con rejilla para que sea rápido
+  // V80: el espaciamiento y la huella del proyecto salen de TODOS los taladros (con y sin ley).
+  // Antes salían solo de los muestreados: si se muestrea una fila sí y otra no, el radio quedaba en ~3 m y los
+  // polígonos salían como islas sueltas por taladro. Ahora cada punto de la huella toma la clase del taladro con ley
+  // más cercano (como los polígonos de MinePlan), y fuera de la huella no se pinta nada.
+  const todos = lista.filter(h => !h.dup).map(h => ({ x: h.x + mx, y: h.y + my }));
   const G = new Map(), gk = (x, y) => Math.floor(x / 10) + ',' + Math.floor(y / 10);
-  src.forEach((s, i) => { const k = gk(s.x, s.y); if (!G.has(k)) G.set(k, []); G.get(k).push(i); });
+  todos.forEach((s, i) => { const k = gk(s.x, s.y); if (!G.has(k)) G.set(k, []); G.get(k).push(i); });
   const vecinos = (x, y, r) => { const out = [], i0 = Math.floor((x - r) / 10), i1 = Math.floor((x + r) / 10), j0 = Math.floor((y - r) / 10), j1 = Math.floor((y + r) / 10); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = G.get(i + ',' + j); if (a) out.push(...a); } return out; };
-  const nn = src.map((s, i) => { let d = Infinity; vecinos(s.x, s.y, 15).forEach(j => { if (j !== i) d = Math.min(d, Math.hypot(src[j].x - s.x, src[j].y - s.y)); }); return d; }).filter(d => d < Infinity).sort((a, b) => a - b);
+  const nn = todos.map((s, i) => { let d = Infinity; vecinos(s.x, s.y, 15).forEach(j => { if (j === i) return; const dd = Math.hypot(todos[j].x - s.x, todos[j].y - s.y); if (dd > 0.5 && dd < d) d = dd; }); return d; }).filter(d => d < Infinity).sort((a, b) => a - b);
   const esp = nn.length ? nn[Math.floor(nn.length / 2)] : 5, R = Math.max(2.5, Math.min(8, esp * 0.75));
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; src.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); });
+  const Rmax = Math.max(R, Math.min(20, esp * 2.6)); // hasta dónde llega la ley de un taladro muestreado dentro de la huella
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; todos.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); });
   const ar = (x1 - x0 + 2 * R) * (y1 - y0 + 2 * R), cel = ar < 6e5 ? 0.5 : ar < 2.5e6 ? 1 : 2; x0 = Math.floor(x0 - R - cel); y0 = Math.floor(y0 - R - cel);
   const W = Math.ceil((x1 + R + cel - x0) / cel), H = Math.ceil((y1 + R + cel - y0) / cel);
   const C = new Int8Array(W * H).fill(-1), D = new Float32Array(W * H).fill(Infinity), S = new Int32Array(W * H).fill(-1);
-  // pintar alrededor de cada taladro (más rápido que buscar el más cercano por celda)
-  const rc = Math.ceil(R / cel);
+  // huella: celdas a menos de R de algún taladro del proyecto (con o sin ley)
+  const F = new Uint8Array(W * H), rf = Math.ceil(R / cel);
+  todos.forEach(s => {
+    const ci = Math.floor((s.x - x0) / cel), cj = Math.floor((s.y - y0) / cel);
+    for (let j = cj - rf; j <= cj + rf; j++) { if (j < 0 || j >= H) continue; const yc = y0 + (j + 0.5) * cel;
+      for (let i = ci - rf; i <= ci + rf; i++) { if (i < 0 || i >= W) continue; const xc = x0 + (i + 0.5) * cel; if (Math.hypot(xc - s.x, yc - s.y) <= R) F[j * W + i] = 1; } }
+  });
+  // cada celda de la huella toma la clase del taladro con ley más cercano
+  const rc = Math.ceil(Rmax / cel);
   src.forEach((s, idx) => {
     const ci = Math.floor((s.x - x0) / cel), cj = Math.floor((s.y - y0) / cel);
     for (let j = cj - rc; j <= cj + rc; j++) { if (j < 0 || j >= H) continue; const yc = y0 + (j + 0.5) * cel;
-      for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || i >= W) continue; const xc = x0 + (i + 0.5) * cel, d = Math.hypot(xc - s.x, yc - s.y); if (d > R) continue; const k = j * W + i; if (d < D[k]) { D[k] = d; C[k] = s.c; S[k] = idx; } } }
+      for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || i >= W) continue; const k = j * W + i; if (!F[k]) continue; const xc = x0 + (i + 0.5) * cel, d = Math.hypot(xc - s.x, yc - s.y); if (d > Rmax) continue; if (d < D[k]) { D[k] = d; C[k] = s.c; S[k] = idx; } } }
   });
   const E0 = pmE();
   if (O.metodo === 'suav') {
