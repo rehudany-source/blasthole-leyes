@@ -486,6 +486,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .prev-opts { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .prev-opts label { display: flex; align-items: center; gap: 6px; font: 600 .82rem var(--f-body); color: #c9d1d9; }
 .prev-opts select { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 6px 8px; min-height: 36px; width: auto; color-scheme: dark; }
+.pv-tam { display: inline-flex; align-items: center; gap: 4px; } .pv-tam span { font-size: .8rem; color: #b8c2c8; margin-right: 2px; } .pv-tam button { min-width: 40px; height: 34px; border-radius: 8px; border: 1px solid #4a535b; background: #2a3138; color: #fff; font: 700 1.05rem var(--f-body); cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; } .pv-tam #pvCentrar { font-size: .85rem; padding: 0 12px; }
 .prev-zoom { display: flex; gap: 4px; }
 .pv-mas { position: relative; }
 .pv-mas > button { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; min-height: 36px; padding: 0 12px; cursor: pointer; }
@@ -905,7 +906,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v85</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v86</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -939,7 +940,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         </div>
         <div class="vl-h">Proyectos <button type="button" class="lnk" id="vlAll">Todos</button> <button type="button" class="lnk" id="vlNone">Ninguno</button></div>
         <div class="plist vl-list" id="vlList"></div>
-        <div class="vl-h">Límites <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
+        <div class="vl-h">Límites <button type="button" class="lnk" id="vlLimProy">Del proyecto</button> <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
         <div class="vl-lims" id="vlLims"><p class="note">Marca un proyecto.</p></div>
         <label class="chk"><input type="checkbox" id="vlSup"> <span>Nivel superior (+12 m) <small class="vlib-s">en morado</small></span></label>
         <div class="btnrow2">
@@ -1388,7 +1389,8 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <b id="prevTit">Vista previa de impresión</b>
     <div class="prev-opts">
       <label>Hoja<select id="pvHoja"></select></label>
-      <label>Escala<select id="pvEsc"></select></label>
+      <label hidden>Escala<select id="pvEsc"></select></label>
+      <div class="pv-tam" title="Tamaño del dibujo en la hoja"><span>Dibujo</span><button type="button" id="pvTamMenos" aria-label="Achicar el dibujo">−</button><button type="button" id="pvCentrar">Centrar</button><button type="button" id="pvTamMas" aria-label="Agrandar el dibujo">+</button></div>
       <label>Letra<select id="pvLetra"></select></label>
       <div class="pv-mas"><button type="button" id="pvOptBtn" aria-expanded="false">⚙ Opciones ▾</button>
         <div class="pv-pop" id="pvPop" hidden>
@@ -1409,7 +1411,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         </div>
       </div>
     </div>
-    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar">−</button><button type="button" id="pvAjustar" title="Acercar al dibujo del proyecto">Ajustar</button><button type="button" id="pvHojaComp" title="Ver la hoja completa">Hoja</button><button type="button" id="pvMas" aria-label="Acercar">+</button></div>
+    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar la vista" title="Ver más lejos (no cambia la impresión)">🔍−</button><button type="button" id="pvAjustar" title="Acercar al dibujo del proyecto">Ajustar</button><button type="button" id="pvHojaComp" title="Ver la hoja completa">Hoja</button><button type="button" id="pvMas" aria-label="Acercar la vista" title="Ver más cerca (no cambia la impresión)">🔍+</button></div>
   </div>
   <div class="prev-body" id="prevBody"><div class="prev-paper" id="prevPaper"></div></div>
   <div class="prev-foot">
@@ -2520,6 +2522,8 @@ function layoutPlot(P, o) {
   let scale = parseInt(o.scale, 10) || 0, note = '';
   if (scale && PT_PER_M_1 / scale > fit) { note = `El dibujo no entra en ${o.paper || 'A3'} a 1:${scale}; se usó una escala menor.`; scale = 0; }
   if (!scale) scale = PDF_SCALES.find(s => PT_PER_M_1 / s <= fit) || Math.ceil(PT_PER_M_1 / fit);
+  // V86: tamaño fino elegido con + / − en la vista previa (1 = el dibujo llena la hoja)
+  if (o.zoomFino > 0) { scale = Math.max(1, Math.round(PT_PER_M_1 / (fit * o.zoomFino))); note = ''; }
   const k = PT_PER_M_1 / scale;
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   const X = x => ax + aw / 2 + (x - cx) * k, Y = y => ay + ah / 2 + (y - cy) * k;
@@ -3365,7 +3369,7 @@ function planoOpts0() {
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
   const lv = state.libView ? lib.projects.filter(p => state.libView.ids.includes(p.id)).map(p => p.name) : null;
   const T = window.TITULO || {};
-  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, mosaico: (window.PRINT_OPTS || {}).mosaico || '', grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
+  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, zoomFino: window.PRINT_ZOOM || 0, title: $('outName').value.trim() || baseName(), fecha, mosaico: (window.PRINT_OPTS || {}).mosaico || '', grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
     subtitle: lv ? `Proyecto${lv.length > 1 ? 's' : ''} ${lv.join(', ')} · ${state.holes.length} taladros · ${conLey} con leyes` : `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
 }
 // En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
@@ -3388,9 +3392,23 @@ let prevZoom = 0, prevR = null;
 });
 function abrirPrevia() {
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
-  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'dibujo'; pintarPrevia();
+  window.PRINT_ZOOM = 1; // V86: el dibujo llena la hoja; con + / − se agranda o achica de a poco
+  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'hoja'; pintarPrevia();
 }
-function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; window.PRINT_AV = null; }
+// V86: + / − cambian el tamaño del dibujo en la hoja de a poco (5 % por toque; mantener presionado repite)
+(() => {
+  let t = null, n = 0;
+  const paso = f => { window.PRINT_ZOOM = Math.min(6, Math.max(0.2, (window.PRINT_ZOOM || 1) * f)); if (prevModo === 'dibujo') prevModo = 'hoja'; pintarPrevia(); };
+  const parar = () => { clearTimeout(t); t = null; };
+  [['pvTamMas', 1.05], ['pvTamMenos', 1 / 1.05]].forEach(([id, f]) => {
+    const b = $(id);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); n = 0; paso(f); const rep = () => { n++; paso(f); t = setTimeout(rep, n > 6 ? 110 : 220); }; t = setTimeout(rep, 450); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, parar));
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); paso(f); } });
+  });
+  $('pvCentrar').onclick = () => { window.PRINT_ZOOM = 1; prevModo = 'hoja'; prevZoom = 0; pintarPrevia(); };
+})();
+function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; window.PRINT_AV = null; window.PRINT_ZOOM = 0; }
 function ajustarPapel() {
   if (!prevR) return;
   const body = $('prevBody'), paper = $('prevPaper');
@@ -5222,7 +5240,8 @@ function vlLimsRender() {
   const V = state.libView;
   const ids = new Set(V ? V.ids : [...vl.ids]);
   if (!ids.size) { box.innerHTML = '<p class="note">Marca un proyecto.</p>'; return; }
-  const lims = vlLimites(ids), avs = vlAvances(ids), off = V ? V.off : new Set(), clip = V ? V.clip : '';
+  const csP = new Set(lib.projects.filter(p => ids.has(p.id)).map(canonOfProject).filter(Boolean)), esDelP = L => csP.has(proyLim(L.file));
+  const lims = vlLimites(ids).sort((a, b) => esDelP(b) - esDelP(a)), avs = vlAvances(ids), off = V ? V.off : new Set(), clip = V ? V.clip : '';
   const row = (key, color, name, sub) => `<label class="vl-li${off.has(key) ? ' off' : ''}"><input type="checkbox" data-show="${esc(key)}" ${off.has(key) ? '' : 'checked'}><i class="sw" style="background:${color}"></i><span class="nm">${esc(name)}${sub ? ` <small>${esc(sub)}</small>` : ''}</span><label class="rc" title="Imprimir solo lo que está dentro"><input type="radio" name="vlclip" value="${esc(key)}" ${clip === key ? 'checked' : ''}><span>recortar</span></label></label>`;
   let h = `<label class="vl-li"><span></span><span></span><span class="nm"><b>Sin recortar</b> <small>todo el proyecto</small></span><label class="rc"><input type="radio" name="vlclip" value="" ${clip ? '' : 'checked'}><span>todo</span></label></label>`;
   if (lims.length) h += '<div class="vl-sub">Límites de rotura y subdivisiones</div>' + lims.map((L, i) => row('L:' + L.id, limColor(L.layer), L.name || L.layer || 'Límite', `#${i + 1} · ${Math.round(L.area).toLocaleString('es-PE')} m²`)).join('');
@@ -5311,7 +5330,15 @@ function vlAplicar() {
   if (!ids.length) { $('vlNote').hidden = false; $('vlNote').className = 'msg err'; $('vlNote').textContent = 'Marca al menos un proyecto.'; return; }
   $('vlNote').hidden = true;
   const prev = state.libView;
-  state.libView = { ids, clip: prev ? prev.clip : '', off: prev ? prev.off : new Set(), sup: $('vlSup').checked };
+  // V86: al elegir otros proyectos, solo quedan marcados los límites de esos proyectos (por el nombre del archivo); los demás se pueden marcar a mano
+  const mismo = prev && prev.ids.join('|') === ids.join('|');
+  const off = mismo ? prev.off : new Set();
+  if (!mismo) {
+    const cs = new Set(lib.projects.filter(p => ids.includes(p.id)).map(canonOfProject).filter(Boolean));
+    const ls = vlLimites(new Set(ids));
+    if (ls.some(L => cs.has(proyLim(L.file)))) ls.forEach(L => { if (!cs.has(proyLim(L.file))) off.add('L:' + L.id); });
+  }
+  state.libView = { ids, clip: mismo ? prev.clip : '', off, sup: $('vlSup').checked };
   vlPintarEstado(); recompute(true); vlLimsRender();
 }
 $('vlibBox').addEventListener('toggle', () => { if ($('vlibBox').open) vlRender(); });
@@ -5328,6 +5355,7 @@ $('vlLims').addEventListener('change', e => {
   const rd = e.target.closest('input[name=vlclip]');
   if (rd) { V.clip = rd.value; if (V.clip) V.off.delete(V.clip); recompute(true); vlLimsRender(); vlPintarEstado(); }
 });
+$('vlLimProy').addEventListener('click', () => { const V = state.libView; if (!V) return; const ids = new Set(V.ids), cs = new Set(lib.projects.filter(p => ids.has(p.id)).map(canonOfProject).filter(Boolean)); vlLimites(ids).forEach(L => { if (cs.has(proyLim(L.file))) V.off.delete('L:' + L.id); else V.off.add('L:' + L.id); }); vlLimsRender(); draw(); });
 $('vlLimAll').addEventListener('click', () => { if (!state.libView) return; state.libView.off = new Set(); vlLimsRender(); draw(); });
 $('vlLimNone').addEventListener('click', () => { const V = state.libView; if (!V) return; const ids = new Set(V.ids); vlLimites(ids).forEach(L => V.off.add('L:' + L.id)); vlAvances(ids).forEach(a => V.off.add('A:' + a.id)); if (V.clip) V.off.delete(V.clip); vlLimsRender(); draw(); });
 $('vlSup').addEventListener('change', () => { if (state.libView) vlAplicar(); });
