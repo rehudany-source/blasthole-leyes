@@ -906,7 +906,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v86</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v87</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7888,6 +7888,28 @@ const movil = () => matchMedia('(max-width: 760px)').matches;
 })();
 // En el teléfono no hay Apple Pencil: aviso corto que tapa menos el plano
 (() => { try { if (movil() && typeof TOOL_HINT !== 'undefined') { TOOL_HINT.pen = 'Lápiz: toca cada vértice y toca el primero para cerrar.'; TOOL_HINT.pan = 'Mover: arrastra y pellizca. Toca un taladro para quitarlo o agregarlo.'; } } catch (e) {} })();
+// V87: en iPad / iPhone el pellizco sobre la página (fuera del plano o la vista 3D) agrandaba toda la app
+// y no se podía volver ni salir de la vista 3D. En la app se bloquea el zoom de la página
+// (el plano y la vista 3D tienen su propio zoom) y, si igual quedó agrandada, vuelve sola al tamaño normal.
+(() => {
+  if (typeof ES_APP === 'undefined' || !ES_APP) return;
+  const meta = document.querySelector('meta[name=viewport]');
+  const base = meta ? meta.getAttribute('content') : '';
+  const fijo = 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover';
+  if (meta) meta.setAttribute('content', fijo);
+  document.documentElement.style.touchAction = 'pan-x pan-y';
+  ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  let t = null;
+  const volver = () => {
+    const vv = window.visualViewport; if (!vv || vv.scale <= 1.02 || !meta) return;
+    meta.setAttribute('content', fijo.replace('maximum-scale=1', 'maximum-scale=1.01'));
+    requestAnimationFrame(() => { meta.setAttribute('content', fijo); window.scrollTo(window.scrollX, window.scrollY); });
+  };
+  window.bhlZoomNormal = volver;
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(volver, 500); });
+  document.addEventListener('touchend', () => { clearTimeout(t); t = setTimeout(volver, 600); }, { passive: true });
+  void base;
+})();
 
 // ===== V73: enviar por WhatsApp (hoja de Compartir del iPhone / Android) =====
 async function compartirArchivo(blob, nombre, texto, msgEl) {
