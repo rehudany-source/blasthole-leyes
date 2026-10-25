@@ -79,7 +79,7 @@ h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.05rem; text-t
 .tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 3px; background: var(--chip); color: var(--muted); margin-left: 6px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
 label.f { display: grid; gap: 3px; font-size: .8rem; color: var(--muted); }
-input[type=number], input[type=text], select { font: inherit; font-family: var(--f-mono); font-size: .85rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
+input[type=number], input[type=text], input[type=password], input[type=email], select { font: inherit; font-family: var(--f-mono); font-size: .85rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .projcheck { display: grid; gap: 8px; padding: 12px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); }
 .projcheck .pc-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -378,7 +378,7 @@ body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); positio
 /* tarjetas y controles táctiles */
 body.app .box, body.app .section { border: 0; border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent); padding: 16px; }
 body.app .section { display: grid; gap: 10px; }
-body.app input[type=number], body.app input[type=text], body.app input[type=date], body.app select { font-size: 16px; min-height: 44px; border-radius: 10px; padding: 8px 12px; font-family: var(--f-body); }
+body.app input[type=number], body.app input[type=text], body.app input[type=password], body.app input[type=email], body.app input[type=date], body.app select { font-size: 16px; min-height: 44px; border-radius: 10px; padding: 8px 12px; font-family: var(--f-body); }
 body.app .btn { min-height: 48px; border-radius: 12px; font-size: 1rem; }
 body.app .btn.small { min-height: 42px; font-size: .92rem; padding: 9px 14px; }
 body.app .chk { min-height: 40px; align-items: center; }
@@ -773,6 +773,7 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
 .gps-h b { cursor: pointer; }
 .topo-pop { position: absolute; left: 10px; top: 52px; z-index: 7; width: min(380px, calc(100% - 20px)); background: var(--panel, #fff); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); display: grid; gap: 8px; font-size: .85rem; max-height: calc(100% - 64px); overflow: auto; }
 .topo-pop[hidden] { display: none; }
+.topo-pop > * { min-width: 0; } .topo-pop { grid-template-columns: minmax(0, 1fr); } .topo-pop .topo-tab { display: block; max-width: 100%; overflow-x: auto; }
 .topo-h { display: flex; justify-content: space-between; align-items: center; } .topo-h button { border: 0; background: none; font-size: 17px; color: var(--muted); cursor: pointer; }
 .topo-lista { display: grid; gap: 4px; max-height: 220px; overflow: auto; }
 .topo-it { display: grid; grid-template-columns: 2.6em 2.6em 1fr auto; justify-items: start; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
@@ -906,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v87</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v88</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1112,7 +1113,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <div class="agrp"><h3>Sincronización</h3>
       <div class="acard"><div class="arow"><span>Cuenta</span><b id="appSyncTxt">—</b></div>
       <button class="arow abtn" type="button" id="appSyncBtn">Cuenta, contraseña y usuarios<span>›</span></button></div>
-      <p class="anote">Entra con tu usuario (ej. calidad1) en cada equipo. Ves tus proyectos y avances; los límites, los proyectos FINAL y los polígonos de avances se comparten con el equipo.</p></div>
+      <p class="anote">Entra con tu usuario (ej. calidad1) en cada equipo. Los proyectos con sus leyes, los límites y las topografías los ve y actualiza todo el equipo; tus avances son tuyos.</p></div>
     <div class="agrp"><h3>Aplicación</h3>
       <div class="acard"><div class="arow"><span>Versión</span><b id="appVer">—</b></div>
       <button class="arow abtn" type="button" id="appRecargar">Buscar actualización ahora<span>›</span></button></div>
@@ -1425,7 +1426,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
     <h2 id="syncTit">Tu cuenta</h2>
-    <p class="note">Cada persona entra con su usuario y ve sus propios proyectos y avances en todos sus equipos. Los límites y los avances los ve solo quien los hizo; los proyectos FINAL y las topografías se comparten con todo el equipo. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
+    <p class="note">Cada persona entra con su usuario. Los proyectos con sus leyes, los límites y las topografías los ve y actualiza todo el equipo; tus avances quedan en tu cuenta y en todos tus equipos. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
     <div id="syncLogin" class="dlgsec">
       <label class="f">Usuario o correo<input type="text" id="syncEmail" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ej. calidad1"></label>
       <label class="f">Contraseña<input type="password" id="syncPw" autocomplete="current-password" placeholder="mínimo 6 caracteres"></label>
@@ -1450,7 +1451,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
       <div id="syncAdmin" class="dlgsub" hidden>
         <div class="adm-beta" id="admBeta" hidden><b>🧪 Versión de pruebas</b><span>Solo tú la ves. Prueba las mejoras aquí; cuando estén sin errores se publican para todos.</span><a class="btn sec small" id="admBetaIr" href="beta/">Abrir versión de pruebas</a></div>
         <h3>Usuarios del programa</h3>
-        <p class="note">Cada usuario ve solo sus proyectos, sus límites y sus avances. Los <b>proyectos FINAL</b> y las <b>topografías</b> los ven todos.</p>
+        <p class="note">Los <b>proyectos con sus leyes</b>, los <b>límites</b> y las <b>topografías</b> los ve y actualiza todo el equipo. Cada usuario ve solo sus avances.</p>
         <div class="adm-lista" id="admLista"></div>
         <div class="grid3 adm-nuevo"><label class="f">Usuario<input type="text" id="admEmail" placeholder="calidad1" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label class="f">Contraseña<input type="text" id="admPw" placeholder="mínimo 6" autocomplete="new-password" autocapitalize="none" spellcheck="false"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off" placeholder="ej. Juan Pérez"></label></div>
         <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Crear usuario</button><button class="btn sec small" id="admSerie" type="button" title="Llena el primer usuario calidad que falta">Siguiente «calidad»</button></div>
