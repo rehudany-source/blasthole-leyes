@@ -159,6 +159,9 @@ input.hin { font: .8rem var(--f-body); padding: 3px 5px; border: 1px solid var(-
 .limh .pn { flex: 1; min-width: 0; }
 .limde { display: block; font-family: var(--f-body); font-size: .72rem; color: var(--muted); }
 .limshare { white-space: nowrap; }
+.limfase { display: inline-block; margin: 2px 0 0 0; padding: 1px 7px; border-radius: 999px; font: 600 .7rem var(--f-body); }
+.limfase.rot { background: color-mix(in srgb, #d9a400 18%, transparent); color: #8a6a00; }
+.limfase.fin { background: color-mix(in srgb, #2f7d57 16%, transparent); color: #2f7d57; }
 .limshare.on { border-color: var(--ok, #2f7d57); color: var(--ok, #2f7d57); }
 .limf.limcomp { border-style: dashed; }
 .limtodos { justify-self: start; }
@@ -902,7 +905,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v84</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v85</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4317,6 +4320,7 @@ function marcarSinTaladros() {
     const den = h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts);
     L._sinTal = !hs.some(den);
     L._sinLey = !L._sinTal && !conLey.some(den); // V51: tiene taladros pero ninguno con ley
+    if (L.fase === 'rotura') { L._sinTal = false; L._sinLey = false; } // V85: límite de rotura: sus leyes aún no salen, no es desmonte
   });
   // V52: un polígono sin datos del modelo que es el mismo contorno de un bloque del modelo (p. ej. el _C.dxf) sigue al modelo
   const conMod = (t2.lims || []).filter(L => L.modelo && L.closed);
@@ -4341,7 +4345,7 @@ function taladrosDesmonte(keys) {
   keys.forEach(k => {
     const h = t2.holeBy.get(k); if (!h) return;
     const L = polDe(h); if (!L) return;
-    if (!esDes.has(L)) esDes.set(L, L.mat !== 'no' && (L._sinLey || !t2.holes.some(o => conLey(o) && polDe(o) === L)));
+    if (!esDes.has(L)) esDes.set(L, L.fase !== 'rotura' && L.mat !== 'no' && (L._sinLey || !t2.holes.some(o => conLey(o) && polDe(o) === L)));
     if (!esDes.get(L)) return;
     const P = perfilDe(L, c);
     const l = Object.assign({ key: h.key, grupo: h.id, des: true }, Object.fromEntries(AVG_FIELDS.map(F => [F.k, P.v[F.k]])), { fe: P.fe, density: P.dens });
@@ -4804,17 +4808,25 @@ function drawLimits(ctx, v) {
     const b = L.bb; if (v.sx(b.x1) < 0 || v.sx(b.x0) > v.W || v.sy(b.y0) < 0 || v.sy(b.y1) > v.H) return;
     const main = /rotura|limite|límite/i.test(L.layer);
     ctx.strokeStyle = limColor(L.layer); ctx.lineWidth = limAncho() * (main ? 1.25 : 1);
+    if (L.fase === 'rotura') ctx.setLineDash([8, 5]); // provisional hasta que llegue el _C
     ctx.beginPath(); L.pts.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); if (L.closed) ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
     if (L.modelo) { try { drawBloqueModelo(ctx, v, L); } catch (e) {} }
     if (L.name && v.v.s > 2.5 && !L.modelo) { const cx = L.pts.reduce((s, q) => s + q.x, 0) / L.pts.length, cy = L.pts.reduce((s, q) => s + q.y, 0) / L.pts.length; ctx.fillStyle = limColor(L.layer); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = .8; if (L.modelo) { /* V57: etiqueta del bloque como en MinePlan, se dibuja aparte */ } else ctx.fillText(L.name, v.sx(cx), v.sy(cy)); ctx.globalAlpha = 1; }
   });
 }
 function bboxOf(pts) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }); return { x0, y0, x1, y1 }; }
+// V85: límite de rotura de la contrata (S26-14A-626-9.dxf) → provisional; el polígono final (…_C.dxf / _P.csv) lo reemplaza
+function faseLim(f) { f = String(f || '').replace(/^[0-9a-f]{8}-/i, ''); return /_[CP]\.[a-z0-9]+$/i.test(f) ? 'final' : /^S\d{2}-[0-9A-Z]+-\d+-\d+\.[a-z0-9]+$/i.test(f) ? 'rotura' : null; }
+function proyLim(f) { const m = String(f || '').match(/S\d{2}-([0-9A-Z]+)-(\d+)-(\d+)/i); return m ? canonCode({ mina: m[1], nivel: m[2], nro: m[3] }) : null; }
 async function loadLimits() {
   const own = (await idbGet('limites')) || [];
   const ownFiles = new Set(own.map(l => l.file));
   const comp = ((await idbGet('limites-comp')) || []).filter(l => !ownFiles.has(l.file));
-  const arr = own.concat(comp);
+  let arr = own.concat(comp);
+  const conFinal = new Set(arr.filter(l => faseLim(l.file) === 'final').map(l => proyLim(l.file)).filter(Boolean));
+  t2.limReemp = arr.filter(l => faseLim(l.file) === 'rotura' && conFinal.has(proyLim(l.file))).length;
+  arr = arr.filter(l => !(faseLim(l.file) === 'rotura' && conFinal.has(proyLim(l.file))));
+  arr.forEach(l => { l.fase = faseLim(l.file); });
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
   t2._sinTalFirma = null;
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
@@ -4829,8 +4841,9 @@ function renderLimList() {
   box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
     const de = ls[0].compDe;
-    const head = de ? `<span class="pn">${esc(f)}<small class="limde">👥 de ${esc(de)}</small></span>`
-      : `<span class="pn">${esc(f)}<small class="limde">🔒 solo tú los ves</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
+    const fz = faseLim(f), fTag = fz === 'rotura' ? '<small class="limfase rot">Rotura · provisional hasta el _C</small>' : fz === 'final' && /_C\./i.test(f) ? '<small class="limfase fin">Polígono final</small>' : '';
+    const head = de ? `<span class="pn">${esc(f)}${fTag}<small class="limde">👥 de ${esc(de)}</small></span>`
+      : `<span class="pn">${esc(f)}${fTag}<small class="limde">🔒 solo tú los ves</small></span><button class="btn sec small" data-delfile="${esc(f)}" type="button">Quitar</button>`;
     marcarSinTaladros();
     const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
     const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
@@ -4890,7 +4903,16 @@ async function addLimitFiles(files) {
       const proyM = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
       polys.forEach((p, i) => arr.push({ id: f.name + '#' + i, file: f.name, layer: p.name ? p.layer + (proyM ? ' ' + proyM.replace(/^S\d{2}-/, '') : '') : p.layer, name: /\.dxf$/i.test(f.name) ? '' : (p.name || p.layer), proyM: p.name ? proyM : undefined, pts: p.pts, closed: p.closed, compartido: true, _dirty: true }));
       await modeloAplicar(arr);
-      added.push(`${f.name}: ${polys.length} polígono(s) en ${new Set(polys.map(p => p.layer)).size} capa(s)`);
+      let extra = '';
+      const fz = faseLim(f.name), pr = proyLim(f.name);
+      if (fz === 'final' && pr) {
+        const rot = [...new Set(arr.filter(l => faseLim(l.file) === 'rotura' && proyLim(l.file) === pr).map(l => l.file))];
+        if (rot.length) { const keep2 = arr.filter(l => !rot.includes(l.file)); arr.length = 0; arr.push(...keep2); }
+        const ajenos = [...new Set(((await idbGet('limites-comp')) || []).filter(l => faseLim(l.file) === 'rotura' && proyLim(l.file) === pr).map(l => l.file))].filter(x => !rot.includes(x));
+        const todos = rot.concat(ajenos);
+        if (todos.length) extra = ` · reemplaza al límite de rotura ${todos.join(', ')}`;
+      } else if (fz === 'rotura' && pr && arr.concat((await idbGet('limites-comp')) || []).some(l => faseLim(l.file) === 'final' && proyLim(l.file) === pr)) { const k3 = arr.filter(l => l.file !== f.name); arr.length = 0; arr.push(...k3); errs.push(`${f.name}: no se cargó porque el proyecto ${pr} ya tiene su polígono final (_C)`); continue; }
+      added.push(`${f.name}: ${polys.length} polígono(s) en ${new Set(polys.map(p => p.layer)).size} capa(s)${fz === 'rotura' ? ' · límite de rotura (provisional)' : ''}${extra}`);
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
   await saveLimites(arr, prevLim); await loadLimits();
