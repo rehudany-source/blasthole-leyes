@@ -902,7 +902,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v83</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v84</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3542,6 +3542,8 @@ $('tabBtn3').addEventListener('click', () => showTab(3));
 function projectIdFor(code, found, fileName) {
   const ck = code ? canonCode(code) : found ? canonOfProject({ baseKey: found.p.key }) : null;
   if (ck) { const ya = (lib.projects || []).find(p => !p.ro && canonOfProject(p) === ck); if (ya) return ya.id; }
+  // V84: si no lo tengo pero un compañero ya lo subió, se actualiza el suyo (proyectos del equipo)
+  if (ck) { const eq = (lib.projects || []).find(p => p.ro && p.compId && canonOfProject(p) === ck); if (eq) return eq.id; }
   if (found) return 'B:' + (ck || found.p.key);
   if (code) return 'C:' + (ck || code.text);
   return 'F:' + fileName.replace(/\.[^.]+$/, '');
@@ -3591,6 +3593,7 @@ async function saveProjectRecord(rec) {
   if (dg.size) return { ok: false, motivo: `no se guardó: se encontraron IDs de taladro duplicados (${dupHoleTxt(dg, 5)}). Corrige el archivo de taladros y vuelve a cargarlo.` };
   const prev = lib.projects.find(p => p.id === rec.id);
   if (prev) rec.createdAt = prev.createdAt || prev.savedAt; else rec.createdAt = rec.savedAt;
+  if (prev && prev.ro) Object.assign(rec, { ro: true, compId: prev.compId, compOwner: prev.compOwner, compDe: prev.compDe, name: prev.name, baseKey: rec.baseKey || prev.baseKey, baseLabel: rec.baseLabel || prev.baseLabel });
   rec.tipo = rec.tipo || tipoArchivo(rec.fileName);
   rec.archivos = Object.assign({}, prev && prev.archivos, { [rec.tipo]: { nombre: rec.fileName, fecha: rec.savedAt } });
   let resumen = '';
@@ -3677,10 +3680,12 @@ async function refrescarCopias() {
   if (!state.base) return;
   let n = 0;
   for (const p of lib.projects) {
-    if (p.leyes || p.ro) continue;
+    if (p.leyes || (p.ro && !p.compId)) continue;
     const L = leyesDesdeBase(p); if (!L) continue;
     const snap = snapLeyes(L.leyes);
     if (JSON.stringify(snap) === JSON.stringify(p.leyesBase || null)) continue;
+    // V84: en un proyecto del equipo solo se actualiza si mi base es más nueva y no trae menos muestras
+    if (p.ro) { const nD = a => (a || []).filter(l => l.hasData).length; if (nD(snap) < nD(p.leyesBase) || String(state.baseSaved || '') < String(p.leyesBaseFecha || '')) continue; }
     p.leyesBase = snap; p.leyesBaseLabel = L.src; p.leyesBaseFecha = state.baseSaved || new Date().toISOString();
     await dbSave('projects', p); n++;
   }
@@ -3773,7 +3778,7 @@ function renderLibrary() {
       const keys = new Set(p.holes.map(h => h.key));
       const withRes = L.leyes ? L.leyes.filter(l => keys.has(l.key) && l.hasData !== false).length : null;
       const nAv = lib.avances.filter(a => a.projectIds.includes(p.id)).length;
-      return `<tr${p.ro ? ' class="ro"' : ''}><td>${esc(p.name)} ${tipoBadge(p)}${p.compDe ? `<small class="limde">👥 de ${esc(p.compDe)}</small>` : ''}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
+      return `<tr${p.ro ? ' class="ro"' : ''}><td>${esc(p.name)} ${tipoBadge(p)}${p.compDe ? `<small class="limde">👥 equipo · subido por ${esc(p.compDe)}${p.modPor && p.modPor !== p.compDe ? ' · actualizado por ' + esc(p.modPor) : ''}</small>` : ''}</td><td>${esc(p.baseLabel || (L.leyes && L.src !== 'no está en la base' ? L.src : '—'))}</td><td>${p.holes.length}</td><td>${withRes == null ? '<span class="e">sin base</span>' : withRes}</td><td>${nAv}</td><td>${fmtDate(p.savedAt)}</td>` +
         `<td class="acts"><button class="btn small" data-act="avg" data-id="${esc(p.id)}">Promediar</button> ${p.ro ? '' : `<button class="btn sec small" data-act="del" data-id="${esc(p.id)}">Borrar</button>`}</td></tr>`;
     }).join('') + '</tbody>';
 }
@@ -7373,13 +7378,13 @@ function pmmResumen(L) {
 }
 function pmmPintar() {
   const box = $('pmmBox'); if (!box) return;
-  const propios = (t2.projs || []).filter(p => !p.ro);
+  const propios = (t2.projs || []).filter(p => !p.ro || p.compId); // V84: también en proyectos del equipo
   const sp = $('pmmProy'), prev = sp.value; sp.innerHTML = propios.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">(marca un proyecto tuyo)</option>'; if (propios.some(p => p.id === prev)) sp.value = prev;
   const sc = $('pmmClase'), pc = sc.value; sc.innerHTML = '<option value="auto">Automática (la calcula con las leyes)</option>' + pmE().clases.map(c => `<option value="${c.k}">${esc(c.nom)} (elegida)</option>`).join(''); if ([...sc.options].some(o => o.value === pc)) sc.value = pc;
   $('pmmVer').value = pmm.ver;
   const D = pmm.dib; $('pmmDib').hidden = !!D; $('pmmEdit').hidden = !D;
   const L = pmManuales();
-  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q, p), tx = pmmTexto(p, q), s = tx.c.s; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(tx.elegida || tx.cal)}</b> · ${esc(p.name)}${tx.elegida ? `<small>Calculado: ${esc(tx.cal)}</small>` : ''}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.${s.n && s.nLey < s.n ? ' (' + s.nLey + ' con ley)' : ''}${tx.c.nota ? ' · ' + tx.c.nota : ''}</small></span>${p.ro ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') + pmmResumen(L) : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
+  $('pmmLista').innerHTML = L.length ? L.map(({ p, q }) => { const c = pmmClase(q, p), tx = pmmTexto(p, q), s = tx.c.s; return `<div class="pmm-it"><i class="pm-sw" style="background:${c.col}"></i><span><b>${esc(tx.elegida || tx.cal)}</b> · ${esc(p.name)}${tx.elegida ? `<small>Calculado: ${esc(tx.cal)}</small>` : ''}<small>${Math.round(s.area).toLocaleString('es-PE')} m² · ${Math.round(s.t).toLocaleString('es-PE')} t · Fe ${s.fe != null ? s.fe.toFixed(1) : '—'}${s.sfe != null ? ' · S/FeS ' + s.sfe.toFixed(2) : ''} · ${s.n} tal.${s.n && s.nLey < s.n ? ' (' + s.nLey + ' con ley)' : ''}${tx.c.nota ? ' · ' + tx.c.nota : ''}</small></span>${p.ro && !p.compId ? '' : `<button type="button" class="q" data-pmmdel="${q.id}" data-pid="${p.id}" title="Quitar">🗑</button>`}</div>`; }).join('') + pmmResumen(L) : '<small class="pm-nota">Aún no dibujaste polígonos en los proyectos marcados.</small>';
 }
 (() => {
   const pop = $('pmPop'); if (!pop) return;
@@ -8173,6 +8178,7 @@ function ajustarReloj(serverIso, t0, t1) {
 
 // ---- Escrituras locales que se sincronizan ----
 async function dbSave(store, rec) {
+  if (store === 'projects' && rec.ro && rec.compId && rec.compOwner) return guardarEquipo(rec);
   rec._mod = Math.max(ahora(), (rec._base || 0) + 1); rec._dirty = true; delete rec._conflicto;
   const ok = await dbPut(store, rec);
   pedirSync();
@@ -8239,10 +8245,35 @@ const rest = {
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
   compartidos: () => rest.rpc('bhl_compartidos', {}),
   compartidosFirma: () => rest.rpc('bhl_compartidos_firma', {}),
+  pushEquipo: (table, rows) => rest.rpc('bhl_push_equipo', { p_table: table, p_rows: rows }),
 };
+// V84: proyectos del equipo editables por todos. El cambio se guarda en el proyecto del compañero (sigue siendo suyo)
+async function guardarEquipo(rec) {
+  rec._mod = Math.max(ahora(), (rec._mod || 0) + 1);
+  const arr = (await idbGet('proyectos-comp')) || [], i = arr.findIndex(p => p.id === rec.id);
+  if (i >= 0) arr[i] = rec; else arr.push(rec);
+  await idbSet('proyectos-comp', arr);
+  const data = Object.assign({}, rec); ['id', 'compDe', 'ro', 'compId', 'compOwner', '_dirty', '_base', '_conflicto', 'modPor', 'modEn'].forEach(k => delete data[k]); data.id = rec.compId;
+  const pend = ((await idbGet('equipo-pend')) || []).filter(x => !(x.owner === rec.compOwner && x.id === rec.compId));
+  pend.push({ table: 'projects', owner: rec.compOwner, id: rec.compId, data });
+  await idbSet('equipo-pend', pend);
+  pedirSync();
+  return true;
+}
+async function subirEquipo(T) {
+  const pend = (await idbGet('equipo-pend')) || []; if (!pend.length || !T.pushEquipo) return 0;
+  for (const store of ['projects', 'limites']) {
+    const rows = pend.filter(x => x.table === store).map(x => ({ owner: x.owner, id: x.id, data: x.data }));
+    for (let i = 0; i < rows.length; i += 20) await T.pushEquipo(SYNC.tables[store], rows.slice(i, i + 20));
+  }
+  const resto = ((await idbGet('equipo-pend')) || []).filter(x => !pend.some(y => y.owner === x.owner && y.id === x.id && y.data._mod === x.data._mod));
+  await idbSet('equipo-pend', resto);
+  return pend.length;
+}
 // Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
 async function bajarCompartidos(T, forzar) {
   if (!T.compartidos) return 0;
+  if ((await idbGet('comp-ver')) !== 84) { forzar = true; await idbSet('comp-ver', 84); } // V84: ahora vienen todos los proyectos del equipo
   const ult = sync.compAt || 0;
   if (!forzar && Date.now() - ult < 3 * 60 * 1000) return 0;
   sync.compAt = Date.now();
@@ -8255,8 +8286,8 @@ async function bajarCompartidos(T, forzar) {
   const firmaArr = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
   const pref = r => 'comp:' + r.de + ':' + r.id;
   const grupos = {
-    'limites-comp': (res.limites || []).filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true })),
-    'proyectos-comp': (res.finales || []).filter(r => r && r.data && Array.isArray(r.data.holes)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true, tipo: 'final' })),
+    'limites-comp': (res.limites || []).filter(r => r && r.data && Array.isArray(r.data.pts)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true, compId: r.id, compOwner: r.owner })),
+    'proyectos-comp': (res.finales || []).filter(r => r && r.data && Array.isArray(r.data.holes)).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true, compId: r.id, compOwner: r.owner, tipo: r.data.tipo || (res.equipo ? tipoArchivo(r.data.fileName) : 'final') })),
     'avances-comp': (res.avances || []).filter(r => r && r.data).map(r => Object.assign({}, r.data, { id: pref(r), compDe: r.de, ro: true })),
   };
   let n = 0;
@@ -8326,7 +8357,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('equipo-pend', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -8471,6 +8502,7 @@ async function sincronizar() {
       const rest2 = ((await idbGet('bhl-tomb')) || []).filter(x => !tombs.some(y => y.store === x.store && y.id === x.id && y._mod === x._mod));
       await idbSet('bhl-tomb', rest2);
     }
+    if (await subirEquipo(T)) sync.compForzar = true;
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
     try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
     try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
