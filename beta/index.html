@@ -908,7 +908,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v96</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v97</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6690,7 +6690,9 @@ function autoBloques(arr, mod) {
     if (pols.every(l => l.autoBloque === 'manual' || l.autoBloque === 'pdf')) return;
     const bl = Object.values(mod).filter(m => m.proy === p && m.v >= 89).map(m => ({ b: m.bloque, vol: m.vol || (m.t && m.density ? m.t / m.density : null) })).filter(x => x.vol > 0);
     if (!bl.length) return;
-    const areas = pols.map(l => Math.abs(polyArea(l.pts)));
+    // V97: si un polígono encierra a otros (contorno del proyecto), cuenta solo lo que queda afuera de ellos
+    const cen = l => l.pts.reduce((s, q) => ({ x: s.x + q.x / l.pts.length, y: s.y + q.y / l.pts.length }), { x: 0, y: 0 });
+    const areas = pols.map(l => { const a = Math.abs(polyArea(l.pts)); const dentro = pols.filter(o => o !== l && Math.abs(polyArea(o.pts)) < a && (() => { const c = cen(o); return pointInPoly(c.x, c.y, l.pts); })()); return Math.max(1, a - dentro.reduce((s, o) => s + Math.abs(polyArea(o.pts)), 0)); });
     // V93: se busca la combinación polígono↔bloque en la que todos dan la misma altura de banco (volumen ÷ área),
     // aunque el _C traiga polígonos de más o de menos y aunque el banco no sea de 12 m
     const pocosP = pols.length <= bl.length, nA = Math.min(pols.length, bl.length);
@@ -8390,7 +8392,8 @@ async function cargarPdfBloques(f) {
   // cada letrero → el polígono que lo contiene (o el más cercano a menos de 25 m)
   const usados = new Set(), res = [];
   bl.forEach(b => {
-    let L = pols.find(l => !usados.has(l) && pointInPoly(b.x, b.y, l.pts));
+    // V97: el polígono más chico que contiene el letrero (el _C puede traer también el contorno del proyecto)
+    let L = pols.filter(l => !usados.has(l) && pointInPoly(b.x, b.y, l.pts)).sort((p, q) => Math.abs(polyArea(p.pts)) - Math.abs(polyArea(q.pts)))[0];
     if (!L) { let best = null, bd = 25; pols.forEach(l => { if (usados.has(l)) return; const c = l.pts.reduce((s, q) => ({ x: s.x + q.x / l.pts.length, y: s.y + q.y / l.pts.length }), { x: 0, y: 0 }); const d = Math.hypot(c.x - b.x, c.y - b.y); if (d < bd) { bd = d; best = l; } }); L = best; }
     if (!L) { res.push(`${b.bloque}: no cayó en ningún polígono`); return; }
     usados.add(L); L.name = b.bloque; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true;
@@ -8398,7 +8401,7 @@ async function cargarPdfBloques(f) {
   });
   // la sobrerotura del plano: queda marcada como tal (sin bloque ni leyes)
   let nSobre = 0;
-  sobre.forEach(s => { const L = pols.find(l => !usados.has(l) && pointInPoly(s.x, s.y, l.pts)); if (!L) return; usados.add(L); nSobre++; if (L.name !== 'SOBREROTURA') { L.name = 'SOBREROTURA'; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; } });
+  sobre.forEach(s => { const L = pols.filter(l => !usados.has(l) && pointInPoly(s.x, s.y, l.pts)).sort((p, q) => Math.abs(polyArea(p.pts)) - Math.abs(polyArea(q.pts)))[0]; if (!L || pols.some(o => o !== L && pointInPoly(s.x, s.y, o.pts) && Math.abs(polyArea(o.pts)) < Math.abs(polyArea(L.pts)))) return; usados.add(L); nSobre++; if (L.name !== 'SOBREROTURA') { L.name = 'SOBREROTURA'; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; } });
   pols.forEach(l => { if (!usados.has(l) && l.autoBloque !== 'manual') { if (l.name || l.autoBloque !== 'pdf') { l.name = ''; l.autoBloque = 'pdf'; l.modelo = null; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; } } });
   await modeloAplicar(arr); await saveLimites(arr, prev); await loadLimits();
   t2._sinTalFirma = null; try { computeT2(); pv.draw(); } catch (e) {}
