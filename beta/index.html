@@ -907,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v92</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v93</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6679,25 +6679,31 @@ function autoBloques(arr, mod) {
     const bl = Object.values(mod).filter(m => m.proy === p && m.v >= 89).map(m => ({ b: m.bloque, vol: m.vol || (m.t && m.density ? m.t / m.density : null) })).filter(x => x.vol > 0);
     if (!bl.length) return;
     const areas = pols.map(l => Math.abs(polyArea(l.pts)));
-    let H = bl.reduce((s, x) => s + x.vol, 0) / areas.reduce((s, a) => s + a, 0);
-    if (!(H >= 4 && H <= 30) || bl.length !== pols.length) H = 12;
-    const esp = bl.map(x => x.vol / H);
-    // asignación de menor error relativo (todas las combinaciones si son pocas; si no, de a uno)
-    const err = (i, j) => Math.abs(areas[i] - esp[j]) / Math.max(esp[j], 1);
-    let mejor = null;
-    if (pols.length <= 7 && bl.length <= 7) {
-      const usar = (i, usados, acc, asg) => { if (i === pols.length) { if (!mejor || acc < mejor.e) mejor = { e: acc, asg: asg.slice() }; return; } let algo = false; for (let j = 0; j < bl.length; j++) { if (usados & (1 << j)) continue; algo = true; asg[i] = j; usar(i + 1, usados | (1 << j), acc + err(i, j), asg); } if (!algo || pols.length > bl.length) { asg[i] = -1; usar(i + 1, usados, acc + 1, asg); } };
-      usar(0, 0, 0, []);
-    } else { const usados = new Set(); mejor = { asg: pols.map((_, i) => { let jb = -1; esp.forEach((_, j) => { if (!usados.has(j) && (jb < 0 || err(i, j) < err(i, jb))) jb = j; }); if (jb >= 0) usados.add(jb); return jb; }) }; }
-    let dudoso = false;
-    for (let a = 0; a < esp.length; a++) for (let b = a + 1; b < esp.length; b++) if (Math.abs(esp[a] - esp[b]) / Math.max(esp[a], esp[b]) < 0.15) dudoso = true;
+    // V93: se busca la combinación polígono↔bloque en la que todos dan la misma altura de banco (volumen ÷ área),
+    // aunque el _C traiga polígonos de más o de menos y aunque el banco no sea de 12 m
+    const pocosP = pols.length <= bl.length, nA = Math.min(pols.length, bl.length);
+    const costo = asg => { const hs = []; asg.forEach((j, i) => { if (j < 0) return; const a = areas[i], v = bl[j].vol; if (a > 0 && v > 0) hs.push(Math.log(v / a)); }); if (!hs.length) return 99; const m = hs.reduce((s, x) => s + x, 0) / hs.length; const Hm = Math.exp(m); return hs.reduce((s, x) => s + (x - m) * (x - m), 0) / hs.length + (Hm < 6 || Hm > 20 ? 0.5 : 0) + (hs.length === 1 ? Math.abs(Math.log(Hm / 12)) : 0); };
+    let mejor = null, segundo = null;
+    const prueba = asg => { const c = costo(asg); if (!mejor || c < mejor.e) { segundo = mejor; mejor = { e: c, asg: asg.slice() }; } else if (!segundo || c < segundo.e) segundo = { e: c, asg: asg.slice() }; };
+    if (pols.length <= 8 && bl.length <= 8) {
+      const asg = new Array(pols.length).fill(-1);
+      const rec = (i, usados, puestos) => {
+        if (i === pols.length) { if (puestos === nA) prueba(asg); return; }
+        if (pols.length - i > nA - puestos) { asg[i] = -1; rec(i + 1, usados, puestos); } // este polígono puede quedar sin bloque
+        if (puestos < nA) for (let j = 0; j < bl.length; j++) { if (usados & (1 << j)) continue; asg[i] = j; rec(i + 1, usados | (1 << j), puestos + 1); }
+        asg[i] = -1;
+      };
+      rec(0, 0, 0);
+    }
+    if (!mejor) { const H0 = 12, usados = new Set(); mejor = { e: 0, asg: pols.map((_, i) => { let jb = -1; bl.forEach((x, j) => { if (!usados.has(j) && (jb < 0 || Math.abs(areas[i] - x.vol / H0) < Math.abs(areas[i] - bl[jb].vol / H0))) jb = j; }); if (jb >= 0) usados.add(jb); return jb; }) }; }
+    let dudoso = bl.length !== pols.length || mejor.e > 0.02 || (segundo && segundo.e < mejor.e * 3 + 0.005);
+    void pocosP;
     pols.forEach((l, i) => {
       if (l.autoBloque === 'manual') return;
       const j = mejor.asg[i], nom = j >= 0 ? bl[j].b : '';
       if (l.name !== nom || l.autoBloque !== (dudoso ? 'dudoso' : 'auto')) { l.name = nom; l.proyM = p; l.autoBloque = dudoso ? 'dudoso' : 'auto'; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; }
-      if (j >= 0 && err(i, j) > 0.25) dudoso = true;
     });
-    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); revisa los nombres en «Límites»`);
+    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); puse ${pols.filter(l => l.name).map(l => l.name).join(', ') || 'ninguno'} — revisa en «Límites» el polígono sin bloque`);
     else if (dudoso) avisos.push(`${p}: hay bloques de tamaño parecido; revisa en «Límites» que cada polígono tenga el bloque correcto (compáralo con el PDF)`);
     else avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} puestos solos con el _R (sin _P)`);
   });
