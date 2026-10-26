@@ -907,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v91</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v92</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2095,7 +2095,9 @@ function findBaseProject(base, code, holes, manualKey) {
   const al = MINA_ALIAS[code.mina];
   if (!exact && al) { const p = base.projects.get(codeKey(al, code.nivel, code.nro)); if (p) return { p, how: 'known', overlap: overlap(p), alias: `${code.mina} = mina ${al}` }; }
   const cands = [];
-  base.projects.forEach(p => { const [, b, nro] = p.key.match(/^[^-]+-([^-]+)-(.+)$/) || []; if (b === normBanco(code.nivel) && nro === normNro(code.nro)) cands.push(p); });
+  // V91: índice banco|número armado una sola vez por base (antes se recorría toda la base por cada proyecto)
+  if (!base._bn) { base._bn = new Map(); base.projects.forEach(p => { const [, b, nro] = p.key.match(/^[^-]+-([^-]+)-(.+)$/) || []; if (b == null) return; const k = b + '|' + nro; if (!base._bn.has(k)) base._bn.set(k, []); base._bn.get(k).push(p); }); }
+  (base._bn.get(normBanco(code.nivel) + '|' + normNro(code.nro)) || []).forEach(p => cands.push(p));
   const scored = cands.map(p => ({ p, overlap: overlap(p) })).sort((a, b) => b.overlap - a.overlap);
   if (exact) { const ov = overlap(exact); const best = scored[0]; if (!best || best.p === exact || ov >= best.overlap * 0.8) return { p: exact, how: 'exact', overlap: ov }; }
   const best = scored[0];
@@ -3680,6 +3682,13 @@ async function batchSave(files) {
 // Leyes del proyecto desde la base cargada en este equipo (o null si no está)
 function leyesDesdeBase(p) {
   if (!state.base) return null;
+  // V91: se guarda el resultado por proyecto mientras la base y el proyecto no cambien
+  const B = state.base, ck = p.id + '|' + (p.baseKey || '') + '|' + (p._mod || p.savedAt || '') + '|' + ((p.holes || []).length);
+  if (!B._ley) B._ley = new Map();
+  if (B._ley.has(ck)) return B._ley.get(ck);
+  const r = leyesDesdeBase0(p); B._ley.set(ck, r); return r;
+}
+function leyesDesdeBase0(p) {
   let bp = p.baseKey ? state.base.projects.get(p.baseKey) : null;
   if (!bp) {
     const code = parseProjectCode(p.name) || parseProjectCode(p.fileName);
@@ -4332,15 +4341,24 @@ function desCfg() {
   return { on: !$('desOn') || $('desOn').checked, fe: isNaN(fe) ? 16.5 : fe, dens: !isNaN(d) && d > 1 ? d : null };
 }
 function marcarSinTaladros() {
-  const hs = [], conLey = []; lib.projects.forEach(p => { let ks = null; try { ks = new Set(((leyesForProject(p) || {}).leyes || []).filter(l => l.hasData !== false).map(l => l.key)); } catch (e) { ks = new Set(); } (p.holes || []).forEach(h => { hs.push(h); if (ks.has(h.key)) conLey.push(h); }); });
-  const firma = hs.length + ':' + conLey.length + ':' + (t2.lims || []).length + ':' + lib.projects.length;
+  // V91: firma barata primero (antes se armaban todos los taladros en cada llamada)
+  let hsh = 0; const mez = s => { for (let k = 0; k < s.length; k++) hsh = (hsh * 31 + s.charCodeAt(k)) | 0; };
+  lib.projects.forEach(p => mez(p.id + '|' + (p.holes || []).length + '|' + (p._mod || '') + '|' + (p.leyes ? 1 : 0) + '|' + (p.leyesBase || []).length));
+  (t2.lims || []).forEach(l => mez(l.id + '|' + (l._mod || '') + '|' + (l.fase || '')));
+  const firma = hsh + ':' + lib.projects.length + ':' + (t2.lims || []).length + ':' + (state.base ? state.base.nRows + (state.baseSaved || '') : '');
   if (t2._sinTalFirma === firma) return; t2._sinTalFirma = firma;
+  const hs = [], conLey = []; lib.projects.forEach(p => { let ks = null; try { ks = new Set(((leyesForProject(p) || {}).leyes || []).filter(l => l.hasData !== false).map(l => l.key)); } catch (e) { ks = new Set(); } (p.holes || []).forEach(h => { hs.push(h); if (ks.has(h.key)) conLey.push(h); }); });
+  // V91: rejilla de 25 m para no probar cada taladro contra cada polígono
+  const G = 25, grid = (arr) => { const m = new Map(); arr.forEach(h => { const k = Math.floor(h.x / G) + ',' + Math.floor(h.y / G); let c = m.get(k); if (!c) m.set(k, c = []); c.push(h); }); return m; };
+  const gH = grid(hs), gL = grid(conLey);
+  const alguno = (g, b, den) => { for (let i = Math.floor(b.x0 / G); i <= Math.floor(b.x1 / G); i++) for (let j = Math.floor(b.y0 / G); j <= Math.floor(b.y1 / G); j++) { const c = g.get(i + ',' + j); if (c && c.some(den)) return true; } return false; };
   (t2.lims || []).forEach(L => {
     if (!L.closed || !L.pts || L.pts.length < 3) { L._sinTal = false; return; }
     const b = L.bb || bboxOf(L.pts);
     const den = h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts);
-    L._sinTal = !hs.some(den);
-    L._sinLey = !L._sinTal && !conLey.some(den); // V51: tiene taladros pero ninguno con ley
+    const grande = (b.x1 - b.x0) * (b.y1 - b.y0) > 4e6;
+    L._sinTal = grande ? !hs.some(den) : !alguno(gH, b, den);
+    L._sinLey = !L._sinTal && !(grande ? conLey.some(den) : alguno(gL, b, den)); // V51: tiene taladros pero ninguno con ley
     if (L.fase === 'rotura') { L._sinTal = false; L._sinLey = false; } // V85: límite de rotura: sus leyes aún no salen, no es desmonte
   });
   // V52: un polígono sin datos del modelo que es el mismo contorno de un bloque del modelo (p. ej. el _C.dxf) sigue al modelo
@@ -8366,6 +8384,7 @@ const rest = {
   compartidos: () => rest.rpc('bhl_compartidos', {}),
   compartidosFirma: () => rest.rpc('bhl_compartidos_firma', {}),
   pushEquipo: (table, rows) => rest.rpc('bhl_push_equipo', { p_table: table, p_rows: rows }),
+  compartidosDesde: since => rest.rpc('bhl_compartidos_desde', { p_since: since }),
 };
 // V84: proyectos del equipo editables por todos. El cambio se guarda en el proyecto del compañero (sigue siendo suyo)
 async function guardarEquipo(rec) {
@@ -8390,10 +8409,27 @@ async function subirEquipo(T) {
   await idbSet('equipo-pend', resto);
   return pend.length;
 }
+async function mezclarCompartidos(r, completo) {
+  const pref = x => 'comp:' + x.de + ':' + x.id;
+  const conv = {
+    'limites-comp': (r.limites || []).map(x => ({ k: x.owner + '|' + x.id, borrado: x.borrado || !x.data || !Array.isArray(x.data.pts), rec: x.data && Object.assign({}, x.data, { id: pref(x), compDe: x.de, ro: true, compId: x.id, compOwner: x.owner }) })),
+    'proyectos-comp': (r.finales || []).map(x => ({ k: x.owner + '|' + x.id, borrado: x.borrado || !x.data || !Array.isArray(x.data.holes), rec: x.data && Object.assign({}, x.data, { id: pref(x), compDe: x.de, ro: true, compId: x.id, compOwner: x.owner, tipo: x.data.tipo || (typeof tipoArchivo === 'function' ? tipoArchivo(x.data.fileName) : 'final') }) })),
+  };
+  let n = 0;
+  for (const [k, arr] of Object.entries(conv)) {
+    if (!arr.length && !completo) continue;
+    const prev = completo ? [] : ((await idbGet(k)) || []);
+    const by = new Map(prev.map(p => [p.compOwner + '|' + p.compId, p]));
+    arr.forEach(x => { if (x.borrado) by.delete(x.k); else { delete x.rec._dirty; by.set(x.k, x.rec); } });
+    await idbSet(k, [...by.values()]); n++;
+  }
+  if (completo) await idbSet('avances-comp', []);
+  return n;
+}
 // Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
 async function bajarCompartidos(T, forzar) {
   if (!T.compartidos) return 0;
-  if ((await idbGet('comp-ver')) !== 84) { forzar = true; await idbSet('comp-ver', 84); } // V84: ahora vienen todos los proyectos del equipo
+  if ((await idbGet('comp-ver')) !== 91) { forzar = true; await idbSet('comp-ver', 91); } // V84: ahora vienen todos los proyectos del equipo
   const ult = sync.compAt || 0;
   if (!forzar && Date.now() - ult < 3 * 60 * 1000) return 0;
   sync.compAt = Date.now();
@@ -8401,6 +8437,17 @@ async function bajarCompartidos(T, forzar) {
   let firma = null;
   if (T.compartidosFirma) { try { firma = await T.compartidosFirma(); } catch (e) { firma = null; } }
   if (firma && !forzar && firma === (await idbGet('comp-firma'))) return 0;
+  // V91: por partes — solo lo que cambió desde la última vez (la primera vez, todo)
+  if (T.compartidosDesde) {
+    try {
+      const since = forzar ? null : ((await idbGet('comp-since')) || null);
+      const r = await T.compartidosDesde(since);
+      const cambia = await mezclarCompartidos(r, !since || r.completo);
+      if (r.now) await idbSet('comp-since', r.now);
+      if (firma) await idbSet('comp-firma', firma);
+      return cambia;
+    } catch (e) { console.warn('compartidos por partes', e); }
+  }
   let res = (await T.compartidos()) || [];
   if (Array.isArray(res)) res = { limites: res }; // servidor antiguo
   const firmaArr = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
@@ -8477,7 +8524,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('equipo-pend', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('equipo-pend', []); await idbSet('comp-since', null); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
