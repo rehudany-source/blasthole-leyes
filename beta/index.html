@@ -908,7 +908,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v97</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v98</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4879,7 +4879,8 @@ function renderLimList() {
   const todos = [...new Set(t2.lims.map(l => l.file))];
   const files = todos.filter(f => t2.lims.some(l => l.file === f && limVisible(l)));
   const ocultos = todos.length - files.length;
-  box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
+  const conAb = todos.filter(f => t2.lims.some(l => l.file === f && l.autoBloque && l.name && !l.compDe));
+  box.innerHTML = (conAb.length > 1 ? `<div class="btnrow"><button type="button" class="btn sec small" data-expmodall="1">⬇ _P y _R de los ${conAb.length} proyectos sin _P (zip)</button></div>` : '') + (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
     const de = ls[0].compDe;
     const fz = faseLim(f), fTag = fz === 'rotura' ? '<small class="limfase rot">Rotura · provisional hasta el _C</small>' : fz === 'final' && /_C\./i.test(f) ? '<small class="limfase fin">Polígono final</small>' : '';
@@ -4889,7 +4890,7 @@ function renderLimList() {
     const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
     const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
     const ab = de ? [] : ls.filter(l => l.autoBloque);
-    const abH = ab.length ? `<div class="desli"><span><i>Bloques sin _P (puestos con el _R o el PDF)</i>${ab.some(l => l.autoBloque === 'dudoso') ? ' · <b>revisa con el PDF</b>' : ''}</span></div>` + ab.map((l, i) => { const p = l.proyM || ''; const noms = Object.values(t2._mod || {}).filter(m => m.proy === p).map(m => m.bloque); return `<div class="desli"><span>Polígono ${i + 1} · ${Math.round(Math.abs(l.area || polyArea(l.pts))).toLocaleString('es-PE')} m²${l.autoBloque === 'dudoso' ? ' ⚠' : l.autoBloque === 'manual' ? ' ✓' : l.autoBloque === 'pdf' ? ' 📄' : ''}</span><span class="blq-ed"><select data-blq="${esc(l.id)}"><option value="">—</option>${noms.map(n => `<option${n === l.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><button type="button" class="q" data-delpol="${esc(l.id)}" title="Quitar este polígono">🗑</button></span></div>`; }).join('') : '';
+    const abH = ab.length ? `<div class="desli"><span><i>Bloques sin _P (puestos con el _R o el PDF)</i>${ab.some(l => l.autoBloque === 'dudoso') ? ' · <b>revisa con el PDF</b>' : ''}</span><button type="button" class="btn sec small" data-expmod="${esc(f)}" title="Descargar el _P y el _R de este proyecto (para guardarlos o cargarlos en AssMining)">⬇ _P y _R</button></div>` + ab.map((l, i) => { const p = l.proyM || ''; const noms = Object.values(t2._mod || {}).filter(m => m.proy === p).map(m => m.bloque); return `<div class="desli"><span>Polígono ${i + 1} · ${Math.round(Math.abs(l.area || polyArea(l.pts))).toLocaleString('es-PE')} m²${l.autoBloque === 'dudoso' ? ' ⚠' : l.autoBloque === 'manual' ? ' ✓' : l.autoBloque === 'pdf' ? ' 📄' : ''}</span><span class="blq-ed"><select data-blq="${esc(l.id)}"><option value="">—</option>${noms.map(n => `<option${n === l.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><button type="button" class="q" data-delpol="${esc(l.id)}" title="Quitar este polígono">🗑</button></span></div>`; }).join('') : '';
     return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH + abH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
@@ -4927,6 +4928,8 @@ $('limList').addEventListener('click', async e => {
     const m = $('limMsg'); m.className = 'msg ok'; m.textContent = on ? `${f}: compartido. Los demás usuarios lo verán al sincronizar.` : `${f}: ya no se comparte.`;
     return;
   }
+  const xm = e.target.closest('button[data-expmod]'); if (xm) { exportarModelos([xm.dataset.expmod]); return; }
+  if (e.target.closest('button[data-expmodall]')) { exportarModelos([...new Set(t2.lims.filter(l => l.autoBloque && l.name && !l.compDe).map(l => l.file))]); return; }
   const dp = e.target.closest('button[data-delpol]');
   if (dp) {
     if (dp.dataset.confirm !== '1') { dp.dataset.confirm = '1'; dp.textContent = '¿Quitar?'; setTimeout(() => { if (dp.isConnected) { dp.dataset.confirm = ''; dp.textContent = '🗑'; } }, 4000); return; }
@@ -8407,6 +8410,28 @@ async function cargarPdfBloques(f) {
   t2._sinTalFirma = null; try { computeT2(); pv.draw(); } catch (e) {}
   const sobran = pols.filter(l => !usados.has(l)).length;
   return `PDF leído: bloques ${res.join(', ')} ubicados en el plano${nSobre ? ` · ${nSobre} sobrerotura` : ''}${sobran ? ` · ${sobran} polígono(s) del _C sin letrero en el PDF (quedan sin bloque)` : ''}${nuevos ? ` · sin _R: se usaron los datos del PDF (${nuevos} bloque(s))` : ''}`;
+}
+
+// ===== V98: _P y _R armados para los proyectos sin _P (mina 5), en el mismo formato de MinePlan, para guardarlos o cargarlos en AssMining =====
+function modeloArchivos(file) {
+  const todos = (t2.lims || []).filter(l => l.file === file && l.closed && l.name && !/^SOBRE/i.test(l.name));
+  if (!todos.length) return null;
+  const proy = (file.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase(), z = (proy.split('-')[2] || '');
+  const porB = new Map(); todos.forEach(l => { const b = String(l.name).toUpperCase(); if (!porB.has(b)) porB.set(b, []); porB.get(b).push(l); });
+  const f = (v, d) => v == null || isNaN(v) ? '' : (+v).toFixed(d);
+  const P = ['ID, X, Y, Z, PROJECTID, BLOCK']; let id = 0;
+  [...porB.keys()].sort().forEach(b => porB.get(b).forEach(l => { const pts = l.pts.concat([l.pts[0]]); pts.forEach(q => { id++; P.push(`${id}, ${(+q.x).toFixed(3)}, ${(+q.y).toFixed(3)}, ${z},${proy},${b}`); }); }));
+  const R = ['PROJECTID,GRADE_BLOCK,TONNES,VOLUME,DENS,FE_pct,FEO_pct,S_pct,CU_pct,ZN_pct,CFE_pct,CS_pct,CINS_pct,CWR_pct,CCINS_pct,CCS_pct,CSFES_pct,CCWR_pct,LITOMINE,OREZONE,MATERIAL,DESTINATION'];
+  [...porB.keys()].sort().forEach(b => { const m = (porB.get(b).find(l => l.modelo) || {}).modelo || {}; R.push([proy, b, f(m.t, 0), f(m.vol, 0), f(m.density, 2), f(m.fe, 2), f(m.feo, 2), f(m.s, 3), f(m.cu, 3), f(m.zn, 3), f(m.cfe, 2), f(m.cs, 2), f(m.ins, 2), f(m.rec, 2), f(m.ccins, 2), '', f(m.sfes, 2), '', m.lito || '', m.zona || '', m.material || '', m.destino || ''].join(',')); });
+  return { proy, P: '﻿' + P.join('\r\n') + '\r\n', R: R.join('\r\n') + '\r\n', n: porB.size };
+}
+async function exportarModelos(files) {
+  const out = []; let n = 0;
+  files.forEach(file => { const m = modeloArchivos(file); if (!m) return; out.push({ name: m.proy + '_P.csv', data: m.P }, { name: m.proy + '_R.csv', data: m.R }); n++; });
+  if (!n) { setMsg('limMsg', 'err', 'Ningún _C tiene bloques con nombre todavía.'); return; }
+  if (n === 1) { await save(out[0].name, new Blob([out[0].data], { type: 'text/csv' }), $('limMsg')); await save(out[1].name, new Blob([out[1].data], { type: 'text/csv' }), $('limMsg')); }
+  else await save(`Modelos_P_R_${n}_proyectos_${new Date().toISOString().slice(0, 10)}.zip`, await makeZip(out), $('limMsg'));
+  setMsg('limMsg', 'ok', `${n} proyecto(s): _P y _R descargados (mismo formato de MinePlan; sirven para AssMining).`);
 }
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
