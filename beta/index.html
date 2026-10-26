@@ -908,7 +908,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v95</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v96</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6665,6 +6665,7 @@ async function cargarModelo(f) {
     // V57: para la etiqueta como en MinePlan
     const ex = (al) => { const h = tb.csv.header.map(modNorm), i = h.findIndex(x => al.includes(x)); return i >= 0 ? num(r[i]) : null; };
     m.ins = ex(['cins', 'ins', 'insol']); m.sfes = ex(['csfes', 'sfes', 's/fes']); m.rec = ex(['crp', 'cwr', 'rec', 'recup']);
+    if (!(m.density >= 1.5 && m.density <= 6)) m.density = null; if (!(m.vol > 1)) m.vol = null; // V96: algunos _R traen VOLUME=1 y DENS=1 (sin dato)
     m.v = 89; // V89: leído con el parser que respeta comillas y miles (sirve para nombrar el _C sin _P)
     mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
   });
@@ -8348,29 +8349,31 @@ async function leerPdfBloques(f) {
   // letreros de bloques y sus datos (las líneas de abajo, mismo tamaño de letra y centradas)
   const out = [];
   it.forEach(t => {
-    const m = t.s.match(/^(?:BLOCK|BLOQUE)\s+([A-Z0-9]+)\s*:?$/i); if (!m) return;
+    const m = t.s.match(/^(?:BLOCK|BLOQUE)\s+([A-Z0-9]+)\s*:?\s*(.*)$/i); if (!m) return; // «BLOCK A:» o «BLOCK B: M2 BL» (V96)
     const cx = t.x + t.w / 2;
     const lin = it.filter(o => o !== t && !o.rot && Math.abs(o.h - t.h) < 0.6 && o.y < t.y && t.y - o.y < t.h * 9 && Math.abs(o.x + o.w / 2 - cx) < t.h * 4).sort((a, b) => b.y - a.y);
     const sig = []; for (const o of lin) { if (/^(BLOCK|BLOQUE)\b/i.test(o.s)) break; sig.push(o); if (/TM\b|\bt\b/i.test(o.s)) break; }
     const ys = [t.y].concat(sig.map(o => o.y)), cy = (Math.max(...ys) + Math.min(...ys)) / 2 + t.h * 0.3;
     const info = { bloque: m[1].toUpperCase() };
+    if (m[2] && /^[MD]\d/i.test(m[2].trim())) { info.material = m[2].trim().split(/[\s:]+/)[0].toUpperCase(); info.clase = m[2].trim(); }
     sig.forEach(o => {
       const s = o.s, v = (re) => { const r = s.match(re); return r ? pdfNum(r[1]) : null; };
       if (/^Fe\s*:/i.test(s)) info.fe = v(/:\s*([\d.,]+)/); else if (/^FeO\s*:/i.test(s)) info.feo = v(/:\s*([\d.,]+)/);
       else if (/^S\s*\/?\s*FeS\s*:/i.test(s)) info.sfes = v(/:\s*([\d.,]+)/); else if (/^S\s*:/i.test(s)) info.s = v(/:\s*([\d.,]+)/);
       else if (/^Cu\s*:/i.test(s)) info.cu = v(/:\s*([\d.,]+)/); else if (/^Zn\s*:/i.test(s)) info.zn = v(/:\s*([\d.,]+)/);
       else if (/TM\b/i.test(s)) info.t = v(/([\d.,]+)/);
-      else if (/^[MD]\d/i.test(s) && !info.material) { info.material = s.split(/\s+/)[0].toUpperCase(); info.clase = s; }
+      else if (/^[MD]\d/i.test(s) && !info.material) { info.material = s.split(/[\s:]+/)[0].toUpperCase(); info.clase = s; }
     });
     out.push(Object.assign(info, aUTM(cx, cy)));
   });
+  it.forEach(t => { if (/^SOBRE\s*ROTURA$/i.test(t.s)) out.push(Object.assign({ sobrerotura: true }, aUTM(t.x + (t.rot ? -t.h / 2 : t.w / 2), t.y + (t.rot ? t.w / 2 : t.h / 2)))); });
   if (!out.length) throw new Error('No encontré letreros «BLOCK A:» en el PDF.');
   return out;
 }
 async function cargarPdfBloques(f) {
   const proy = ((f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0]).toUpperCase();
   if (!proy) throw new Error('El nombre del PDF debe tener el proyecto (p. ej. S26-5-658-027.pdf).');
-  const bl = await leerPdfBloques(f);
+  let bl = await leerPdfBloques(f);
   const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
   const canon = p => { const m = String(p).match(/S\d{2}-([0-9A-Z]+)-(\d+)-(\d+)/i); return m ? canonCode({ mina: m[1], nivel: m[2], nro: m[3] }) : p; };
   const pc = canon(proy), proyDe = l => ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
@@ -8381,6 +8384,7 @@ async function cargarPdfBloques(f) {
   // datos del letrero como modelo si el _R no está
   const mod = (await idbGet('modelo-bloques')) || {};
   let nuevos = 0;
+  const sobre = bl.filter(b => b.sobrerotura); bl = bl.filter(b => !b.sobrerotura);
   bl.forEach(b => { const k = proyC + '|' + b.bloque; if (mod[k] && mod[k].v >= 89) return; mod[k] = { proy: proyC, bloque: b.bloque, t: b.t, vol: null, density: null, material: b.material || '', oretype: '', destino: /^D/i.test(b.material || '') ? 'Botadero' : '', fe: b.fe, feo: b.feo, s: b.s != null ? b.s : null, cu: b.cu, zn: b.zn, sfes: b.sfes, v: 89, dePdf: true }; nuevos++; });
   if (nuevos) await idbSet('modelo-bloques', mod);
   // cada letrero → el polígono que lo contiene (o el más cercano a menos de 25 m)
@@ -8392,11 +8396,14 @@ async function cargarPdfBloques(f) {
     usados.add(L); L.name = b.bloque; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true;
     res.push(b.bloque);
   });
+  // la sobrerotura del plano: queda marcada como tal (sin bloque ni leyes)
+  let nSobre = 0;
+  sobre.forEach(s => { const L = pols.find(l => !usados.has(l) && pointInPoly(s.x, s.y, l.pts)); if (!L) return; usados.add(L); nSobre++; if (L.name !== 'SOBREROTURA') { L.name = 'SOBREROTURA'; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; } });
   pols.forEach(l => { if (!usados.has(l) && l.autoBloque !== 'manual') { if (l.name || l.autoBloque !== 'pdf') { l.name = ''; l.autoBloque = 'pdf'; l.modelo = null; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; } } });
   await modeloAplicar(arr); await saveLimites(arr, prev); await loadLimits();
   t2._sinTalFirma = null; try { computeT2(); pv.draw(); } catch (e) {}
   const sobran = pols.filter(l => !usados.has(l)).length;
-  return `PDF leído: bloques ${res.join(', ')} ubicados en el plano${sobran ? ` · ${sobran} polígono(s) del _C sin letrero en el PDF (quedan sin bloque)` : ''}${nuevos ? ` · sin _R: se usaron los datos del PDF (${nuevos} bloque(s))` : ''}`;
+  return `PDF leído: bloques ${res.join(', ')} ubicados en el plano${nSobre ? ` · ${nSobre} sobrerotura` : ''}${sobran ? ` · ${sobran} polígono(s) del _C sin letrero en el PDF (quedan sin bloque)` : ''}${nuevos ? ` · sin _R: se usaron los datos del PDF (${nuevos} bloque(s))` : ''}`;
 }
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
