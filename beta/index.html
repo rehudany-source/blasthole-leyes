@@ -907,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v89</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v90</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4849,6 +4849,7 @@ async function loadLimits() {
   arr = arr.filter(l => !(faseLim(l.file) === 'rotura' && conFinal.has(proyLim(l.file))));
   arr.forEach(l => { l.fase = faseLim(l.file); });
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
+  try { t2._mod = (await idbGet('modelo-bloques')) || {}; } catch (e) { t2._mod = {}; }
   t2._sinTalFirma = null;
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
@@ -4868,11 +4869,15 @@ function renderLimList() {
     marcarSinTaladros();
     const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
     const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
-    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH +
+    const ab = de ? [] : ls.filter(l => l.autoBloque);
+    const abH = ab.length ? `<div class="desli"><span><i>Bloques puestos con el _R (sin _P)</i>${ab.some(l => l.autoBloque === 'dudoso') ? ' · <b>revisa con el PDF</b>' : ''}</span></div>` + ab.map((l, i) => { const p = l.proyM || ''; const noms = Object.values(t2._mod || {}).filter(m => m.proy === p).map(m => m.bloque); return `<div class="desli"><span>Polígono ${i + 1} · ${Math.round(Math.abs(l.area || polyArea(l.pts))).toLocaleString('es-PE')} m²${l.autoBloque === 'dudoso' ? ' ⚠' : l.autoBloque === 'manual' ? ' ✓' : ''}</span><select data-blq="${esc(l.id)}"><option value="">—</option>${noms.map(n => `<option${n === l.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`; }).join('') : '';
+    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH + abH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
 }
-$('limList').addEventListener('change', e => {
+$('limList').addEventListener('change', async e => {
+  const sb = e.target.closest('select[data-blq]');
+  if (sb) { const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l)); const L = arr.find(l => l.id === sb.dataset.blq); if (!L) return; L.name = sb.value; L.autoBloque = 'manual'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; await modeloAplicar(arr); await saveLimites(arr, prev); await loadLimits(); t2._sinTalFirma = null; computeT2(); pv.draw(); setMsg('limMsg', 'ok', `Polígono marcado como bloque ${sb.value || '(sin bloque)'}.`); return; }
   const cb = e.target.closest('input[data-layer]'); if (!cb) return;
   if (cb.checked) t2.limOff.delete(cb.dataset.layer); else t2.limOff.add(cb.dataset.layer);
   try { localStorage.setItem('bhl-limoff', JSON.stringify([...t2.limOff])); } catch (e2) {}
@@ -4937,7 +4942,7 @@ async function addLimitFiles(files) {
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
   await saveLimites(arr, prevLim); await loadLimits();
-  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs).join(' · ');
+  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs, t2._avisoBloques || []).join(' · '); t2._avisoBloques = [];
 }
 (() => {
   const drop = $('dropLIM'), inp = $('fileLIM');
@@ -5755,7 +5760,7 @@ async function cargarTodo(files) {
   }
   if (grupos.ley.length) { await handleFiles(grupos.ley, 'ley'); grupos.ley.forEach(f => fila('🧪', f.name, 'Leyes de un proyecto: se abrieron en la pestaña 1 junto con sus taladros. Pulsa «Guardar proyecto» allí para guardarlas.')); }
   if (grupos.lim.length) { await addLimitFiles(grupos.lim); const m = $('limMsg').textContent; grupos.lim.forEach(f => { const part = m.split(' · ').find(x => x.startsWith(f.name)) || ''; const err = /no se puede|error|sin polígonos|no encontré/i.test(part); fila(err ? '⚠️' : '📐', f.name, esc(part.replace(f.name + ': ', '') || 'Límites cargados'), err); }); }
-  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _P.csv (polígonos de los bloques) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
+  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _C.dxf (o el _P.csv) para verlos en el plano.'}${r.avisos && r.avisos.length ? ' ' + esc(r.avisos.join(' · ')) : ''}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   for (const f of grupos.topo) { try { const r = await cargarTopo(f); fila('⛰', f.name, `Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos). Mírala en la pestaña 2 con «⛰ Topo».`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   grupos.mal.forEach(f => fila('❓', f.name, 'No reconocí este archivo. Debe ser una base de leyes, un CSV/Excel de taladros (ID, Este, Norte, Cota), un CSV de leyes o un DXF de límites.', true));
   if (state.base) refrescarCopias();
@@ -6632,6 +6637,7 @@ async function cargarModelo(f) {
     // V57: para la etiqueta como en MinePlan
     const ex = (al) => { const h = tb.csv.header.map(modNorm), i = h.findIndex(x => al.includes(x)); return i >= 0 ? num(r[i]) : null; };
     m.ins = ex(['cins', 'ins', 'insol']); m.sfes = ex(['csfes', 'sfes', 's/fes']); m.rec = ex(['crp', 'cwr', 'rec', 'recup']);
+    m.v = 89; // V89: leído con el parser que respeta comillas y miles (sirve para nombrar el _C sin _P)
     mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
   });
   if (!bloques.length) throw new Error('El archivo no tiene filas de bloques.');
@@ -6639,11 +6645,50 @@ async function cargarModelo(f) {
   const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
   const n = await modeloAplicar(arr);
   if (n) { await saveLimites(arr, prev); await loadLimits(); }
-  return { n: bloques.length, bloques, enPlano: n };
+  const avisos = t2._avisoBloques || []; t2._avisoBloques = []; if (avisos.length) try { setMsg('limMsg', 'ok', avisos.join(' · ')); } catch (e) {}
+  return { n: bloques.length, bloques, enPlano: n, avisos };
 }
 // pone los resultados del modelo en los polígonos de bloques (mismo proyecto y nombre); el material decide si es desmonte
+// V90: si un proyecto tiene _C y _R pero no _P, los polígonos del _C toman el nombre del bloque por área (volumen ÷ altura de banco)
+function autoBloques(arr, mod) {
+  const proyDe = l => ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+  const conP = new Set(arr.filter(l => /_P\.[a-z0-9]+$/i.test(l.file || '')).map(proyDe));
+  const avisos = [];
+  const porProy = new Map();
+  arr.forEach(l => { if (l.ro || !/_C\.[a-z0-9]+$/i.test(l.file || '') || !l.closed || !l.pts || l.pts.length < 3) return; const p = proyDe(l); if (!p || conP.has(p)) return; if (!porProy.has(p)) porProy.set(p, []); porProy.get(p).push(l); });
+  porProy.forEach((pols, p) => {
+    if (pols.every(l => l.autoBloque === 'manual')) return;
+    const bl = Object.values(mod).filter(m => m.proy === p && m.v >= 89).map(m => ({ b: m.bloque, vol: m.vol || (m.t && m.density ? m.t / m.density : null) })).filter(x => x.vol > 0);
+    if (!bl.length) return;
+    const areas = pols.map(l => Math.abs(polyArea(l.pts)));
+    let H = bl.reduce((s, x) => s + x.vol, 0) / areas.reduce((s, a) => s + a, 0);
+    if (!(H >= 4 && H <= 30) || bl.length !== pols.length) H = 12;
+    const esp = bl.map(x => x.vol / H);
+    // asignación de menor error relativo (todas las combinaciones si son pocas; si no, de a uno)
+    const err = (i, j) => Math.abs(areas[i] - esp[j]) / Math.max(esp[j], 1);
+    let mejor = null;
+    if (pols.length <= 7 && bl.length <= 7) {
+      const usar = (i, usados, acc, asg) => { if (i === pols.length) { if (!mejor || acc < mejor.e) mejor = { e: acc, asg: asg.slice() }; return; } let algo = false; for (let j = 0; j < bl.length; j++) { if (usados & (1 << j)) continue; algo = true; asg[i] = j; usar(i + 1, usados | (1 << j), acc + err(i, j), asg); } if (!algo || pols.length > bl.length) { asg[i] = -1; usar(i + 1, usados, acc + 1, asg); } };
+      usar(0, 0, 0, []);
+    } else { const usados = new Set(); mejor = { asg: pols.map((_, i) => { let jb = -1; esp.forEach((_, j) => { if (!usados.has(j) && (jb < 0 || err(i, j) < err(i, jb))) jb = j; }); if (jb >= 0) usados.add(jb); return jb; }) }; }
+    let dudoso = false;
+    for (let a = 0; a < esp.length; a++) for (let b = a + 1; b < esp.length; b++) if (Math.abs(esp[a] - esp[b]) / Math.max(esp[a], esp[b]) < 0.15) dudoso = true;
+    pols.forEach((l, i) => {
+      if (l.autoBloque === 'manual') return;
+      const j = mejor.asg[i], nom = j >= 0 ? bl[j].b : '';
+      if (l.name !== nom || l.autoBloque !== (dudoso ? 'dudoso' : 'auto')) { l.name = nom; l.proyM = p; l.autoBloque = dudoso ? 'dudoso' : 'auto'; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; }
+      if (j >= 0 && err(i, j) > 0.25) dudoso = true;
+    });
+    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); revisa los nombres en «Límites»`);
+    else if (dudoso) avisos.push(`${p}: hay bloques de tamaño parecido; revisa en «Límites» que cada polígono tenga el bloque correcto (compáralo con el PDF)`);
+    else avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} puestos solos con el _R (sin _P)`);
+  });
+  t2._avisoBloques = avisos;
+  return avisos;
+}
 async function modeloAplicar(arr) {
   const mod = (await idbGet('modelo-bloques')) || {}; let n = 0;
+  try { autoBloques(arr, mod); } catch (e) { console.warn('autoBloques', e); }
   arr.forEach(l => {
     const proy = l.proyM || ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
     if (!proy || !l.name) return;
