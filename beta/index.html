@@ -908,7 +908,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v94</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v95</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -4941,6 +4941,7 @@ $('limList').addEventListener('click', async e => {
 });
 async function addLimitFiles(files) {
   const msg = $('limMsg'); const added = [], errs = [];
+  t2._proyFoco = new Set(files.map(f => ((f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0]).toUpperCase()).filter(Boolean));
   const prevLim = (await idbGet('limites')) || [];
   const arr = prevLim.slice();
   for (const f of files) {
@@ -4967,7 +4968,7 @@ async function addLimitFiles(files) {
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
   await saveLimites(arr, prevLim); await loadLimits();
-  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs, t2._avisoBloques || []).join(' · '); t2._avisoBloques = [];
+  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs, t2._avisoBloques || []).join(' · '); t2._avisoBloques = []; t2._proyFoco = null;
 }
 (() => {
   const drop = $('dropLIM'), inp = $('fileLIM');
@@ -5786,7 +5787,7 @@ async function cargarTodo(files) {
   }
   if (grupos.ley.length) { await handleFiles(grupos.ley, 'ley'); grupos.ley.forEach(f => fila('🧪', f.name, 'Leyes de un proyecto: se abrieron en la pestaña 1 junto con sus taladros. Pulsa «Guardar proyecto» allí para guardarlas.')); }
   if (grupos.lim.length) { await addLimitFiles(grupos.lim); const m = $('limMsg').textContent; grupos.lim.forEach(f => { const part = m.split(' · ').find(x => x.startsWith(f.name)) || ''; const err = /no se puede|error|sin polígonos|no encontré/i.test(part); fila(err ? '⚠️' : '📐', f.name, esc(part.replace(f.name + ': ', '') || 'Límites cargados'), err); }); }
-  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _C.dxf (o el _P.csv) para verlos en el plano.'}${r.avisos && r.avisos.length ? ' ' + esc(r.avisos.join(' · ')) : ''}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
+  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.avisos && r.avisos.length ? esc(r.avisos.join(' · ')) : r.enPlano ? `Puestos en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _C.dxf (o el _P.csv) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   for (const f of grupos.pdf) { try { fila('📄', f.name, esc(await cargarPdfBloques(f))); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   for (const f of grupos.topo) { try { const r = await cargarTopo(f); fila('⛰', f.name, `Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos). Mírala en la pestaña 2 con «⛰ Topo».`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   grupos.mal.forEach(f => fila('❓', f.name, 'No reconocí este archivo. Debe ser una base de leyes, un CSV/Excel de taladros (ID, Este, Norte, Cota), un CSV de leyes o un DXF de límites.', true));
@@ -6669,10 +6670,11 @@ async function cargarModelo(f) {
   });
   if (!bloques.length) throw new Error('El archivo no tiene filas de bloques.');
   await idbSet('modelo-bloques', mod);
+  t2._proyFoco = new Set([...new Set(tb.csv.rows.map(r => (txt(r, 'proy') || proyArch).toUpperCase()))]);
   const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
   const n = await modeloAplicar(arr);
   if (n) { await saveLimites(arr, prev); await loadLimits(); }
-  const avisos = t2._avisoBloques || []; t2._avisoBloques = []; if (avisos.length) try { setMsg('limMsg', 'ok', avisos.join(' · ')); } catch (e) {}
+  const avisos = t2._avisoBloques || []; t2._avisoBloques = []; t2._proyFoco = null; if (avisos.length) try { setMsg('limMsg', 'ok', avisos.join(' · ')); } catch (e) {}
   return { n: bloques.length, bloques, enPlano: n, avisos };
 }
 // pone los resultados del modelo en los polígonos de bloques (mismo proyecto y nombre); el material decide si es desmonte
@@ -6707,14 +6709,18 @@ function autoBloques(arr, mod) {
     if (!mejor) { const H0 = 12, usados = new Set(); mejor = { e: 0, asg: pols.map((_, i) => { let jb = -1; bl.forEach((x, j) => { if (!usados.has(j) && (jb < 0 || Math.abs(areas[i] - x.vol / H0) < Math.abs(areas[i] - bl[jb].vol / H0))) jb = j; }); if (jb >= 0) usados.add(jb); return jb; }) }; }
     let dudoso = bl.length !== pols.length || mejor.e > 0.02 || (segundo && segundo.e < mejor.e * 3 + 0.005);
     void pocosP;
+    let cambio = false;
     pols.forEach((l, i) => {
       if (l.autoBloque === 'manual' || l.autoBloque === 'pdf') return;
       const j = mejor.asg[i], nom = j >= 0 ? bl[j].b : '';
-      if (l.name !== nom || l.autoBloque !== (dudoso ? 'dudoso' : 'auto')) { l.name = nom; l.proyM = p; l.autoBloque = dudoso ? 'dudoso' : 'auto'; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; }
+      if (l.name !== nom || l.autoBloque !== (dudoso ? 'dudoso' : 'auto')) { cambio = true; l.name = nom; l.proyM = p; l.autoBloque = dudoso ? 'dudoso' : 'auto'; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; }
     });
-    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); puse ${pols.filter(l => l.name).map(l => l.name).join(', ') || 'ninguno'} — revisa en «Límites» el polígono sin bloque`);
-    else if (dudoso) avisos.push(`${p}: hay bloques de tamaño parecido; revisa en «Límites» que cada polígono tenga el bloque correcto (compáralo con el PDF)`);
-    else avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} puestos solos con el _R (sin _P)`);
+    // V95: solo se avisa del proyecto que se acaba de subir o del que cambió (antes salían todos)
+    const foco = t2._proyFoco && t2._proyFoco.has(p);
+    if (!cambio && !foco) return;
+    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); bloques ${pols.filter(l => l.name).map(l => l.name).join(', ') || '—'}; ${pols.length - pols.filter(l => l.name).length} polígono(s) sin bloque, revisa en «Límites» o sube el PDF`);
+    else if (dudoso) avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} (tamaños parecidos: revísalos o sube el PDF)`);
+    else avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} puestos solos`);
   });
   t2._avisoBloques = avisos;
   return avisos;
