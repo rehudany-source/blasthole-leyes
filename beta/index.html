@@ -907,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v90</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v91</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1561,7 +1561,7 @@ function headerScore(row) {
   let s = 0;
   n.forEach(c => { if (!c) return; if (ALIAS.x.test(c) || ALIAS.y.test(c) || ALIAS.z.test(c) || ALIAS.id.test(c) || ALIAS.ley.test(c) || looseX(c) || looseY(c) || looseZ(c)) s++; });
   const numeric = row.filter(c => toNum(c, ',') != null).length;
-  return numeric >= row.filter(c => c !== '').length ? -1 : s;
+  return numeric * 2 >= row.filter(c => c !== '').length ? -1 : s; // V91: una fila con la mitad o más de números es de datos (p. ej. el bloque «E» del _R no es «Este»)
 }
 
 // Busca la fila de encabezados (a veces hay títulos encima en los Excel)
