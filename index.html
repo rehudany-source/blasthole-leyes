@@ -79,7 +79,7 @@ h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.05rem; text-t
 .tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 3px; background: var(--chip); color: var(--muted); margin-left: 6px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
 label.f { display: grid; gap: 3px; font-size: .8rem; color: var(--muted); }
-input[type=number], input[type=text], select { font: inherit; font-family: var(--f-mono); font-size: .85rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
+input[type=number], input[type=text], input[type=password], input[type=email], select { font: inherit; font-family: var(--f-mono); font-size: .85rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .projcheck { display: grid; gap: 8px; padding: 12px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); }
 .projcheck .pc-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -378,7 +378,7 @@ body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); positio
 /* tarjetas y controles táctiles */
 body.app .box, body.app .section { border: 0; border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent); padding: 16px; }
 body.app .section { display: grid; gap: 10px; }
-body.app input[type=number], body.app input[type=text], body.app input[type=date], body.app select { font-size: 16px; min-height: 44px; border-radius: 10px; padding: 8px 12px; font-family: var(--f-body); }
+body.app input[type=number], body.app input[type=text], body.app input[type=password], body.app input[type=email], body.app input[type=date], body.app select { font-size: 16px; min-height: 44px; border-radius: 10px; padding: 8px 12px; font-family: var(--f-body); }
 body.app .btn { min-height: 48px; border-radius: 12px; font-size: 1rem; }
 body.app .btn.small { min-height: 42px; font-size: .92rem; padding: 9px 14px; }
 body.app .chk { min-height: 40px; align-items: center; }
@@ -486,6 +486,7 @@ body.app .cadwrap.full .fs-filbtn { display: inline-flex; align-items: center; g
 .prev-opts { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .prev-opts label { display: flex; align-items: center; gap: 6px; font: 600 .82rem var(--f-body); color: #c9d1d9; }
 .prev-opts select { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; padding: 6px 8px; min-height: 36px; width: auto; color-scheme: dark; }
+.pv-tam { display: inline-flex; align-items: center; gap: 4px; } .pv-tam span { font-size: .8rem; color: #b8c2c8; margin-right: 2px; } .pv-tam button { min-width: 40px; height: 34px; border-radius: 8px; border: 1px solid #4a535b; background: #2a3138; color: #fff; font: 700 1.05rem var(--f-body); cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; } .pv-tam #pvCentrar { font-size: .85rem; padding: 0 12px; }
 .prev-zoom { display: flex; gap: 4px; }
 .pv-mas { position: relative; }
 .pv-mas > button { font: 600 .9rem var(--f-body); background: #2a3138; color: #e8ecef; border: 1px solid #3a424a; border-radius: 8px; min-height: 36px; padding: 0 12px; cursor: pointer; }
@@ -772,6 +773,7 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
 .gps-h b { cursor: pointer; }
 .topo-pop { position: absolute; left: 10px; top: 52px; z-index: 7; width: min(380px, calc(100% - 20px)); background: var(--panel, #fff); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); display: grid; gap: 8px; font-size: .85rem; max-height: calc(100% - 64px); overflow: auto; }
 .topo-pop[hidden] { display: none; }
+.topo-pop > * { min-width: 0; } .topo-pop { grid-template-columns: minmax(0, 1fr); } .topo-pop .topo-tab { display: block; max-width: 100%; overflow-x: auto; }
 .topo-h { display: flex; justify-content: space-between; align-items: center; } .topo-h button { border: 0; background: none; font-size: 17px; color: var(--muted); cursor: pointer; }
 .topo-lista { display: grid; gap: 4px; max-height: 220px; overflow: auto; }
 .topo-it { display: grid; grid-template-columns: 2.6em 2.6em 1fr auto; justify-items: start; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
@@ -905,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v85</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v89</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -939,7 +941,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         </div>
         <div class="vl-h">Proyectos <button type="button" class="lnk" id="vlAll">Todos</button> <button type="button" class="lnk" id="vlNone">Ninguno</button></div>
         <div class="plist vl-list" id="vlList"></div>
-        <div class="vl-h">Límites <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
+        <div class="vl-h">Límites <button type="button" class="lnk" id="vlLimProy">Del proyecto</button> <button type="button" class="lnk" id="vlLimAll">Todos</button> <button type="button" class="lnk" id="vlLimNone">Ninguno</button></div>
         <div class="vl-lims" id="vlLims"><p class="note">Marca un proyecto.</p></div>
         <label class="chk"><input type="checkbox" id="vlSup"> <span>Nivel superior (+12 m) <small class="vlib-s">en morado</small></span></label>
         <div class="btnrow2">
@@ -1111,7 +1113,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <div class="agrp"><h3>Sincronización</h3>
       <div class="acard"><div class="arow"><span>Cuenta</span><b id="appSyncTxt">—</b></div>
       <button class="arow abtn" type="button" id="appSyncBtn">Cuenta, contraseña y usuarios<span>›</span></button></div>
-      <p class="anote">Entra con tu usuario (ej. calidad1) en cada equipo. Ves tus proyectos y avances; los límites, los proyectos FINAL y los polígonos de avances se comparten con el equipo.</p></div>
+      <p class="anote">Entra con tu usuario (ej. calidad1) en cada equipo. Los proyectos con sus leyes, los límites y las topografías los ve y actualiza todo el equipo; tus avances son tuyos.</p></div>
     <div class="agrp"><h3>Aplicación</h3>
       <div class="acard"><div class="arow"><span>Versión</span><b id="appVer">—</b></div>
       <button class="arow abtn" type="button" id="appRecargar">Buscar actualización ahora<span>›</span></button></div>
@@ -1388,7 +1390,8 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <b id="prevTit">Vista previa de impresión</b>
     <div class="prev-opts">
       <label>Hoja<select id="pvHoja"></select></label>
-      <label>Escala<select id="pvEsc"></select></label>
+      <label hidden>Escala<select id="pvEsc"></select></label>
+      <div class="pv-tam" title="Tamaño del dibujo en la hoja"><span>Dibujo</span><button type="button" id="pvTamMenos" aria-label="Achicar el dibujo">−</button><button type="button" id="pvCentrar">Centrar</button><button type="button" id="pvTamMas" aria-label="Agrandar el dibujo">+</button></div>
       <label>Letra<select id="pvLetra"></select></label>
       <div class="pv-mas"><button type="button" id="pvOptBtn" aria-expanded="false">⚙ Opciones ▾</button>
         <div class="pv-pop" id="pvPop" hidden>
@@ -1409,7 +1412,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         </div>
       </div>
     </div>
-    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar">−</button><button type="button" id="pvAjustar" title="Acercar al dibujo del proyecto">Ajustar</button><button type="button" id="pvHojaComp" title="Ver la hoja completa">Hoja</button><button type="button" id="pvMas" aria-label="Acercar">+</button></div>
+    <div class="prev-zoom"><button type="button" id="pvMenos" aria-label="Alejar la vista" title="Ver más lejos (no cambia la impresión)">🔍−</button><button type="button" id="pvAjustar" title="Acercar al dibujo del proyecto">Ajustar</button><button type="button" id="pvHojaComp" title="Ver la hoja completa">Hoja</button><button type="button" id="pvMas" aria-label="Acercar la vista" title="Ver más cerca (no cambia la impresión)">🔍+</button></div>
   </div>
   <div class="prev-body" id="prevBody"><div class="prev-paper" id="prevPaper"></div></div>
   <div class="prev-foot">
@@ -1423,7 +1426,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
 <div class="dlg" id="dlgSync" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="syncTit">
     <h2 id="syncTit">Tu cuenta</h2>
-    <p class="note">Cada persona entra con su usuario y ve sus propios proyectos y avances en todos sus equipos. Los límites y los avances los ve solo quien los hizo; los proyectos FINAL y las topografías se comparten con todo el equipo. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
+    <p class="note">Cada persona entra con su usuario. Los proyectos con sus leyes, los límites y las topografías los ve y actualiza todo el equipo; tus avances quedan en tu cuenta y en todos tus equipos. Sin internet sigues trabajando y se sincroniza al volver la conexión.</p>
     <div id="syncLogin" class="dlgsec">
       <label class="f">Usuario o correo<input type="text" id="syncEmail" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ej. calidad1"></label>
       <label class="f">Contraseña<input type="password" id="syncPw" autocomplete="current-password" placeholder="mínimo 6 caracteres"></label>
@@ -1448,7 +1451,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
       <div id="syncAdmin" class="dlgsub" hidden>
         <div class="adm-beta" id="admBeta" hidden><b>🧪 Versión de pruebas</b><span>Solo tú la ves. Prueba las mejoras aquí; cuando estén sin errores se publican para todos.</span><a class="btn sec small" id="admBetaIr" href="beta/">Abrir versión de pruebas</a></div>
         <h3>Usuarios del programa</h3>
-        <p class="note">Cada usuario ve solo sus proyectos, sus límites y sus avances. Los <b>proyectos FINAL</b> y las <b>topografías</b> los ven todos.</p>
+        <p class="note">Los <b>proyectos con sus leyes</b>, los <b>límites</b> y las <b>topografías</b> los ve y actualiza todo el equipo. Cada usuario ve solo sus avances.</p>
         <div class="adm-lista" id="admLista"></div>
         <div class="grid3 adm-nuevo"><label class="f">Usuario<input type="text" id="admEmail" placeholder="calidad1" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label class="f">Contraseña<input type="text" id="admPw" placeholder="mínimo 6" autocomplete="new-password" autocapitalize="none" spellcheck="false"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off" placeholder="ej. Juan Pérez"></label></div>
         <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Crear usuario</button><button class="btn sec small" id="admSerie" type="button" title="Llena el primer usuario calidad que falta">Siguiente «calidad»</button></div>
@@ -1487,7 +1490,9 @@ function parseCSV(text) {
   const probe = lines.slice(0, 15);
   const score = s => { const c = probe.map(l => l.split(s).length - 1); const max = Math.max(...c); return max ? c.filter(v => v === max).length * 10 + max : 0; };
   const sep = [';', '\t', ','].reduce((a, s) => (score(s) > score(a) ? s : a), ',');
-  const rows = lines.map(l => l.split(sep).map(c => c.trim().replace(/^"(.*)"$/, '$1').trim()));
+  // V89: respeta las comillas: «"141,724"» es una sola celda aunque tenga el separador adentro
+  const splitQ = l => { if (l.indexOf('"') < 0) return l.split(sep); const out = []; let cur = '', q = false; for (let i = 0; i < l.length; i++) { const ch = l[i]; if (ch === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
+  const rows = lines.map(l => splitQ(l).map(c => c.trim().replace(/^"(.*)"$/, '$1').trim()));
   return tableFromRows(rows, sep);
 }
 
@@ -2520,6 +2525,8 @@ function layoutPlot(P, o) {
   let scale = parseInt(o.scale, 10) || 0, note = '';
   if (scale && PT_PER_M_1 / scale > fit) { note = `El dibujo no entra en ${o.paper || 'A3'} a 1:${scale}; se usó una escala menor.`; scale = 0; }
   if (!scale) scale = PDF_SCALES.find(s => PT_PER_M_1 / s <= fit) || Math.ceil(PT_PER_M_1 / fit);
+  // V86: tamaño fino elegido con + / − en la vista previa (1 = el dibujo llena la hoja)
+  if (o.zoomFino > 0) { scale = Math.max(1, Math.round(PT_PER_M_1 / (fit * o.zoomFino))); note = ''; }
   const k = PT_PER_M_1 / scale;
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   const X = x => ax + aw / 2 + (x - cx) * k, Y = y => ay + ah / 2 + (y - cy) * k;
@@ -3365,7 +3372,7 @@ function planoOpts0() {
   const t = new Date(); const fecha = `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`;
   const lv = state.libView ? lib.projects.filter(p => state.libView.ids.includes(p.id)).map(p => p.name) : null;
   const T = window.TITULO || {};
-  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, title: $('outName').value.trim() || baseName(), fecha, mosaico: (window.PRINT_OPTS || {}).mosaico || '', grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
+  return { empresa: T.empresa || '', area: T.area || '', autor: T.autor || '', logo: T.logo || null, paper: $('pdfHoja').value, scale: $('pdfEsc').value, zoomFino: window.PRINT_ZOOM || 0, title: $('outName').value.trim() || baseName(), fecha, mosaico: (window.PRINT_OPTS || {}).mosaico || '', grid: (window.PRINT_OPTS || {}).grid !== false, leyenda: (window.PRINT_OPTS || {}).leyenda !== false, polys: state.libView && (window.PRINT_OPTS || {}).lims !== false ? vlPrintPolys() : null, marks: state.libView && (window.PRINT_OPTS || {}).sup !== false ? vlPrintMarks() : null,
     subtitle: lv ? `Proyecto${lv.length > 1 ? 's' : ''} ${lv.join(', ')} · ${state.holes.length} taladros · ${conLey} con leyes` : `${proj ? 'Proyecto ' + proj + ' · ' : ''}${state.holes.length} taladros · ${conLey} con leyes${state.leyName ? ' · leyes: ' + state.leyName : state.src === 'base' ? ' · leyes de la base' : ''}` };
 }
 // En la vista de Claude no se puede abrir el diálogo de impresión: ahí se usa el PDF
@@ -3388,9 +3395,23 @@ let prevZoom = 0, prevR = null;
 });
 function abrirPrevia() {
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
-  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'dibujo'; pintarPrevia();
+  window.PRINT_ZOOM = 1; // V86: el dibujo llena la hoja; con + / − se agranda o achica de a poco
+  $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'hoja'; pintarPrevia();
 }
-function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; window.PRINT_AV = null; }
+// V86: + / − cambian el tamaño del dibujo en la hoja de a poco (5 % por toque; mantener presionado repite)
+(() => {
+  let t = null, n = 0;
+  const paso = f => { window.PRINT_ZOOM = Math.min(6, Math.max(0.2, (window.PRINT_ZOOM || 1) * f)); if (prevModo === 'dibujo') prevModo = 'hoja'; pintarPrevia(); };
+  const parar = () => { clearTimeout(t); t = null; };
+  [['pvTamMas', 1.05], ['pvTamMenos', 1 / 1.05]].forEach(([id, f]) => {
+    const b = $(id);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); n = 0; paso(f); const rep = () => { n++; paso(f); t = setTimeout(rep, n > 6 ? 110 : 220); }; t = setTimeout(rep, 450); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, parar));
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); paso(f); } });
+  });
+  $('pvCentrar').onclick = () => { window.PRINT_ZOOM = 1; prevModo = 'hoja'; prevZoom = 0; pintarPrevia(); };
+})();
+function cerrarPrevia() { $('dlgPrev').hidden = true; document.body.style.overflow = ''; window.PRINT_AV = null; window.PRINT_ZOOM = 0; }
 function ajustarPapel() {
   if (!prevR) return;
   const body = $('prevBody'), paper = $('prevPaper');
@@ -5222,7 +5243,8 @@ function vlLimsRender() {
   const V = state.libView;
   const ids = new Set(V ? V.ids : [...vl.ids]);
   if (!ids.size) { box.innerHTML = '<p class="note">Marca un proyecto.</p>'; return; }
-  const lims = vlLimites(ids), avs = vlAvances(ids), off = V ? V.off : new Set(), clip = V ? V.clip : '';
+  const csP = new Set(lib.projects.filter(p => ids.has(p.id)).map(canonOfProject).filter(Boolean)), esDelP = L => csP.has(proyLim(L.file));
+  const lims = vlLimites(ids).sort((a, b) => esDelP(b) - esDelP(a)), avs = vlAvances(ids), off = V ? V.off : new Set(), clip = V ? V.clip : '';
   const row = (key, color, name, sub) => `<label class="vl-li${off.has(key) ? ' off' : ''}"><input type="checkbox" data-show="${esc(key)}" ${off.has(key) ? '' : 'checked'}><i class="sw" style="background:${color}"></i><span class="nm">${esc(name)}${sub ? ` <small>${esc(sub)}</small>` : ''}</span><label class="rc" title="Imprimir solo lo que está dentro"><input type="radio" name="vlclip" value="${esc(key)}" ${clip === key ? 'checked' : ''}><span>recortar</span></label></label>`;
   let h = `<label class="vl-li"><span></span><span></span><span class="nm"><b>Sin recortar</b> <small>todo el proyecto</small></span><label class="rc"><input type="radio" name="vlclip" value="" ${clip ? '' : 'checked'}><span>todo</span></label></label>`;
   if (lims.length) h += '<div class="vl-sub">Límites de rotura y subdivisiones</div>' + lims.map((L, i) => row('L:' + L.id, limColor(L.layer), L.name || L.layer || 'Límite', `#${i + 1} · ${Math.round(L.area).toLocaleString('es-PE')} m²`)).join('');
@@ -5311,7 +5333,15 @@ function vlAplicar() {
   if (!ids.length) { $('vlNote').hidden = false; $('vlNote').className = 'msg err'; $('vlNote').textContent = 'Marca al menos un proyecto.'; return; }
   $('vlNote').hidden = true;
   const prev = state.libView;
-  state.libView = { ids, clip: prev ? prev.clip : '', off: prev ? prev.off : new Set(), sup: $('vlSup').checked };
+  // V86: al elegir otros proyectos, solo quedan marcados los límites de esos proyectos (por el nombre del archivo); los demás se pueden marcar a mano
+  const mismo = prev && prev.ids.join('|') === ids.join('|');
+  const off = mismo ? prev.off : new Set();
+  if (!mismo) {
+    const cs = new Set(lib.projects.filter(p => ids.includes(p.id)).map(canonOfProject).filter(Boolean));
+    const ls = vlLimites(new Set(ids));
+    if (ls.some(L => cs.has(proyLim(L.file)))) ls.forEach(L => { if (!cs.has(proyLim(L.file))) off.add('L:' + L.id); });
+  }
+  state.libView = { ids, clip: mismo ? prev.clip : '', off, sup: $('vlSup').checked };
   vlPintarEstado(); recompute(true); vlLimsRender();
 }
 $('vlibBox').addEventListener('toggle', () => { if ($('vlibBox').open) vlRender(); });
@@ -5328,6 +5358,7 @@ $('vlLims').addEventListener('change', e => {
   const rd = e.target.closest('input[name=vlclip]');
   if (rd) { V.clip = rd.value; if (V.clip) V.off.delete(V.clip); recompute(true); vlLimsRender(); vlPintarEstado(); }
 });
+$('vlLimProy').addEventListener('click', () => { const V = state.libView; if (!V) return; const ids = new Set(V.ids), cs = new Set(lib.projects.filter(p => ids.has(p.id)).map(canonOfProject).filter(Boolean)); vlLimites(ids).forEach(L => { if (cs.has(proyLim(L.file))) V.off.delete('L:' + L.id); else V.off.add('L:' + L.id); }); vlLimsRender(); draw(); });
 $('vlLimAll').addEventListener('click', () => { if (!state.libView) return; state.libView.off = new Set(); vlLimsRender(); draw(); });
 $('vlLimNone').addEventListener('click', () => { const V = state.libView; if (!V) return; const ids = new Set(V.ids); vlLimites(ids).forEach(L => V.off.add('L:' + L.id)); vlAvances(ids).forEach(a => V.off.add('A:' + a.id)); if (V.clip) V.off.delete(V.clip); vlLimsRender(); draw(); });
 $('vlSup').addEventListener('change', () => { if (state.libView) vlAplicar(); });
@@ -6591,7 +6622,7 @@ function modCols(header) { const h = header.map(modNorm), c = {}; Object.entries
 function esResModelo(csv) { const c = modCols(csv.header); return c.bloque >= 0 && (c.t >= 0 || c.l_fe >= 0) && !csv.header.map(modNorm).some(x => /^(x|y|este|norte|east|north|easting|northing)$/.test(x)); }
 async function cargarModelo(f) {
   const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas del bloque y sus resultados.');
-  const c = modCols(tb.csv.header), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; }, txt = (r, k) => c[k] >= 0 ? String(r[c[k]] || '').trim() : '';
+  const c = modCols(tb.csv.header), num = v => { let s = String(v == null ? '' : v).trim().replace(/^"|"$/g, ''); s = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.'); const x = parseFloat(s); return isNaN(x) ? null : x; }, txt = (r, k) => c[k] >= 0 ? String(r[c[k]] || '').trim() : '';
   const proyArch = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
   const mod = (await idbGet('modelo-bloques')) || {}; const bloques = [];
   tb.csv.rows.forEach(r => {
@@ -7860,6 +7891,28 @@ const movil = () => matchMedia('(max-width: 760px)').matches;
 })();
 // En el teléfono no hay Apple Pencil: aviso corto que tapa menos el plano
 (() => { try { if (movil() && typeof TOOL_HINT !== 'undefined') { TOOL_HINT.pen = 'Lápiz: toca cada vértice y toca el primero para cerrar.'; TOOL_HINT.pan = 'Mover: arrastra y pellizca. Toca un taladro para quitarlo o agregarlo.'; } } catch (e) {} })();
+// V87: en iPad / iPhone el pellizco sobre la página (fuera del plano o la vista 3D) agrandaba toda la app
+// y no se podía volver ni salir de la vista 3D. En la app se bloquea el zoom de la página
+// (el plano y la vista 3D tienen su propio zoom) y, si igual quedó agrandada, vuelve sola al tamaño normal.
+(() => {
+  if (typeof ES_APP === 'undefined' || !ES_APP) return;
+  const meta = document.querySelector('meta[name=viewport]');
+  const base = meta ? meta.getAttribute('content') : '';
+  const fijo = 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover';
+  if (meta) meta.setAttribute('content', fijo);
+  document.documentElement.style.touchAction = 'pan-x pan-y';
+  ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  let t = null;
+  const volver = () => {
+    const vv = window.visualViewport; if (!vv || vv.scale <= 1.02 || !meta) return;
+    meta.setAttribute('content', fijo.replace('maximum-scale=1', 'maximum-scale=1.01'));
+    requestAnimationFrame(() => { meta.setAttribute('content', fijo); window.scrollTo(window.scrollX, window.scrollY); });
+  };
+  window.bhlZoomNormal = volver;
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(volver, 500); });
+  document.addEventListener('touchend', () => { clearTimeout(t); t = setTimeout(volver, 600); }, { passive: true });
+  void base;
+})();
 
 // ===== V73: enviar por WhatsApp (hoja de Compartir del iPhone / Android) =====
 async function compartirArchivo(blob, nombre, texto, msgEl) {
