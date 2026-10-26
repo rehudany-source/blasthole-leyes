@@ -907,7 +907,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v88</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v89</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1490,7 +1490,9 @@ function parseCSV(text) {
   const probe = lines.slice(0, 15);
   const score = s => { const c = probe.map(l => l.split(s).length - 1); const max = Math.max(...c); return max ? c.filter(v => v === max).length * 10 + max : 0; };
   const sep = [';', '\t', ','].reduce((a, s) => (score(s) > score(a) ? s : a), ',');
-  const rows = lines.map(l => l.split(sep).map(c => c.trim().replace(/^"(.*)"$/, '$1').trim()));
+  // V89: respeta las comillas: «"141,724"» es una sola celda aunque tenga el separador adentro
+  const splitQ = l => { if (l.indexOf('"') < 0) return l.split(sep); const out = []; let cur = '', q = false; for (let i = 0; i < l.length; i++) { const ch = l[i]; if (ch === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
+  const rows = lines.map(l => splitQ(l).map(c => c.trim().replace(/^"(.*)"$/, '$1').trim()));
   return tableFromRows(rows, sep);
 }
 
@@ -6620,7 +6622,7 @@ function modCols(header) { const h = header.map(modNorm), c = {}; Object.entries
 function esResModelo(csv) { const c = modCols(csv.header); return c.bloque >= 0 && (c.t >= 0 || c.l_fe >= 0) && !csv.header.map(modNorm).some(x => /^(x|y|este|norte|east|north|easting|northing)$/.test(x)); }
 async function cargarModelo(f) {
   const tabs = await readTables(f), tb = tabs.find(t => esResModelo(t.csv)); if (!tb) throw new Error('No encontré las columnas del bloque y sus resultados.');
-  const c = modCols(tb.csv.header), num = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return isNaN(x) ? null : x; }, txt = (r, k) => c[k] >= 0 ? String(r[c[k]] || '').trim() : '';
+  const c = modCols(tb.csv.header), num = v => { let s = String(v == null ? '' : v).trim().replace(/^"|"$/g, ''); s = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.'); const x = parseFloat(s); return isNaN(x) ? null : x; }, txt = (r, k) => c[k] >= 0 ? String(r[c[k]] || '').trim() : '';
   const proyArch = (f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
   const mod = (await idbGet('modelo-bloques')) || {}; const bloques = [];
   tb.csv.rows.forEach(r => {
