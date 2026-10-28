@@ -6567,7 +6567,8 @@ async function topoNube() {
   if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || topo.nubeBusy) return;
   topo.nubeBusy = true; let cambio = false;
   try {
-    const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
+    sync.topoError = '';
+    const rem = await rest.rpc('bhl_topo_lista', {}); if (!Array.isArray(rem)) throw new Error('Lista de topografías incompleta');
     const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
     // 1) las que vinieron de la nube y alguien quitó
     // Una respuesta incompleta de red no debe borrar topografías ya descargadas.
@@ -6576,7 +6577,7 @@ async function topoNube() {
       if (remIds.has(m.id)) { if (!m.nube) { m.nube = true; cambio = true; } continue; }
       if (m.nube) continue;
       // otro usuario ya subió la misma topografía (mismo nombre): se usa la de la nube, sin duplicar
-      const gem = rem.find(r => String(r.nombre).toUpperCase() === String(m.nombre).toUpperCase() && !topo.lista.some(x => x.id === r.id));
+      const gem = null; // Un nombre igual no confirma que sea la misma topografía.
       if (gem) {
         const Zl = await idbGet('topo:' + m.id); await idbSet('topo:' + gem.id, Zl); await idbSet('topo:' + m.id, null);
         if (topo.dems.has(m.id)) { topo.dems.set(gem.id, topo.dems.get(m.id)); topo.dems.delete(m.id); } topo.img.delete(m.id);
@@ -6588,22 +6589,39 @@ async function topoNube() {
       await rest.rpc('bhl_topo_subir', { p_id: m.id, p_nombre: m.nombre, p_fecha: m.fecha, p_meta: pk.meta, p_data: pk.data });
       m.nube = true; m.kb = Math.round(pk.data.length / 1024); cambio = true;
     }
+    // Actualizar las versiones existentes sin descartar la copia anterior si falla la descarga.
+    for (const r of rem) {
+      const m = topo.lista.find(x => x.id === r.id);
+      if (!m || !m.nube || (m.remoteAt && m.remoteAt === r.updated_at)) continue;
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id });
+      if (!data || !r.meta) throw new Error('No se pudo descargar la topografía ' + r.nombre);
+      const Z = await topoDesempacar(r.meta, data);
+      await idbSet('topo:' + r.id, Z);
+      Object.assign(m,{remoteAt:r.updated_at,nombre:r.nombre,fecha:String(r.fecha).slice(0,10),mina:r.meta.mina || topoMina(r.nombre),x0:r.meta.x0,y0:r.meta.y0,W:r.meta.W,H:r.meta.H,cel:r.meta.cel});
+      topo.dems.delete(r.id); topo.img.delete(r.id);
+      if (typeof topoHD !== 'undefined') { topoHD.cache.delete(r.id); topoHD.sinHD.delete(r.id); await idbSet('topohdc:' + r.id, null); }
+      cambio = true;
+    }
     // 3) bajar las más recientes que falten en este equipo
     const tengo = new Set(topo.lista.map(m => m.id));
     const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
     for (const r of faltan) {
       const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
       // Descargar las topografías disponibles para uso sin señal.
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) throw new Error('No se pudo descargar la topografía ' + r.nombre);
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
-      topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
+      topo.lista.push({ id: r.id, remoteAt: r.updated_at, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
       cambio = true;
     }
-  } catch (e) { console.warn('topos nube', e); }
+  } catch (e) { sync.topoError = 'Topografía pendiente: ' + (e.message || e); console.warn('topos nube', e); }
   finally {
     topo.nubeBusy = false;
     if (cambio) {
+      topo.lista.sort((a,b) => String(b.fecha).localeCompare(String(a.fecha)));
+      const actual=topo.lista.find(t=>t.id===topo.act);
+      const reciente=actual && topo.lista.find(t=>minaDe(t)===minaDe(actual) && t.fecha>actual.fecha);
+      if (reciente) { topo.ant=topo.act; topo.act=reciente.id; }
       await idbSet('topos', topo.lista); topoDefaults();
       if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act);
       await topoCalcMinados(); topoPintar(); pv.draw();
@@ -8578,7 +8596,8 @@ async function sincronizar() {
     }
     if (await subirEquipo(T)) sync.compForzar = true;
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
-    try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
+    if (typeof topoNube === 'function') await topoNube();
+    if (sync.topoError) throw new Error(sync.topoError);
     try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
     sync.compForzar = false;
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
@@ -8902,3 +8921,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
