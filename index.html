@@ -1441,7 +1441,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <div id="syncOn" class="dlgsec" hidden>
       <p id="syncWho"></p>
       <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Cerrar sesión</button></div>
-      <label class="chk" id="syncWipeL"><input type="checkbox" id="syncWipe" checked> Al cerrar sesión, quitar mis datos de este equipo (siguen guardados en mi cuenta)</label>
+      <label class="chk" id="syncWipeL"><input type="checkbox" id="syncWipe"> Al cerrar sesión, quitar mis datos de este equipo (siguen guardados en mi cuenta)</label>
       <div id="syncCuenta" class="dlgsub" hidden>
         <h3>Cambiar contraseña</h3>
         <div class="grid2"><label class="f">Nueva<input type="password" id="syncPw1" autocomplete="new-password" placeholder="mínimo 6 caracteres"></label><label class="f">Repetir<input type="password" id="syncPw2" autocomplete="new-password"></label></div>
@@ -2913,7 +2913,7 @@ function idb() {
     } catch (e) { res(null); }
   });
 }
-async function idbSet(k, v) { const db = await idb(); if (!db) return false; return new Promise(r => { try { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => r(true); tx.onerror = () => r(false); } catch (e) { r(false); } }); }
+async function idbSet(k, v) { const db = await idb(); if (!db) throw new Error('No se puede abrir el almacenamiento local.'); return new Promise((resolve,reject) => { try { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => resolve(true); tx.onerror = tx.onabort = () => reject(tx.error || new Error('No se pudo guardar: verifica el espacio disponible.')); } catch (e) { reject(e); } }); }
 async function idbGet(k) { const db = await idb(); if (!db) return null; return new Promise(r => { try { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); } catch (e) { r(null); } }); }
 async function idbDel(k) { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete(k); } catch (e) {} }
 
@@ -6570,7 +6570,7 @@ async function topoNube() {
     const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
     const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
     // 1) las que vinieron de la nube y alguien quitó
-    for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
+    // Una respuesta incompleta de red no debe borrar topografías ya descargadas.
     // 2) subir las de este equipo que aún no están
     for (const m of topo.lista) {
       if (remIds.has(m.id)) { if (!m.nube) { m.nube = true; cambio = true; } continue; }
@@ -6593,7 +6593,7 @@ async function topoNube() {
     const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
     for (const r of faltan) {
       const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
-      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
+      // Descargar las topografías disponibles para uso sin señal.
       const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
@@ -6604,7 +6604,6 @@ async function topoNube() {
   finally {
     topo.nubeBusy = false;
     if (cambio) {
-      await topoRecortar();
       await idbSet('topos', topo.lista); topoDefaults();
       if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act);
       await topoCalcMinados(); topoPintar(); pv.draw();
@@ -8285,7 +8284,7 @@ const rest = {
   async auth(path, body) {
     const r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
+    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), {httpStatus:r.status, authCode:j.error_code || j.code || j.error});
     return j;
   },
   guardar(j) {
@@ -8299,7 +8298,7 @@ const rest = {
     if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     if (sync.session.expires_at - 60 < Date.now() / 1000) {
       try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: sync.session.refresh_token })); }
-      catch (e) { if (!navigator.onLine) throw e; sync.session = null; try { localStorage.removeItem('bhl-sess'); } catch (e2) {} throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' }); }
+      catch (e) { if (['refresh_token_not_found','refresh_token_already_used','session_not_found','session_expired','user_banned'].includes(e.authCode)) throw Object.assign(new Error('La sesión requiere iniciar sesión nuevamente; tus datos locales se conservan.'), {code:'login'}); throw e; }
     }
     return sync.session.access_token;
   },
@@ -8314,7 +8313,7 @@ const rest = {
     const tk = await rest.token();
     const r = await fetch(`${SYNC.url}/auth/v1/user`, { method: 'PUT', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
+    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), {httpStatus:r.status, authCode:j.error_code || j.code || j.error});
   },
   pull: since => rest.rpc('bhl_pull', { p_since: since }),
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
@@ -8356,8 +8355,8 @@ async function bajarCompartidos(T, forzar) {
   let firma = null;
   if (T.compartidosFirma) { try { firma = await T.compartidosFirma(); } catch (e) { firma = null; } }
   if (firma && !forzar && firma === (await idbGet('comp-firma'))) return 0;
-  let res = (await T.compartidos()) || [];
-  if (Array.isArray(res)) res = { limites: res }; // servidor antiguo
+  let res = await T.compartidos();
+  if (!res || typeof res !== 'object' || Array.isArray(res) || !Array.isArray(res.limites) || !Array.isArray(res.finales) || !Array.isArray(res.avances)) throw new Error('Descarga compartida incompleta: se conservan los datos guardados.');
   const firmaArr = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
   const pref = r => 'comp:' + r.de + ':' + r.id;
   const grupos = {
@@ -8639,7 +8638,7 @@ function abrirPanelSync() {
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
   $('admBeta').hidden = !(conectado && esAdmin() && enWeb);
   if (window.BHL_CANAL === 'beta') { $('admBetaIr').textContent = 'Volver a la versión normal'; $('admBetaIr').href = '../'; }
-  $('syncWipe').checked = true;
+  $('syncWipe').checked = false;
   if (conectado && esAdmin()) cargarUsuarios();
   d.hidden = false;
 }
