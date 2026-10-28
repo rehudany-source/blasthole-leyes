@@ -1458,7 +1458,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         <p class="msg" id="admMsg"></p>
       </div>
     </div>
-    <p class="note" id="syncStatus"></p>
+    <div id="offlineResumen" class="dlgsub"></div><p class="note" id="syncStatus"></p>
     <p class="msg" id="syncMsg"></p>
     <div class="btnrow" style="justify-content:flex-end"><button class="btn sec small" id="syncCerrar" type="button">Cerrar</button></div>
   </div>
@@ -3819,18 +3819,60 @@ $('libTbl').addEventListener('click', async e => {
   }
 });
 
+async function kvEntradas() {
+  const db = await idb(); if (!db) throw new Error('No se puede leer el almacenamiento.');
+  return new Promise((resolve, reject) => { const out = [], tx = db.transaction('kv'), q = tx.objectStore('kv').openCursor();
+    q.onsuccess = () => { const c = q.result; if (c) { out.push([c.key, c.value]); c.continue(); } }; tx.oncomplete = () => resolve(out); tx.onerror = tx.onabort = () => reject(tx.error || new Error('No se pudo leer el respaldo.')); });
+}
+function respaldoJson(k, v) {
+  if (v instanceof ArrayBuffer) return { _bhl: 'ArrayBuffer', data: b64De(new Uint8Array(v)) };
+  if (ArrayBuffer.isView(v)) return { _bhl: v.constructor.name, data: b64De(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) };
+  return v;
+}
+function respaldoValor(k, v) {
+  if (!v || !v._bhl || typeof v.data !== 'string') return v;
+  const u = b64A(v.data), buf = u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength);
+  const tipos = { Float32Array, Float64Array, Uint8Array, Uint16Array, Int16Array, Int32Array, Uint32Array };
+  if (v._bhl === 'ArrayBuffer') return buf;
+  if (!tipos[v._bhl]) throw new Error('Tipo de dato de respaldo no reconocido.'); return new tipos[v._bhl](buf);
+}
+async function archivarCuentaLocal() {
+  const owner = await idbGet('bhl-owner');
+  const entries = (await kvEntradas()).filter(([k]) => !String(k).startsWith('archivo-cuenta:'));
+  if (owner) await idbSet('archivo-cuenta:' + owner + ':' + Date.now(), { owner, at: new Date().toISOString(), entries });
+  // Only caches and credentials are removed; previous account KV stays in the archive.
+  for (const [k] of entries) {
+    if (/^(base$|topo|foto|bhl-ctrl$)/.test(String(k))) await idbSet(k, null);
+  }
+  if (typeof state !== 'undefined') { state.base = null; state.baseName = ''; }
+  if (typeof topo !== 'undefined') { topo.lista = []; topo.dems.clear(); topo.img.clear(); }
+  if (typeof topoHD !== 'undefined') { topoHD.cache.clear(); topoHD.sinHD.clear(); }
+  if (typeof fotos !== 'undefined') { fotos.lista = []; fotos.url.forEach(u => URL.revokeObjectURL(u)); fotos.url.clear(); }
+  if (typeof CTRL !== 'undefined') CTRL.ses = null;
+}
+
 // Respaldo
 $('btnBackup').addEventListener('click', async () => {
-  const data = { app: 'BlastHole Leyes', version: 3, exportedAt: new Date().toISOString(), projects: await dbAll('projects'), avances: await dbAll('avances'), limites: (await idbGet('limites')) || [] };
-  save(`Respaldo_BlastHoleLeyes_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data), $('libMsg'));
+  const data = { app: 'BlastHole Leyes', version: 4, owner: await idbGet('bhl-owner'), exportedAt: new Date().toISOString(), projects: await dbAll('projects'), avances: await dbAll('avances'), limites: (await idbGet('limites')) || [], kv: (await kvEntradas()).filter(([k]) => !String(k).startsWith('archivo-cuenta:') && k !== 'bhl-ctrl') };
+  save(`Respaldo_BlastHoleLeyes_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, respaldoJson), $('libMsg'));
   await idbSet('bhl-ult-respaldo', new Date().toISOString()); try { respaldoAviso(); } catch (e) {}
 });
 $('fileRestore').addEventListener('change', async () => {
   const f = $('fileRestore').files[0]; $('fileRestore').value = ''; if (!f) return;
   const msg = $('libMsg');
   try {
-    const d = JSON.parse(decodeBytes(await f.arrayBuffer()));
+    const d = JSON.parse(decodeBytes(await f.arrayBuffer()), respaldoValor);
     if (!d || !Array.isArray(d.projects)) throw new Error('Ese archivo no es un respaldo de BlastHole Leyes.');
+    const owner = await idbGet('bhl-owner');
+    if (d.owner && owner && d.owner !== owner) throw new Error('Este respaldo pertenece a otra cuenta. Inicia sesión con su propietario para restaurarlo.');
+    if (d.version >= 4 && (sync.busy || await pendientesOffline())) throw new Error('Sincroniza o resuelve los cambios actuales antes de restaurar un respaldo completo.');
+    if (d.version >= 4 && Array.isArray(d.kv)) {
+      const permitida = k => /^(base$|limites$|topo|foto|bhl-conflictos$|equipo-pend$|bhl-tomb$)/.test(String(k)) && !String(k).startsWith('archivo-cuenta:');
+      for (const [k, v] of d.kv) if (permitida(k)) await idbSet(k, v);
+      await idbSet('bhl-since', '1970-01-01T00:00:00Z'); await idbSet('comp-since', null); await idbSet('comp-firma', null);
+      await restoreBase(); await topoInit(); topo.dems.clear(); topo.img.clear(); topoHD.cache.clear(); topoHD.sinHD.clear();
+      if (typeof fotosInit === 'function') await fotosInit();
+    }
     for (const p of d.projects) await dbSave('projects', p);
     for (const a of d.avances || []) await dbSave('avances', a);
     if (Array.isArray(d.limites) && d.limites.length) { const cur = (await idbGet('limites')) || []; const ids = new Set(d.limites.map(l => l.id)); await saveLimites(cur.filter(l => !ids.has(l.id)).concat(d.limites.map(l => Object.assign({}, l, { _dirty: true }))), cur); await loadLimits(); }
@@ -3838,6 +3880,7 @@ $('fileRestore').addEventListener('change', async () => {
     msg.className = 'msg ok'; msg.textContent = `Respaldo restaurado: ${d.projects.length} proyectos y ${(d.avances || []).length} avances.`;
   } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
 });
+
 
 // ===== Pestaña 2: plano reutilizable =====
 class PlanView {
@@ -8603,7 +8646,7 @@ async function sincronizar() {
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
     else if (res.now) await idbSet('bhl-since', res.now);
-    sync.last = new Date(); sync.err = '';
+    sync.last = new Date(); sync.err = ''; await idbSet('bhl-ultima-sync', sync.last.toISOString());
     if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
     const nConf = (await leerConflictos()).length;
     sync.conflictos = nConf;
@@ -8637,6 +8680,20 @@ function pintarSync(estado, cambios) {
   if (estado === 'conflicto') b.title = 'Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Toca para revisarlo.';
   else b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
 }
+
+async function pendientesOffline(){
+ const p=await dbAll('projects'),a=await dbAll('avances'),l=(await idbGet('limites'))||[];
+ return p.some(x=>x._dirty||x._conflicto)||a.some(x=>x._dirty||x._conflicto)||l.some(x=>x._dirty||x._conflicto)||['bhl-tomb','equipo-pend','bhl-conflictos'].some(k=>false) || (await Promise.all(['bhl-tomb','equipo-pend','bhl-conflictos'].map(idbGet))).some(x=>Array.isArray(x)&&x.length);
+}
+async function offlineResumen(){
+ const box=$('offlineResumen');if(!box)return;
+ const projects=await dbAll('projects'),shared=(await idbGet('proyectos-comp'))||[],limits=(await idbGet('limites'))||[],sharedLimits=(await idbGet('limites-comp'))||[],base=await idbGet('base'),ts=(await idbGet('topos'))||[],last=await idbGet('bhl-ultima-sync'),pend=await pendientesOffline();
+ let topoCount=0;for(const t of ts)if(await idbGet('topo:'+t.id))topoCount++;
+ const lines=[`Conexión: ${navigator.onLine?'disponible':'sin señal'}`,`Última sincronización terminada: ${last?new Date(last).toLocaleString('es-PE'):'no registrada'}`,`Proyectos locales: ${projects.length}; compartidos: ${shared.length}`,`Límites locales: ${limits.length}; compartidos: ${sharedLimits.length}`,`Base de leyes: ${base?'guardada en este dispositivo':'sin base local; revisa las leyes de cada proyecto'}`,`Topografías con datos locales: ${topoCount} de ${ts.length}`,`Cambios pendientes o conflictos: ${pend?'sí':'ninguno detectado'}`];
+ box.innerHTML='<b>Datos disponibles en este equipo</b><p>'+lines.map(esc).join('<br>')+'</p><p class="note">El recuento no garantiza que todos los proyectos o mosaicos 3D estén descargados. Comprueba el área necesaria antes de salir.</p><button class="btn sec small" type="button" id="offlineBackup">Sacar respaldo</button>';
+ $('offlineBackup').onclick=()=>$('btnBackup').click();
+}
+
 function abrirPanelSync() {
   const d = $('dlgSync');
   const mcp = sync.mode === 'mcp';
@@ -8659,7 +8716,7 @@ function abrirPanelSync() {
   if (window.BHL_CANAL === 'beta') { $('admBetaIr').textContent = 'Volver a la versión normal'; $('admBetaIr').href = '../'; }
   $('syncWipe').checked = false;
   if (conectado && esAdmin()) cargarUsuarios();
-  d.hidden = false;
+  d.hidden = false; offlineResumen().catch(e => { $('offlineResumen').textContent = 'No se pudo revisar lo guardado: ' + e.message; });
 }
 async function loginRest(crear) {
   const msg = $('syncMsg'); msg.className = 'msg'; msg.textContent = crear ? 'Creando cuenta…' : 'Entrando…';
