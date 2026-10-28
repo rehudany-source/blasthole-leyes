@@ -6915,7 +6915,8 @@ async function v3Construir() {
   });
   if (lp.length) { v3.buf.hl = v3Malla(lp, lc); v3.buf.hp = v3Malla(pp, pc); }
   // ---- líneas sobre el terreno: límites, avances guardados y polígonos actuales ----
-  const ln = [], lnc = [];
+  let ln = [], lnc = [];
+  const guardarLinea = key => { if (ln.length) v3.buf[key] = v3Malla(ln, lnc); ln=[]; lnc=[]; };
   const drapar = (pts, col, cerrado, alto) => {
     const Q = cerrado ? pts.concat([pts[0]]) : pts;
     for (let i = 0; i < Q.length - 1; i++) {
@@ -6928,12 +6929,14 @@ async function v3Construir() {
     }
   };
   if (d) {
-    if (v3.ver.lim) (t2.lims || []).forEach(L => { if (t2.limOff.has(L.layer) || !limVisible(L)) return; const b = L.bb; if (b.x1 < R.x0 || b.x0 > R.x1 || b.y1 < R.y0 || b.y0 > R.y1) return; drapar(L.pts, v3Hex(/^#/.test(limColor(L.layer)) ? limColor(L.layer) : '#9aa0a6'), L.closed, 0.8); });
-    if (v3.ver.av) {
+    (t2.lims || []).forEach(L => { if (t2.limOff.has(L.layer) || !limVisible(L)) return; const b = L.bb; if (b.x1 < R.x0 || b.x0 > R.x1 || b.y1 < R.y0 || b.y0 > R.y1) return; drapar(L.pts, v3Hex(/^#/.test(limColor(L.layer)) ? limColor(L.layer) : '#9aa0a6'), L.closed, 0.8); });
+    guardarLinea('lnLim');
+    {
       t2.avs.forEach(a => avShapes(a).forEach(P => drapar(P, [0.75, 0.78, 0.82], true, 1.2)));
       t2.shapes.forEach((s, i) => drapar(s.pts, v3Hex(SH_D[i % SH_D.length]), true, 1.6));
     }
   }
+  guardarLinea('lnAv');
   // Celdas y contornos de la misma clasificación que usa el plano 2D.
   if (v3.ver.pm && typeof pmActual === 'function') {
     const M=pmActual(), pos=[], cols=[]; let omitted=0;
@@ -6957,7 +6960,7 @@ async function v3Construir() {
     if(pos.length)v3.buf.pm=v3Malla(pos,cols);
     if(omitted&&leyenda)leyenda.textContent+=' · Vista limitada por rendimiento; acerca los proyectos.';
   }
-  if (ln.length) v3.buf.ln = v3Malla(ln, lnc);
+  guardarLinea('lnPm');
   // etiquetas de proyectos
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
   v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
@@ -6990,7 +6993,7 @@ function v3Pintar() {
   const B = v3.buf;
   if (B.ter && B.ter.ni) { usar(B.ter, 1, 0); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, B.ter.i); gl.drawElements(gl.TRIANGLES, B.ter.ni, B.ter.it, 0); gl.disable(gl.POLYGON_OFFSET_FILL); }
   if (v3.ver.pm && B.pm) { const opacity=1-Math.max(0,Math.min(100,+$('v3dPmTrans').value||0))/100; if(opacity>0){ gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.uniform1f(L.al,opacity);usar(B.pm,0,0);gl.drawArrays(gl.TRIANGLES,0,B.pm.cnt);gl.depthMask(true);gl.disable(gl.BLEND);gl.uniform1f(L.al,1); } }
-  if (B.ln) { usar(B.ln, 0, 0); gl.drawArrays(gl.LINES, 0, B.ln.cnt); }
+  for (const key of ['lnLim','lnAv','lnPm']) { const visible=key==='lnLim'?v3.ver.lim:key==='lnAv'?v3.ver.av:v3.ver.pm; if(visible&&B[key]){usar(B[key],0,0);gl.drawArrays(gl.LINES,0,B[key].cnt);} }
   if (v3.ver.tal && B.hl) { usar(B.hl, 0, 0); gl.drawArrays(gl.LINES, 0, B.hl.cnt); const ps = Math.max(3, Math.min(8, 2200 / v3.cam.dist)) * Math.min(1.5, window.devicePixelRatio || 1); usar(B.hp, 0, 1, ps); gl.drawArrays(gl.POINTS, 0, B.hp.cnt); }
   // GPS
   if (v3.ver.gps && typeof gps !== 'undefined' && gps.on && gps.pos) {
@@ -7071,7 +7074,7 @@ async function v3Mostrar() {
   $('v3dPmTrans').oninput = e => { $('v3dPmTransValor').textContent=e.target.value+' %'; try{localStorage.setItem('bhl-3d-pm-trans',e.target.value);}catch(err){} v3Dibujar(); };
   try{const v=localStorage.getItem('bhl-3d-pm-trans'); if(v!=null && +v>=0 && +v<=100){$('v3dPmTrans').value=v;$('v3dPmTransValor').textContent=v+' %';}}catch(e){}
   $('v3dFull').onchange = e => { v3.full = e.target.checked; v3.camOk = false; v3Mostrar(); };
-  ['tal', 'av', 'lim', 'dif', 'gps', 'pm'].forEach(k => { const el = $('v3d_' + k); if (el) el.onchange = e => { v3.ver[k] = e.target.checked; if (k === 'tal' || k === 'gps') v3Dibujar(); else v3Mostrar(); }; });
+  ['tal', 'av', 'lim', 'dif', 'gps', 'pm'].forEach(k => { const el = $('v3d_' + k); if (el) el.onchange = e => { v3.ver[k] = e.target.checked; if (k === 'tal' || k === 'gps' || k === 'av' || k === 'lim') v3Dibujar(); else v3Mostrar(); }; });
   $('v3dIrMi').onclick = () => {
     if (typeof gps === 'undefined' || !gps.on || !gps.pos) { flashHint('Prende el GPS (📍) en la pestaña 2 y espera la señal.'); return; }
     const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
