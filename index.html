@@ -159,6 +159,7 @@ input.hin { font: .8rem var(--f-body); padding: 3px 5px; border: 1px solid var(-
 .limh .pn { flex: 1; min-width: 0; }
 .limde { display: block; font-family: var(--f-body); font-size: .72rem; color: var(--muted); }
 .limshare { white-space: nowrap; }
+.blq-ed { display: inline-flex; gap: 4px; align-items: center; } .blq-ed select { width: auto; min-width: 64px; }
 .limfase { display: inline-block; margin: 2px 0 0 0; padding: 1px 7px; border-radius: 999px; font: 600 .7rem var(--f-body); }
 .limfase.rot { background: color-mix(in srgb, #d9a400 18%, transparent); color: #8a6a00; }
 .limfase.fin { background: color-mix(in srgb, #2f7d57 16%, transparent); color: #2f7d57; }
@@ -907,7 +908,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v89</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v99</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1360,7 +1361,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="carga-box">
     <div class="carga-top"><b id="cargaTit">📂 Cargar archivos</b><button type="button" id="cargaCerrar" aria-label="Cerrar">✕</button></div>
     <label class="carga-drop" id="cargaDrop">
-      <input type="file" id="cargaFile" multiple hidden accept=".csv,.txt,.xlsx,.xls,.dxf,.dwg,.msr,text/csv">
+      <input type="file" id="cargaFile" multiple hidden accept=".csv,.txt,.xlsx,.xls,.dxf,.dwg,.msr,.pdf,text/csv,application/pdf">
       <span class="ic">⬆</span>
       <span class="t1">Suelta aquí tus archivos, todos juntos</span>
       <span class="t2">o toca para elegirlos</span>
@@ -1442,7 +1443,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
     <div id="syncOn" class="dlgsec" hidden>
       <p id="syncWho"></p>
       <div class="btnrow"><button class="btn small" id="syncAhora" type="button">Sincronizar ahora</button><button class="btn sec small" id="syncSalir" type="button">Cerrar sesión</button></div>
-      <label class="chk" id="syncWipeL"><input type="checkbox" id="syncWipe"> Al cerrar sesión, quitar mis datos de este equipo (siguen guardados en mi cuenta)</label>
+      <label class="chk" id="syncWipeL"><input type="checkbox" id="syncWipe" checked> Al cerrar sesión, quitar mis datos de este equipo (siguen guardados en mi cuenta)</label>
       <div id="syncCuenta" class="dlgsub" hidden>
         <h3>Cambiar contraseña</h3>
         <div class="grid2"><label class="f">Nueva<input type="password" id="syncPw1" autocomplete="new-password" placeholder="mínimo 6 caracteres"></label><label class="f">Repetir<input type="password" id="syncPw2" autocomplete="new-password"></label></div>
@@ -1459,7 +1460,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         <p class="msg" id="admMsg"></p>
       </div>
     </div>
-    <div id="offlineResumen" class="dlgsub"></div><p class="note" id="syncStatus"></p>
+    <p class="note" id="syncStatus"></p>
     <p class="msg" id="syncMsg"></p>
     <div class="btnrow" style="justify-content:flex-end"><button class="btn sec small" id="syncCerrar" type="button">Cerrar</button></div>
   </div>
@@ -1562,7 +1563,7 @@ function headerScore(row) {
   let s = 0;
   n.forEach(c => { if (!c) return; if (ALIAS.x.test(c) || ALIAS.y.test(c) || ALIAS.z.test(c) || ALIAS.id.test(c) || ALIAS.ley.test(c) || looseX(c) || looseY(c) || looseZ(c)) s++; });
   const numeric = row.filter(c => toNum(c, ',') != null).length;
-  return numeric >= row.filter(c => c !== '').length ? -1 : s;
+  return numeric * 2 >= row.filter(c => c !== '').length ? -1 : s; // V91: una fila con la mitad o más de números es de datos (p. ej. el bloque «E» del _R no es «Este»)
 }
 
 // Busca la fila de encabezados (a veces hay títulos encima en los Excel)
@@ -2096,7 +2097,9 @@ function findBaseProject(base, code, holes, manualKey) {
   const al = MINA_ALIAS[code.mina];
   if (!exact && al) { const p = base.projects.get(codeKey(al, code.nivel, code.nro)); if (p) return { p, how: 'known', overlap: overlap(p), alias: `${code.mina} = mina ${al}` }; }
   const cands = [];
-  base.projects.forEach(p => { const [, b, nro] = p.key.match(/^[^-]+-([^-]+)-(.+)$/) || []; if (b === normBanco(code.nivel) && nro === normNro(code.nro)) cands.push(p); });
+  // V91: índice banco|número armado una sola vez por base (antes se recorría toda la base por cada proyecto)
+  if (!base._bn) { base._bn = new Map(); base.projects.forEach(p => { const [, b, nro] = p.key.match(/^[^-]+-([^-]+)-(.+)$/) || []; if (b == null) return; const k = b + '|' + nro; if (!base._bn.has(k)) base._bn.set(k, []); base._bn.get(k).push(p); }); }
+  (base._bn.get(normBanco(code.nivel) + '|' + normNro(code.nro)) || []).forEach(p => cands.push(p));
   const scored = cands.map(p => ({ p, overlap: overlap(p) })).sort((a, b) => b.overlap - a.overlap);
   if (exact) { const ov = overlap(exact); const best = scored[0]; if (!best || best.p === exact || ov >= best.overlap * 0.8) return { p: exact, how: 'exact', overlap: ov }; }
   const best = scored[0];
@@ -2914,7 +2917,7 @@ function idb() {
     } catch (e) { res(null); }
   });
 }
-async function idbSet(k, v) { const db = await idb(); if (!db) throw new Error('No se puede abrir el almacenamiento local.'); return new Promise((resolve,reject) => { try { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => resolve(true); tx.onerror = tx.onabort = () => reject(tx.error || new Error('No se pudo guardar: verifica el espacio disponible.')); } catch (e) { reject(e); } }); }
+async function idbSet(k, v) { const db = await idb(); if (!db) return false; return new Promise(r => { try { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => r(true); tx.onerror = () => r(false); } catch (e) { r(false); } }); }
 async function idbGet(k) { const db = await idb(); if (!db) return null; return new Promise(r => { try { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); } catch (e) { r(null); } }); }
 async function idbDel(k) { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete(k); } catch (e) {} }
 
@@ -3681,6 +3684,13 @@ async function batchSave(files) {
 // Leyes del proyecto desde la base cargada en este equipo (o null si no está)
 function leyesDesdeBase(p) {
   if (!state.base) return null;
+  // V91: se guarda el resultado por proyecto mientras la base y el proyecto no cambien
+  const B = state.base, ck = p.id + '|' + (p.baseKey || '') + '|' + (p._mod || p.savedAt || '') + '|' + ((p.holes || []).length);
+  if (!B._ley) B._ley = new Map();
+  if (B._ley.has(ck)) return B._ley.get(ck);
+  const r = leyesDesdeBase0(p); B._ley.set(ck, r); return r;
+}
+function leyesDesdeBase0(p) {
   let bp = p.baseKey ? state.base.projects.get(p.baseKey) : null;
   if (!bp) {
     const code = parseProjectCode(p.name) || parseProjectCode(p.fileName);
@@ -3820,60 +3830,18 @@ $('libTbl').addEventListener('click', async e => {
   }
 });
 
-async function kvEntradas() {
-  const db = await idb(); if (!db) throw new Error('No se puede leer el almacenamiento.');
-  return new Promise((resolve, reject) => { const out = [], tx = db.transaction('kv'), q = tx.objectStore('kv').openCursor();
-    q.onsuccess = () => { const c = q.result; if (c) { out.push([c.key, c.value]); c.continue(); } }; tx.oncomplete = () => resolve(out); tx.onerror = tx.onabort = () => reject(tx.error || new Error('No se pudo leer el respaldo.')); });
-}
-function respaldoJson(k, v) {
-  if (v instanceof ArrayBuffer) return { _bhl: 'ArrayBuffer', data: b64De(new Uint8Array(v)) };
-  if (ArrayBuffer.isView(v)) return { _bhl: v.constructor.name, data: b64De(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) };
-  return v;
-}
-function respaldoValor(k, v) {
-  if (!v || !v._bhl || typeof v.data !== 'string') return v;
-  const u = b64A(v.data), buf = u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength);
-  const tipos = { Float32Array, Float64Array, Uint8Array, Uint16Array, Int16Array, Int32Array, Uint32Array };
-  if (v._bhl === 'ArrayBuffer') return buf;
-  if (!tipos[v._bhl]) throw new Error('Tipo de dato de respaldo no reconocido.'); return new tipos[v._bhl](buf);
-}
-async function archivarCuentaLocal() {
-  const owner = await idbGet('bhl-owner');
-  const entries = (await kvEntradas()).filter(([k]) => !String(k).startsWith('archivo-cuenta:'));
-  if (owner) await idbSet('archivo-cuenta:' + owner + ':' + Date.now(), { owner, at: new Date().toISOString(), entries });
-  // Only caches and credentials are removed; previous account KV stays in the archive.
-  for (const [k] of entries) {
-    if (/^(base$|topo|foto|bhl-ctrl$)/.test(String(k))) await idbSet(k, null);
-  }
-  if (typeof state !== 'undefined') { state.base = null; state.baseName = ''; }
-  if (typeof topo !== 'undefined') { topo.lista = []; topo.dems.clear(); topo.img.clear(); }
-  if (typeof topoHD !== 'undefined') { topoHD.cache.clear(); topoHD.sinHD.clear(); }
-  if (typeof fotos !== 'undefined') { fotos.lista = []; fotos.url.forEach(u => URL.revokeObjectURL(u)); fotos.url.clear(); }
-  if (typeof CTRL !== 'undefined') CTRL.ses = null;
-}
-
 // Respaldo
 $('btnBackup').addEventListener('click', async () => {
-  const data = { app: 'BlastHole Leyes', version: 4, owner: await idbGet('bhl-owner'), exportedAt: new Date().toISOString(), projects: await dbAll('projects'), avances: await dbAll('avances'), limites: (await idbGet('limites')) || [], kv: (await kvEntradas()).filter(([k]) => !String(k).startsWith('archivo-cuenta:') && k !== 'bhl-ctrl') };
-  save(`Respaldo_BlastHoleLeyes_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, respaldoJson), $('libMsg'));
+  const data = { app: 'BlastHole Leyes', version: 3, exportedAt: new Date().toISOString(), projects: await dbAll('projects'), avances: await dbAll('avances'), limites: (await idbGet('limites')) || [] };
+  save(`Respaldo_BlastHoleLeyes_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data), $('libMsg'));
   await idbSet('bhl-ult-respaldo', new Date().toISOString()); try { respaldoAviso(); } catch (e) {}
 });
 $('fileRestore').addEventListener('change', async () => {
   const f = $('fileRestore').files[0]; $('fileRestore').value = ''; if (!f) return;
   const msg = $('libMsg');
   try {
-    const d = JSON.parse(decodeBytes(await f.arrayBuffer()), respaldoValor);
+    const d = JSON.parse(decodeBytes(await f.arrayBuffer()));
     if (!d || !Array.isArray(d.projects)) throw new Error('Ese archivo no es un respaldo de BlastHole Leyes.');
-    const owner = await idbGet('bhl-owner');
-    if (d.owner && owner && d.owner !== owner) throw new Error('Este respaldo pertenece a otra cuenta. Inicia sesión con su propietario para restaurarlo.');
-    if (d.version >= 4 && (sync.busy || await pendientesOffline())) throw new Error('Sincroniza o resuelve los cambios actuales antes de restaurar un respaldo completo.');
-    if (d.version >= 4 && Array.isArray(d.kv)) {
-      const permitida = k => /^(base$|limites$|topo|foto|bhl-conflictos$|equipo-pend$|bhl-tomb$)/.test(String(k)) && !String(k).startsWith('archivo-cuenta:');
-      for (const [k, v] of d.kv) if (permitida(k)) await idbSet(k, v);
-      await idbSet('bhl-since', '1970-01-01T00:00:00Z'); await idbSet('comp-since', null); await idbSet('comp-firma', null);
-      await restoreBase(); await topoInit(); topo.dems.clear(); topo.img.clear(); topoHD.cache.clear(); topoHD.sinHD.clear();
-      if (typeof fotosInit === 'function') await fotosInit();
-    }
     for (const p of d.projects) await dbSave('projects', p);
     for (const a of d.avances || []) await dbSave('avances', a);
     if (Array.isArray(d.limites) && d.limites.length) { const cur = (await idbGet('limites')) || []; const ids = new Set(d.limites.map(l => l.id)); await saveLimites(cur.filter(l => !ids.has(l.id)).concat(d.limites.map(l => Object.assign({}, l, { _dirty: true }))), cur); await loadLimits(); }
@@ -3881,7 +3849,6 @@ $('fileRestore').addEventListener('change', async () => {
     msg.className = 'msg ok'; msg.textContent = `Respaldo restaurado: ${d.projects.length} proyectos y ${(d.avances || []).length} avances.`;
   } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
 });
-
 
 // ===== Pestaña 2: plano reutilizable =====
 class PlanView {
@@ -4376,15 +4343,24 @@ function desCfg() {
   return { on: !$('desOn') || $('desOn').checked, fe: isNaN(fe) ? 16.5 : fe, dens: !isNaN(d) && d > 1 ? d : null };
 }
 function marcarSinTaladros() {
-  const hs = [], conLey = []; lib.projects.forEach(p => { let ks = null; try { ks = new Set(((leyesForProject(p) || {}).leyes || []).filter(l => l.hasData !== false).map(l => l.key)); } catch (e) { ks = new Set(); } (p.holes || []).forEach(h => { hs.push(h); if (ks.has(h.key)) conLey.push(h); }); });
-  const firma = hs.length + ':' + conLey.length + ':' + (t2.lims || []).length + ':' + lib.projects.length;
+  // V91: firma barata primero (antes se armaban todos los taladros en cada llamada)
+  let hsh = 0; const mez = s => { for (let k = 0; k < s.length; k++) hsh = (hsh * 31 + s.charCodeAt(k)) | 0; };
+  lib.projects.forEach(p => mez(p.id + '|' + (p.holes || []).length + '|' + (p._mod || '') + '|' + (p.leyes ? 1 : 0) + '|' + (p.leyesBase || []).length));
+  (t2.lims || []).forEach(l => mez(l.id + '|' + (l._mod || '') + '|' + (l.fase || '')));
+  const firma = hsh + ':' + lib.projects.length + ':' + (t2.lims || []).length + ':' + (state.base ? state.base.nRows + (state.baseSaved || '') : '');
   if (t2._sinTalFirma === firma) return; t2._sinTalFirma = firma;
+  const hs = [], conLey = []; lib.projects.forEach(p => { let ks = null; try { ks = new Set(((leyesForProject(p) || {}).leyes || []).filter(l => l.hasData !== false).map(l => l.key)); } catch (e) { ks = new Set(); } (p.holes || []).forEach(h => { hs.push(h); if (ks.has(h.key)) conLey.push(h); }); });
+  // V91: rejilla de 25 m para no probar cada taladro contra cada polígono
+  const G = 25, grid = (arr) => { const m = new Map(); arr.forEach(h => { const k = Math.floor(h.x / G) + ',' + Math.floor(h.y / G); let c = m.get(k); if (!c) m.set(k, c = []); c.push(h); }); return m; };
+  const gH = grid(hs), gL = grid(conLey);
+  const alguno = (g, b, den) => { for (let i = Math.floor(b.x0 / G); i <= Math.floor(b.x1 / G); i++) for (let j = Math.floor(b.y0 / G); j <= Math.floor(b.y1 / G); j++) { const c = g.get(i + ',' + j); if (c && c.some(den)) return true; } return false; };
   (t2.lims || []).forEach(L => {
     if (!L.closed || !L.pts || L.pts.length < 3) { L._sinTal = false; return; }
     const b = L.bb || bboxOf(L.pts);
     const den = h => h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, L.pts);
-    L._sinTal = !hs.some(den);
-    L._sinLey = !L._sinTal && !conLey.some(den); // V51: tiene taladros pero ninguno con ley
+    const grande = (b.x1 - b.x0) * (b.y1 - b.y0) > 4e6;
+    L._sinTal = grande ? !hs.some(den) : !alguno(gH, b, den);
+    L._sinLey = !L._sinTal && !(grande ? conLey.some(den) : alguno(gL, b, den)); // V51: tiene taladros pero ninguno con ley
     if (L.fase === 'rotura') { L._sinTal = false; L._sinLey = false; } // V85: límite de rotura: sus leyes aún no salen, no es desmonte
   });
   // V52: un polígono sin datos del modelo que es el mismo contorno de un bloque del modelo (p. ej. el _C.dxf) sigue al modelo
@@ -4893,6 +4869,7 @@ async function loadLimits() {
   arr = arr.filter(l => !(faseLim(l.file) === 'rotura' && conFinal.has(proyLim(l.file))));
   arr.forEach(l => { l.fase = faseLim(l.file); });
   t2.lims = arr.map(l => Object.assign({}, l, { bb: bboxOf(l.pts), area: polyArea(l.pts) }));
+  try { t2._mod = (await idbGet('modelo-bloques')) || {}; } catch (e) { t2._mod = {}; }
   t2._sinTalFirma = null;
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
@@ -4903,7 +4880,8 @@ function renderLimList() {
   const todos = [...new Set(t2.lims.map(l => l.file))];
   const files = todos.filter(f => t2.lims.some(l => l.file === f && limVisible(l)));
   const ocultos = todos.length - files.length;
-  box.innerHTML = (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
+  const conAb = todos.filter(f => t2.lims.some(l => l.file === f && l.autoBloque && l.name && !l.compDe));
+  box.innerHTML = (conAb.length > 1 ? `<div class="btnrow"><button type="button" class="btn sec small" data-expmodall="1">⬇ _P y _R de los ${conAb.length} proyectos sin _P (zip)</button></div>` : '') + (ocultos ? `<p class="note">${ocultos} archivo${ocultos > 1 ? 's' : ''} de límites de otra mina o nivel no se muestra${ocultos > 1 ? 'n' : ''} por el filtro.</p>` : '') + files.map(f => {
     const ls = t2.lims.filter(l => l.file === f), layers = [...new Set(ls.map(l => l.layer))];
     const de = ls[0].compDe;
     const fz = faseLim(f), fTag = fz === 'rotura' ? '<small class="limfase rot">Rotura · provisional hasta el _C</small>' : fz === 'final' && /_C\./i.test(f) ? '<small class="limfase fin">Polígono final</small>' : '';
@@ -4912,11 +4890,15 @@ function renderLimList() {
     marcarSinTaladros();
     const cand = ls.filter(l => l.closed && (l._sinTal || l._sinLey) && !l._cubierto && limVisible(l));
     const desH = cand.length ? `<div class="desli"><span><i>Sin taladros o con taladros sin ley (${cand.length})</i> · desmonte salvo que lo cambies</span></div>` + cand.map(l => { const on = l.mat !== 'no'; return `<div class="desli"><span>${esc(l.name || l.layer)}${l.modelo ? ` <small>(modelo: ${esc(l.modelo.material || '')} Fe ${l.modelo.fe != null ? l.modelo.fe.toFixed(1) : '—'})</small>` : ''}${l._sinLey ? ' <small>(taladros sin ley)</small>' : ''} · ${Math.round(l.area || polyArea(l.pts)).toLocaleString('es-PE')} m²</span>${de ? `<b>${on ? 'Desmonte' : 'No es desmonte'}</b>` : `<span class="seg"><button type="button" data-desmat="${esc(l.id)}" data-v="desmonte" aria-pressed="${on}">Desmonte</button><button type="button" class="no" data-desmat="${esc(l.id)}" data-v="no" aria-pressed="${!on}">No</button></span>`}</div>`; }).join('') : '';
-    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH +
+    const ab = de ? [] : ls.filter(l => l.autoBloque);
+    const abH = ab.length ? `<div class="desli"><span><i>Bloques sin _P (puestos con el _R o el PDF)</i>${ab.some(l => l.autoBloque === 'dudoso') ? ' · <b>revisa con el PDF</b>' : ''}</span><button type="button" class="btn sec small" data-expmod="${esc(f)}" title="Descargar el _P y el _R de este proyecto (para guardarlos o cargarlos en AssMining)">⬇ _P y _R</button></div>` + ab.map((l, i) => { const p = l.proyM || ''; const noms = Object.values(t2._mod || {}).filter(m => m.proy === p).map(m => m.bloque); return `<div class="desli"><span>Polígono ${i + 1} · ${Math.round(Math.abs(l.area || polyArea(l.pts))).toLocaleString('es-PE')} m²${l.autoBloque === 'dudoso' ? ' ⚠' : l.autoBloque === 'manual' ? ' ✓' : l.autoBloque === 'pdf' ? ' 📄' : ''}</span><span class="blq-ed"><select data-blq="${esc(l.id)}"><option value="">—</option>${noms.map(n => `<option${n === l.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><button type="button" class="q" data-delpol="${esc(l.id)}" title="Quitar este polígono">🗑</button></span></div>`; }).join('') : '';
+    return `<div class="limf${de ? ' limcomp' : ''}"><div class="limh">${head}</div>` + desH + abH +
       layers.map(L => `<label class="pitem"><input type="checkbox" data-layer="${esc(L)}" ${t2.limOff.has(L) ? '' : 'checked'}><span class="pn"><i class="sw" style="background:${limColor(L)}"></i>${esc(L)}</span><span class="pm">${ls.filter(l => l.layer === L).length} pol.</span></label>`).join('') + '</div>';
   }).join('');
 }
-$('limList').addEventListener('change', e => {
+$('limList').addEventListener('change', async e => {
+  const sb = e.target.closest('select[data-blq]');
+  if (sb) { const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l)); const L = arr.find(l => l.id === sb.dataset.blq); if (!L) return; L.name = sb.value; L.autoBloque = 'manual'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; await modeloAplicar(arr); await saveLimites(arr, prev); await loadLimits(); t2._sinTalFirma = null; computeT2(); pv.draw(); setMsg('limMsg', 'ok', `Polígono marcado como bloque ${sb.value || '(sin bloque)'}.`); return; }
   const cb = e.target.closest('input[data-layer]'); if (!cb) return;
   if (cb.checked) t2.limOff.delete(cb.dataset.layer); else t2.limOff.add(cb.dataset.layer);
   try { localStorage.setItem('bhl-limoff', JSON.stringify([...t2.limOff])); } catch (e2) {}
@@ -4947,6 +4929,14 @@ $('limList').addEventListener('click', async e => {
     const m = $('limMsg'); m.className = 'msg ok'; m.textContent = on ? `${f}: compartido. Los demás usuarios lo verán al sincronizar.` : `${f}: ya no se comparte.`;
     return;
   }
+  const xm = e.target.closest('button[data-expmod]'); if (xm) { exportarModelos([xm.dataset.expmod]); return; }
+  if (e.target.closest('button[data-expmodall]')) { exportarModelos([...new Set(t2.lims.filter(l => l.autoBloque && l.name && !l.compDe).map(l => l.file))]); return; }
+  const dp = e.target.closest('button[data-delpol]');
+  if (dp) {
+    if (dp.dataset.confirm !== '1') { dp.dataset.confirm = '1'; dp.textContent = '¿Quitar?'; setTimeout(() => { if (dp.isConnected) { dp.dataset.confirm = ''; dp.textContent = '🗑'; } }, 4000); return; }
+    const prev = (await idbGet('limites')) || [], arr = prev.filter(l => l.id !== dp.dataset.delpol);
+    await saveLimites(arr, prev); await loadLimits(); t2._sinTalFirma = null; computeT2(); pv.draw(); setMsg('limMsg', 'ok', 'Polígono quitado.'); return;
+  }
   const b = e.target.closest('button[data-delfile]'); if (!b) return;
   if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = '¿Quitar?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Quitar'; b.classList.remove('danger'); } }, 4000); return; }
   const prev = (await idbGet('limites')) || [];
@@ -4955,6 +4945,7 @@ $('limList').addEventListener('click', async e => {
 });
 async function addLimitFiles(files) {
   const msg = $('limMsg'); const added = [], errs = [];
+  t2._proyFoco = new Set(files.map(f => ((f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0]).toUpperCase()).filter(Boolean));
   const prevLim = (await idbGet('limites')) || [];
   const arr = prevLim.slice();
   for (const f of files) {
@@ -4981,7 +4972,7 @@ async function addLimitFiles(files) {
     } catch (e) { errs.push(`${f.name}: ${e.message}`); }
   }
   await saveLimites(arr, prevLim); await loadLimits();
-  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs).join(' · ');
+  msg.className = 'msg' + (errs.length ? ' err' : ' ok'); msg.textContent = added.concat(errs, t2._avisoBloques || []).join(' · '); t2._avisoBloques = []; t2._proyFoco = null;
 }
 (() => {
   const drop = $('dropLIM'), inp = $('fileLIM');
@@ -5770,10 +5761,11 @@ async function cargarTodo(files) {
   const res = $('cargaRes'), filas = [];
   const fila = (ic, nombre, txt, err) => { filas.push(`<div class="r${err ? ' err' : ''}"><span>${ic}</span><div><b>${esc(nombre)}</b><small>${txt}</small></div></div>`); res.innerHTML = filas.join(''); };
   res.innerHTML = '<div class="r"><span>⏳</span><div><b>Leyendo archivos…</b></div></div>';
-  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [], topo: [], mod: [] };
+  const grupos = { base: [], bh: [], ley: [], lim: [], mal: [], topo: [], mod: [], pdf: [] };
   for (const f of files) {
     try {
       if (/\.msr$/i.test(f.name)) { grupos.topo.push(f); continue; }
+      if (/\.pdf$/i.test(f.name)) { grupos.pdf.push(f); continue; }
       if (/\.(dxf|dwg)$/i.test(f.name)) { grupos.lim.push(f); continue; }
       if (!/\.xlsx?$/i.test(f.name)) { const head = decodeBytes(await f.slice(0, 4000).arrayBuffer()); if (isBaseTable(parseQuotedCSV(head.slice(0, head.lastIndexOf('\n') + 1 || head.length)))) { grupos.base.push(f); continue; } }
       const tabs = await readTables(f);
@@ -5799,7 +5791,8 @@ async function cargarTodo(files) {
   }
   if (grupos.ley.length) { await handleFiles(grupos.ley, 'ley'); grupos.ley.forEach(f => fila('🧪', f.name, 'Leyes de un proyecto: se abrieron en la pestaña 1 junto con sus taladros. Pulsa «Guardar proyecto» allí para guardarlas.')); }
   if (grupos.lim.length) { await addLimitFiles(grupos.lim); const m = $('limMsg').textContent; grupos.lim.forEach(f => { const part = m.split(' · ').find(x => x.startsWith(f.name)) || ''; const err = /no se puede|error|sin polígonos|no encontré/i.test(part); fila(err ? '⚠️' : '📐', f.name, esc(part.replace(f.name + ': ', '') || 'Límites cargados'), err); }); }
-  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `Resultados del modelo: ${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.enPlano ? `Se pusieron en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _P.csv (polígonos de los bloques) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
+  for (const f of grupos.mod) { try { const r = await cargarModelo(f); fila('🧱', f.name, `${r.n} bloque(s) (${r.bloques.join(', ')}). ${r.avisos && r.avisos.length ? esc(r.avisos.join(' · ')) : r.enPlano ? `Puestos en ${r.enPlano} polígono(s) del plano.` : 'Sube también el _C.dxf (o el _P.csv) para verlos en el plano.'}`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
+  for (const f of grupos.pdf) { try { fila('📄', f.name, esc(await cargarPdfBloques(f))); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   for (const f of grupos.topo) { try { const r = await cargarTopo(f); fila('⛰', f.name, `Topografía del ${fmtDate(r.fecha)} cargada (${r.nT.toLocaleString('es-PE')} triángulos). Mírala en la pestaña 2 con «⛰ Topo».`); } catch (e) { fila('⚠️', f.name, esc(e.message), true); } }
   grupos.mal.forEach(f => fila('❓', f.name, 'No reconocí este archivo. Debe ser una base de leyes, un CSV/Excel de taladros (ID, Este, Norte, Cota), un CSV de leyes o un DXF de límites.', true));
   if (state.base) refrescarCopias();
@@ -6611,17 +6604,16 @@ async function topoNube() {
   if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || topo.nubeBusy) return;
   topo.nubeBusy = true; let cambio = false;
   try {
-    sync.topoError = '';
-    const rem = await rest.rpc('bhl_topo_lista', {}); if (!Array.isArray(rem)) throw new Error('Lista de topografías incompleta');
+    const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
     const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
     // 1) las que vinieron de la nube y alguien quitó
-    // Una respuesta incompleta de red no debe borrar topografías ya descargadas.
+    for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
     // 2) subir las de este equipo que aún no están
     for (const m of topo.lista) {
       if (remIds.has(m.id)) { if (!m.nube) { m.nube = true; cambio = true; } continue; }
       if (m.nube) continue;
       // otro usuario ya subió la misma topografía (mismo nombre): se usa la de la nube, sin duplicar
-      const gem = null; // Un nombre igual no confirma que sea la misma topografía.
+      const gem = rem.find(r => String(r.nombre).toUpperCase() === String(m.nombre).toUpperCase() && !topo.lista.some(x => x.id === r.id));
       if (gem) {
         const Zl = await idbGet('topo:' + m.id); await idbSet('topo:' + gem.id, Zl); await idbSet('topo:' + m.id, null);
         if (topo.dems.has(m.id)) { topo.dems.set(gem.id, topo.dems.get(m.id)); topo.dems.delete(m.id); } topo.img.delete(m.id);
@@ -6633,39 +6625,23 @@ async function topoNube() {
       await rest.rpc('bhl_topo_subir', { p_id: m.id, p_nombre: m.nombre, p_fecha: m.fecha, p_meta: pk.meta, p_data: pk.data });
       m.nube = true; m.kb = Math.round(pk.data.length / 1024); cambio = true;
     }
-    // Actualizar las versiones existentes sin descartar la copia anterior si falla la descarga.
-    for (const r of rem) {
-      const m = topo.lista.find(x => x.id === r.id);
-      if (!m || !m.nube || (m.remoteAt && m.remoteAt === r.updated_at)) continue;
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id });
-      if (!data || !r.meta) throw new Error('No se pudo descargar la topografía ' + r.nombre);
-      const Z = await topoDesempacar(r.meta, data);
-      await idbSet('topo:' + r.id, Z);
-      Object.assign(m,{remoteAt:r.updated_at,nombre:r.nombre,fecha:String(r.fecha).slice(0,10),mina:r.meta.mina || topoMina(r.nombre),x0:r.meta.x0,y0:r.meta.y0,W:r.meta.W,H:r.meta.H,cel:r.meta.cel});
-      topo.dems.delete(r.id); topo.img.delete(r.id);
-      if (typeof topoHD !== 'undefined') { topoHD.cache.delete(r.id); topoHD.sinHD.delete(r.id); await idbSet('topohdc:' + r.id, null); }
-      cambio = true;
-    }
     // 3) bajar las más recientes que falten en este equipo
     const tengo = new Set(topo.lista.map(m => m.id));
     const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
     for (const r of faltan) {
       const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
-      // Descargar las topografías disponibles para uso sin señal.
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) throw new Error('No se pudo descargar la topografía ' + r.nombre);
+      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
-      topo.lista.push({ id: r.id, remoteAt: r.updated_at, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
+      topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
       cambio = true;
     }
-  } catch (e) { sync.topoError = 'Topografía pendiente: ' + (e.message || e); console.warn('topos nube', e); }
+  } catch (e) { console.warn('topos nube', e); }
   finally {
     topo.nubeBusy = false;
     if (cambio) {
-      topo.lista.sort((a,b) => String(b.fecha).localeCompare(String(a.fecha)));
-      const actual=topo.lista.find(t=>t.id===topo.act);
-      const reciente=actual && topo.lista.find(t=>minaDe(t)===minaDe(actual) && t.fecha>actual.fecha);
-      if (reciente) { topo.ant=topo.act; topo.act=reciente.id; }
+      await topoRecortar();
       await idbSet('topos', topo.lista); topoDefaults();
       if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act);
       await topoCalcMinados(); topoPintar(); pv.draw();
@@ -6693,18 +6669,72 @@ async function cargarModelo(f) {
     // V57: para la etiqueta como en MinePlan
     const ex = (al) => { const h = tb.csv.header.map(modNorm), i = h.findIndex(x => al.includes(x)); return i >= 0 ? num(r[i]) : null; };
     m.ins = ex(['cins', 'ins', 'insol']); m.sfes = ex(['csfes', 'sfes', 's/fes']); m.rec = ex(['crp', 'cwr', 'rec', 'recup']);
+    if (!(m.density >= 1.5 && m.density <= 6)) m.density = null; if (!(m.vol > 1)) m.vol = null; // V96: algunos _R traen VOLUME=1 y DENS=1 (sin dato)
+    m.v = 89; // V89: leído con el parser que respeta comillas y miles (sirve para nombrar el _C sin _P)
     mod[proy + '|' + b.toUpperCase()] = m; bloques.push(b);
   });
   if (!bloques.length) throw new Error('El archivo no tiene filas de bloques.');
   await idbSet('modelo-bloques', mod);
+  t2._proyFoco = new Set([...new Set(tb.csv.rows.map(r => (txt(r, 'proy') || proyArch).toUpperCase()))]);
   const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
   const n = await modeloAplicar(arr);
   if (n) { await saveLimites(arr, prev); await loadLimits(); }
-  return { n: bloques.length, bloques, enPlano: n };
+  const avisos = t2._avisoBloques || []; t2._avisoBloques = []; t2._proyFoco = null; if (avisos.length) try { setMsg('limMsg', 'ok', avisos.join(' · ')); } catch (e) {}
+  return { n: bloques.length, bloques, enPlano: n, avisos };
 }
 // pone los resultados del modelo en los polígonos de bloques (mismo proyecto y nombre); el material decide si es desmonte
+// V90: si un proyecto tiene _C y _R pero no _P, los polígonos del _C toman el nombre del bloque por área (volumen ÷ altura de banco)
+function autoBloques(arr, mod) {
+  const proyDe = l => ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+  const conP = new Set(arr.filter(l => /_P\.[a-z0-9]+$/i.test(l.file || '')).map(proyDe));
+  const avisos = [];
+  const porProy = new Map();
+  arr.forEach(l => { if (l.ro || !/_C\.[a-z0-9]+$/i.test(l.file || '') || !l.closed || !l.pts || l.pts.length < 3) return; const p = proyDe(l); if (!p || conP.has(p)) return; if (!porProy.has(p)) porProy.set(p, []); porProy.get(p).push(l); });
+  porProy.forEach((pols, p) => {
+    if (pols.every(l => l.autoBloque === 'manual' || l.autoBloque === 'pdf')) return;
+    const bl = Object.values(mod).filter(m => m.proy === p && m.v >= 89).map(m => ({ b: m.bloque, vol: m.vol || (m.t && m.density ? m.t / m.density : null) })).filter(x => x.vol > 0);
+    if (!bl.length) return;
+    // V97: si un polígono encierra a otros (contorno del proyecto), cuenta solo lo que queda afuera de ellos
+    const cen = l => l.pts.reduce((s, q) => ({ x: s.x + q.x / l.pts.length, y: s.y + q.y / l.pts.length }), { x: 0, y: 0 });
+    const areas = pols.map(l => { const a = Math.abs(polyArea(l.pts)); const dentro = pols.filter(o => o !== l && Math.abs(polyArea(o.pts)) < a && (() => { const c = cen(o); return pointInPoly(c.x, c.y, l.pts); })()); return Math.max(1, a - dentro.reduce((s, o) => s + Math.abs(polyArea(o.pts)), 0)); });
+    // V93: se busca la combinación polígono↔bloque en la que todos dan la misma altura de banco (volumen ÷ área),
+    // aunque el _C traiga polígonos de más o de menos y aunque el banco no sea de 12 m
+    const pocosP = pols.length <= bl.length, nA = Math.min(pols.length, bl.length);
+    const costo = asg => { const hs = []; asg.forEach((j, i) => { if (j < 0) return; const a = areas[i], v = bl[j].vol; if (a > 0 && v > 0) hs.push(Math.log(v / a)); }); if (!hs.length) return 99; const m = hs.reduce((s, x) => s + x, 0) / hs.length; const Hm = Math.exp(m); return hs.reduce((s, x) => s + (x - m) * (x - m), 0) / hs.length + (Hm < 6 || Hm > 20 ? 0.5 : 0) + (hs.length === 1 ? Math.abs(Math.log(Hm / 12)) : 0); };
+    let mejor = null, segundo = null;
+    const prueba = asg => { const c = costo(asg); if (!mejor || c < mejor.e) { segundo = mejor; mejor = { e: c, asg: asg.slice() }; } else if (!segundo || c < segundo.e) segundo = { e: c, asg: asg.slice() }; };
+    if (pols.length <= 8 && bl.length <= 8) {
+      const asg = new Array(pols.length).fill(-1);
+      const rec = (i, usados, puestos) => {
+        if (i === pols.length) { if (puestos === nA) prueba(asg); return; }
+        if (pols.length - i > nA - puestos) { asg[i] = -1; rec(i + 1, usados, puestos); } // este polígono puede quedar sin bloque
+        if (puestos < nA) for (let j = 0; j < bl.length; j++) { if (usados & (1 << j)) continue; asg[i] = j; rec(i + 1, usados | (1 << j), puestos + 1); }
+        asg[i] = -1;
+      };
+      rec(0, 0, 0);
+    }
+    if (!mejor) { const H0 = 12, usados = new Set(); mejor = { e: 0, asg: pols.map((_, i) => { let jb = -1; bl.forEach((x, j) => { if (!usados.has(j) && (jb < 0 || Math.abs(areas[i] - x.vol / H0) < Math.abs(areas[i] - bl[jb].vol / H0))) jb = j; }); if (jb >= 0) usados.add(jb); return jb; }) }; }
+    let dudoso = bl.length !== pols.length || mejor.e > 0.02 || (segundo && segundo.e < mejor.e * 3 + 0.005);
+    void pocosP;
+    let cambio = false;
+    pols.forEach((l, i) => {
+      if (l.autoBloque === 'manual' || l.autoBloque === 'pdf') return;
+      const j = mejor.asg[i], nom = j >= 0 ? bl[j].b : '';
+      if (l.name !== nom || l.autoBloque !== (dudoso ? 'dudoso' : 'auto')) { cambio = true; l.name = nom; l.proyM = p; l.autoBloque = dudoso ? 'dudoso' : 'auto'; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; }
+    });
+    // V95: solo se avisa del proyecto que se acaba de subir o del que cambió (antes salían todos)
+    const foco = t2._proyFoco && t2._proyFoco.has(p);
+    if (!cambio && !foco) return;
+    if (bl.length !== pols.length) avisos.push(`${p}: el _C tiene ${pols.length} polígono(s) y el _R ${bl.length} bloque(s); bloques ${pols.filter(l => l.name).map(l => l.name).join(', ') || '—'}; ${pols.length - pols.filter(l => l.name).length} polígono(s) sin bloque, revisa en «Límites» o sube el PDF`);
+    else if (dudoso) avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} (tamaños parecidos: revísalos o sube el PDF)`);
+    else avisos.push(`${p}: bloques ${pols.map(l => l.name).filter(Boolean).join(', ')} puestos solos`);
+  });
+  t2._avisoBloques = avisos;
+  return avisos;
+}
 async function modeloAplicar(arr) {
   const mod = (await idbGet('modelo-bloques')) || {}; let n = 0;
+  try { autoBloques(arr, mod); } catch (e) { console.warn('autoBloques', e); }
   arr.forEach(l => {
     const proy = l.proyM || ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
     if (!proy || !l.name) return;
@@ -8326,6 +8356,121 @@ async function multiDem3D(R) {
   };
 })();
 
+// ===== V94: el PDF del plano de leyes (S26-5-658-027.pdf) pone el nombre de cada bloque en su polígono del _C =====
+// Lee el texto del PDF: las coordenadas de la cuadrícula («486750 E», «8320700 N») dan la escala y los
+// letreros «BLOCK A:» caen dentro de su polígono. Si no hay _R, los datos del letrero (Fe, FeO, SFeS, Cu, Zn, TM) sirven de modelo.
+const PDFJS_URLS = ['./pdfjs/pdf.min.mjs', '../pdfjs/pdf.min.mjs', 'https://rehudany-source.github.io/blasthole-leyes/pdfjs/pdf.min.mjs'];
+let _pdfjs = null;
+async function cargarPdfjs() {
+  if (_pdfjs) return _pdfjs;
+  let err = null;
+  for (const u of PDFJS_URLS) {
+    try {
+      const abs = new URL(u, location.href).href;
+      if (location.protocol === 'file:' && !/^https:/.test(abs)) continue;
+      const m = await import(abs);
+      m.GlobalWorkerOptions.workerSrc = abs.replace('pdf.min.mjs', 'pdf.worker.min.mjs');
+      _pdfjs = m; return m;
+    } catch (e) { err = e; }
+  }
+  throw new Error('No se pudo abrir el lector de PDF (se necesita internet la primera vez).' + (err ? '' : ''));
+}
+const pdfNum = s => { const x = parseFloat(String(s).replace(/,(?=\d{3}\b)/g, '').replace(',', '.')); return isNaN(x) ? null : x; };
+async function leerPdfBloques(f) {
+  const pdfjs = await cargarPdfjs();
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+  const pg = await doc.getPage(1), tc = await pg.getTextContent();
+  const it = tc.items.filter(i => i.str && i.str.trim()).map(i => { const [a, b, , d, e, f2] = i.transform, rot = Math.abs(b) > Math.abs(a); return { s: i.str.trim(), x: e, y: f2, w: i.width, h: rot ? Math.abs(b) : Math.abs(d), rot }; });
+  // escala: rótulos de la cuadrícula
+  const E = [], N = [];
+  it.forEach(t => { let m = t.s.match(/^(\d{6}(?:\.\d+)?)\s*E$/i); if (m) E.push({ v: +m[1], p: t.rot ? t.x - t.h * 0.35 : t.x + t.w / 2 }); m = t.s.match(/^(\d{7}(?:\.\d+)?)\s*N$/i); if (m) N.push({ v: +m[1], p: t.rot ? t.y + t.w / 2 : t.y + t.h * 0.35 }); });
+  const ajuste = arr => { const vs = [...new Set(arr.map(a => a.v))]; if (vs.length < 2) return null; const pr = vs.map(v => ({ v, p: arr.filter(a => a.v === v).reduce((s, a) => s + a.p, 0) / arr.filter(a => a.v === v).length })); const n = pr.length, mv = pr.reduce((s, a) => s + a.v, 0) / n, mp = pr.reduce((s, a) => s + a.p, 0) / n; let num = 0, den = 0; pr.forEach(a => { num += (a.v - mv) * (a.p - mp); den += (a.v - mv) * (a.v - mv); }); const k = num / den; return { k, b: mp - k * mv }; };
+  const fx = ajuste(E), fy = ajuste(N);
+  if (!fx || !fy) throw new Error('No encontré las coordenadas de la cuadrícula (p. ej. «486750 E» y «8320700 N») en el PDF.');
+  const aUTM = (px, py) => ({ x: (px - fx.b) / fx.k, y: (py - fy.b) / fy.k });
+  // letreros de bloques y sus datos (las líneas de abajo, mismo tamaño de letra y centradas)
+  const out = [];
+  it.forEach(t => {
+    const m = t.s.match(/^(?:BLOCK|BLOQUE)\s+([A-Z0-9]+)\s*:?\s*(.*)$/i); if (!m) return; // «BLOCK A:» o «BLOCK B: M2 BL» (V96)
+    const cx = t.x + t.w / 2;
+    const lin = it.filter(o => o !== t && !o.rot && Math.abs(o.h - t.h) < 0.6 && o.y < t.y && t.y - o.y < t.h * 9 && Math.abs(o.x + o.w / 2 - cx) < t.h * 4).sort((a, b) => b.y - a.y);
+    const sig = []; for (const o of lin) { if (/^(BLOCK|BLOQUE)\b/i.test(o.s)) break; sig.push(o); if (/TM\b|\bt\b/i.test(o.s)) break; }
+    const ys = [t.y].concat(sig.map(o => o.y)), cy = (Math.max(...ys) + Math.min(...ys)) / 2 + t.h * 0.3;
+    const info = { bloque: m[1].toUpperCase() };
+    if (m[2] && /^[MD]\d/i.test(m[2].trim())) { info.material = m[2].trim().split(/[\s:]+/)[0].toUpperCase(); info.clase = m[2].trim(); }
+    sig.forEach(o => {
+      const s = o.s, v = (re) => { const r = s.match(re); return r ? pdfNum(r[1]) : null; };
+      if (/^Fe\s*:/i.test(s)) info.fe = v(/:\s*([\d.,]+)/); else if (/^FeO\s*:/i.test(s)) info.feo = v(/:\s*([\d.,]+)/);
+      else if (/^S\s*\/?\s*FeS\s*:/i.test(s)) info.sfes = v(/:\s*([\d.,]+)/); else if (/^S\s*:/i.test(s)) info.s = v(/:\s*([\d.,]+)/);
+      else if (/^Cu\s*:/i.test(s)) info.cu = v(/:\s*([\d.,]+)/); else if (/^Zn\s*:/i.test(s)) info.zn = v(/:\s*([\d.,]+)/);
+      else if (/TM\b/i.test(s)) info.t = v(/([\d.,]+)/);
+      else if (/^[MD]\d/i.test(s) && !info.material) { info.material = s.split(/[\s:]+/)[0].toUpperCase(); info.clase = s; }
+    });
+    out.push(Object.assign(info, aUTM(cx, cy)));
+  });
+  it.forEach(t => { if (/^SOBRE\s*ROTURA$/i.test(t.s)) out.push(Object.assign({ sobrerotura: true }, aUTM(t.x + (t.rot ? -t.h / 2 : t.w / 2), t.y + (t.rot ? t.w / 2 : t.h / 2)))); });
+  if (!out.length) throw new Error('No encontré letreros «BLOCK A:» en el PDF.');
+  return out;
+}
+async function cargarPdfBloques(f) {
+  const proy = ((f.name.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0]).toUpperCase();
+  if (!proy) throw new Error('El nombre del PDF debe tener el proyecto (p. ej. S26-5-658-027.pdf).');
+  let bl = await leerPdfBloques(f);
+  const prev = (await idbGet('limites')) || [], arr = prev.map(l => Object.assign({}, l));
+  const canon = p => { const m = String(p).match(/S\d{2}-([0-9A-Z]+)-(\d+)-(\d+)/i); return m ? canonCode({ mina: m[1], nivel: m[2], nro: m[3] }) : p; };
+  const pc = canon(proy), proyDe = l => ((l.file || '').match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase();
+  const pols = arr.filter(l => /_C\.[a-z0-9]+$/i.test(l.file || '') && l.closed && l.pts && l.pts.length >= 3 && canon(proyDe(l)) === pc);
+  const ajenos = ((await idbGet('limites-comp')) || []).filter(l => /_C\./i.test(l.file || '') && canon(proyDe(l)) === pc);
+  if (!pols.length) throw new Error(ajenos.length ? `El _C de ${proy} lo subió ${ajenos[0].compDe}: súbelo tú también o pídele que suba el PDF.` : `Primero sube el ${proy}_C.dxf (los polígonos de los bloques).`);
+  const proyC = proyDe(pols[0]);
+  // datos del letrero como modelo si el _R no está
+  const mod = (await idbGet('modelo-bloques')) || {};
+  let nuevos = 0;
+  const sobre = bl.filter(b => b.sobrerotura); bl = bl.filter(b => !b.sobrerotura);
+  bl.forEach(b => { const k = proyC + '|' + b.bloque; if (mod[k] && mod[k].v >= 89) return; mod[k] = { proy: proyC, bloque: b.bloque, t: b.t, vol: null, density: null, material: b.material || '', oretype: '', destino: /^D/i.test(b.material || '') ? 'Botadero' : '', fe: b.fe, feo: b.feo, s: b.s != null ? b.s : null, cu: b.cu, zn: b.zn, sfes: b.sfes, v: 89, dePdf: true }; nuevos++; });
+  if (nuevos) await idbSet('modelo-bloques', mod);
+  // cada letrero → el polígono que lo contiene (o el más cercano a menos de 25 m)
+  const usados = new Set(), res = [];
+  bl.forEach(b => {
+    // V97: el polígono más chico que contiene el letrero (el _C puede traer también el contorno del proyecto)
+    let L = pols.filter(l => !usados.has(l) && pointInPoly(b.x, b.y, l.pts)).sort((p, q) => Math.abs(polyArea(p.pts)) - Math.abs(polyArea(q.pts)))[0];
+    if (!L) { let best = null, bd = 25; pols.forEach(l => { if (usados.has(l)) return; const c = l.pts.reduce((s, q) => ({ x: s.x + q.x / l.pts.length, y: s.y + q.y / l.pts.length }), { x: 0, y: 0 }); const d = Math.hypot(c.x - b.x, c.y - b.y); if (d < bd) { bd = d; best = l; } }); L = best; }
+    if (!L) { res.push(`${b.bloque}: no cayó en ningún polígono`); return; }
+    usados.add(L); L.name = b.bloque; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true;
+    res.push(b.bloque);
+  });
+  // la sobrerotura del plano: queda marcada como tal (sin bloque ni leyes)
+  let nSobre = 0;
+  sobre.forEach(s => { const L = pols.filter(l => !usados.has(l) && pointInPoly(s.x, s.y, l.pts)).sort((p, q) => Math.abs(polyArea(p.pts)) - Math.abs(polyArea(q.pts)))[0]; if (!L || pols.some(o => o !== L && pointInPoly(s.x, s.y, o.pts) && Math.abs(polyArea(o.pts)) < Math.abs(polyArea(L.pts)))) return; usados.add(L); nSobre++; if (L.name !== 'SOBREROTURA') { L.name = 'SOBREROTURA'; L.proyM = proyC; L.autoBloque = 'pdf'; L.modelo = null; L._mod = typeof ahora === 'function' ? ahora() : Date.now(); L._dirty = true; } });
+  pols.forEach(l => { if (!usados.has(l) && l.autoBloque !== 'manual') { if (l.name || l.autoBloque !== 'pdf') { l.name = ''; l.autoBloque = 'pdf'; l.modelo = null; l._mod = typeof ahora === 'function' ? ahora() : Date.now(); l._dirty = true; } } });
+  await modeloAplicar(arr); await saveLimites(arr, prev); await loadLimits();
+  t2._sinTalFirma = null; try { computeT2(); pv.draw(); } catch (e) {}
+  const sobran = pols.filter(l => !usados.has(l)).length;
+  return `PDF leído: bloques ${res.join(', ')} ubicados en el plano${nSobre ? ` · ${nSobre} sobrerotura` : ''}${sobran ? ` · ${sobran} polígono(s) del _C sin letrero en el PDF (quedan sin bloque)` : ''}${nuevos ? ` · sin _R: se usaron los datos del PDF (${nuevos} bloque(s))` : ''}`;
+}
+
+// ===== V98: _P y _R armados para los proyectos sin _P (mina 5), en el mismo formato de MinePlan, para guardarlos o cargarlos en AssMining =====
+function modeloArchivos(file) {
+  const todos = (t2.lims || []).filter(l => l.file === file && l.closed && l.name && !/^SOBRE/i.test(l.name));
+  if (!todos.length) return null;
+  const proy = (file.match(/S\d{2}-[0-9A-Z]+-\d+-\d+/i) || [''])[0].toUpperCase(), z = (proy.split('-')[2] || '');
+  const porB = new Map(); todos.forEach(l => { const b = String(l.name).toUpperCase(); if (!porB.has(b)) porB.set(b, []); porB.get(b).push(l); });
+  const f = (v, d) => v == null || isNaN(v) ? '' : (+v).toFixed(d);
+  const P = ['ID, X, Y, Z, PROJECTID, BLOCK']; let id = 0;
+  [...porB.keys()].sort().forEach(b => porB.get(b).forEach(l => { const pts = l.pts.concat([l.pts[0]]); pts.forEach(q => { id++; P.push(`${id}, ${(+q.x).toFixed(3)}, ${(+q.y).toFixed(3)}, ${z},${proy},${b}`); }); }));
+  const R = ['PROJECTID,GRADE_BLOCK,TONNES,VOLUME,DENS,FE_pct,FEO_pct,S_pct,CU_pct,ZN_pct,CFE_pct,CS_pct,CINS_pct,CWR_pct,CCINS_pct,CCS_pct,CSFES_pct,CCWR_pct,LITOMINE,OREZONE,MATERIAL,DESTINATION'];
+  [...porB.keys()].sort().forEach(b => { const m = (porB.get(b).find(l => l.modelo) || {}).modelo || {}; R.push([proy, b, f(m.t, 0), f(m.vol, 0), f(m.density, 2), f(m.fe, 2), f(m.feo, 2), f(m.s, 3), f(m.cu, 3), f(m.zn, 3), f(m.cfe, 2), f(m.cs, 2), f(m.ins, 2), f(m.rec, 2), f(m.ccins, 2), '', f(m.sfes, 2), '', m.lito || '', m.zona || '', m.material || '', m.destino || ''].join(',')); });
+  return { proy, P: '﻿' + P.join('\r\n') + '\r\n', R: R.join('\r\n') + '\r\n', n: porB.size };
+}
+async function exportarModelos(files) {
+  const out = []; let n = 0;
+  files.forEach(file => { const m = modeloArchivos(file); if (!m) return; out.push({ name: m.proy + '_P.csv', data: m.P }, { name: m.proy + '_R.csv', data: m.R }); n++; });
+  if (!n) { setMsg('limMsg', 'err', 'Ningún _C tiene bloques con nombre todavía.'); return; }
+  if (n === 1) { await save(out[0].name, new Blob([out[0].data], { type: 'text/csv' }), $('limMsg')); await save(out[1].name, new Blob([out[1].data], { type: 'text/csv' }), $('limMsg')); }
+  else await save(`Modelos_P_R_${n}_proyectos_${new Date().toISOString().slice(0, 10)}.zip`, await makeZip(out), $('limMsg'));
+  setMsg('limMsg', 'ok', `${n} proyecto(s): _P y _R descargados (mismo formato de MinePlan; sirven para AssMining).`);
+}
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -8382,7 +8527,7 @@ const rest = {
   async auth(path, body) {
     const r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), {httpStatus:r.status, authCode:j.error_code || j.code || j.error});
+    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
     return j;
   },
   guardar(j) {
@@ -8396,7 +8541,7 @@ const rest = {
     if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     if (sync.session.expires_at - 60 < Date.now() / 1000) {
       try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: sync.session.refresh_token })); }
-      catch (e) { if (['refresh_token_not_found','refresh_token_already_used','session_not_found','session_expired','user_banned'].includes(e.authCode)) throw Object.assign(new Error('La sesión requiere iniciar sesión nuevamente; tus datos locales se conservan.'), {code:'login'}); throw e; }
+      catch (e) { if (!navigator.onLine) throw e; sync.session = null; try { localStorage.removeItem('bhl-sess'); } catch (e2) {} throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' }); }
     }
     return sync.session.access_token;
   },
@@ -8411,13 +8556,14 @@ const rest = {
     const tk = await rest.token();
     const r = await fetch(`${SYNC.url}/auth/v1/user`, { method: 'PUT', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), {httpStatus:r.status, authCode:j.error_code || j.code || j.error});
+    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
   },
   pull: since => rest.rpc('bhl_pull', { p_since: since }),
   push: (table, rows) => rest.rpc('bhl_push', { p_table: table, p_rows: rows }),
   compartidos: () => rest.rpc('bhl_compartidos', {}),
   compartidosFirma: () => rest.rpc('bhl_compartidos_firma', {}),
   pushEquipo: (table, rows) => rest.rpc('bhl_push_equipo', { p_table: table, p_rows: rows }),
+  compartidosDesde: since => rest.rpc('bhl_compartidos_desde', { p_since: since }),
 };
 // V84: proyectos del equipo editables por todos. El cambio se guarda en el proyecto del compañero (sigue siendo suyo)
 async function guardarEquipo(rec) {
@@ -8442,10 +8588,27 @@ async function subirEquipo(T) {
   await idbSet('equipo-pend', resto);
   return pend.length;
 }
+async function mezclarCompartidos(r, completo) {
+  const pref = x => 'comp:' + x.de + ':' + x.id;
+  const conv = {
+    'limites-comp': (r.limites || []).map(x => ({ k: x.owner + '|' + x.id, borrado: x.borrado || !x.data || !Array.isArray(x.data.pts), rec: x.data && Object.assign({}, x.data, { id: pref(x), compDe: x.de, ro: true, compId: x.id, compOwner: x.owner }) })),
+    'proyectos-comp': (r.finales || []).map(x => ({ k: x.owner + '|' + x.id, borrado: x.borrado || !x.data || !Array.isArray(x.data.holes), rec: x.data && Object.assign({}, x.data, { id: pref(x), compDe: x.de, ro: true, compId: x.id, compOwner: x.owner, tipo: x.data.tipo || (typeof tipoArchivo === 'function' ? tipoArchivo(x.data.fileName) : 'final') }) })),
+  };
+  let n = 0;
+  for (const [k, arr] of Object.entries(conv)) {
+    if (!arr.length && !completo) continue;
+    const prev = completo ? [] : ((await idbGet(k)) || []);
+    const by = new Map(prev.map(p => [p.compOwner + '|' + p.compId, p]));
+    arr.forEach(x => { if (x.borrado) by.delete(x.k); else { delete x.rec._dirty; by.set(x.k, x.rec); } });
+    await idbSet(k, [...by.values()]); n++;
+  }
+  if (completo) await idbSet('avances-comp', []);
+  return n;
+}
 // Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
 async function bajarCompartidos(T, forzar) {
   if (!T.compartidos) return 0;
-  if ((await idbGet('comp-ver')) !== 84) { forzar = true; await idbSet('comp-ver', 84); } // V84: ahora vienen todos los proyectos del equipo
+  if ((await idbGet('comp-ver')) !== 91) { forzar = true; await idbSet('comp-ver', 91); } // V84: ahora vienen todos los proyectos del equipo
   const ult = sync.compAt || 0;
   if (!forzar && Date.now() - ult < 3 * 60 * 1000) return 0;
   sync.compAt = Date.now();
@@ -8453,8 +8616,19 @@ async function bajarCompartidos(T, forzar) {
   let firma = null;
   if (T.compartidosFirma) { try { firma = await T.compartidosFirma(); } catch (e) { firma = null; } }
   if (firma && !forzar && firma === (await idbGet('comp-firma'))) return 0;
-  let res = await T.compartidos();
-  if (!res || typeof res !== 'object' || Array.isArray(res) || !Array.isArray(res.limites) || !Array.isArray(res.finales) || !Array.isArray(res.avances)) throw new Error('Descarga compartida incompleta: se conservan los datos guardados.');
+  // V91: por partes — solo lo que cambió desde la última vez (la primera vez, todo)
+  if (T.compartidosDesde) {
+    try {
+      const since = forzar ? null : ((await idbGet('comp-since')) || null);
+      const r = await T.compartidosDesde(since);
+      const cambia = await mezclarCompartidos(r, !since || r.completo);
+      if (r.now) await idbSet('comp-since', r.now);
+      if (firma) await idbSet('comp-firma', firma);
+      return cambia;
+    } catch (e) { console.warn('compartidos por partes', e); }
+  }
+  let res = (await T.compartidos()) || [];
+  if (Array.isArray(res)) res = { limites: res }; // servidor antiguo
   const firmaArr = a => a.map(l => l.id + '@' + (l._mod || 0)).sort().join('|');
   const pref = r => 'comp:' + r.de + ':' + r.id;
   const grupos = {
@@ -8529,7 +8703,7 @@ const esAdmin = () => sync.mode === 'rest' && !!sync.session && String(sync.sess
 // ---- Cada equipo guarda los datos de UNA cuenta: al entrar con otra se quitan los de la anterior ----
 async function borrarLocal() {
   for (const store of ['projects', 'avances']) { try { await idbStoreOp(store, 'readwrite', st => st.clear()); } catch (e) { for (const r of await dbAll(store)) await dbDel(store, r.id); } }
-  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('equipo-pend', []); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
+  await idbSet('limites', []); await idbSet('bhl-conflictos', []); await idbSet('limites-comp', []); await idbSet('comp-firma', null); await idbSet('proyectos-comp', []); await idbSet('avances-comp', []); await idbSet('bhl-tomb', []); await idbSet('equipo-pend', []); await idbSet('comp-since', null); await idbSet('bhl-since', '1970-01-01T00:00:00Z');
   try { t2.shapes = []; t2.draft = []; t2.selIds = new Set(); t2.viewing = null; } catch (e) {}
   try { await loadLibrary(); await loadLimits(); } catch (e) {}
 }
@@ -8676,14 +8850,13 @@ async function sincronizar() {
     }
     if (await subirEquipo(T)) sync.compForzar = true;
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
-    if (typeof topoNube === 'function') await topoNube();
-    if (sync.topoError) throw new Error(sync.topoError);
+    try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
     try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
     sync.compForzar = false;
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
     else if (res.now) await idbSet('bhl-since', res.now);
-    sync.last = new Date(); sync.err = ''; await idbSet('bhl-ultima-sync', sync.last.toISOString());
+    sync.last = new Date(); sync.err = '';
     if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
     const nConf = (await leerConflictos()).length;
     sync.conflictos = nConf;
@@ -8717,20 +8890,6 @@ function pintarSync(estado, cambios) {
   if (estado === 'conflicto') b.title = 'Existe un conflicto de sincronización. El cambio realizado en este equipo no pudo reemplazar la versión almacenada en la nube. Toca para revisarlo.';
   else b.title = estado === 'error' ? sync.err : estado === 'offline' ? 'Se sincroniza cuando vuelva la conexión' : estado === 'ok' && cambios ? `${cambios} cambio(s) recibidos` : '';
 }
-
-async function pendientesOffline(){
- const p=await dbAll('projects'),a=await dbAll('avances'),l=(await idbGet('limites'))||[];
- return p.some(x=>x._dirty||x._conflicto)||a.some(x=>x._dirty||x._conflicto)||l.some(x=>x._dirty||x._conflicto)||['bhl-tomb','equipo-pend','bhl-conflictos'].some(k=>false) || (await Promise.all(['bhl-tomb','equipo-pend','bhl-conflictos'].map(idbGet))).some(x=>Array.isArray(x)&&x.length);
-}
-async function offlineResumen(){
- const box=$('offlineResumen');if(!box)return;
- const projects=await dbAll('projects'),shared=(await idbGet('proyectos-comp'))||[],limits=(await idbGet('limites'))||[],sharedLimits=(await idbGet('limites-comp'))||[],base=await idbGet('base'),ts=(await idbGet('topos'))||[],last=await idbGet('bhl-ultima-sync'),pend=await pendientesOffline();
- let topoCount=0;for(const t of ts)if(await idbGet('topo:'+t.id))topoCount++;
- const lines=[`Conexión: ${navigator.onLine?'disponible':'sin señal'}`,`Última sincronización terminada: ${last?new Date(last).toLocaleString('es-PE'):'no registrada'}`,`Proyectos locales: ${projects.length}; compartidos: ${shared.length}`,`Límites locales: ${limits.length}; compartidos: ${sharedLimits.length}`,`Base de leyes: ${base?'guardada en este dispositivo':'sin base local; revisa las leyes de cada proyecto'}`,`Topografías con datos locales: ${topoCount} de ${ts.length}`,`Cambios pendientes o conflictos: ${pend?'sí':'ninguno detectado'}`];
- box.innerHTML='<b>Datos disponibles en este equipo</b><p>'+lines.map(esc).join('<br>')+'</p><p class="note">El recuento no garantiza que todos los proyectos o mosaicos 3D estén descargados. Comprueba el área necesaria antes de salir.</p><button class="btn sec small" type="button" id="offlineBackup">Sacar respaldo</button>';
- $('offlineBackup').onclick=()=>$('btnBackup').click();
-}
-
 function abrirPanelSync() {
   const d = $('dlgSync');
   const mcp = sync.mode === 'mcp';
@@ -8751,9 +8910,9 @@ function abrirPanelSync() {
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
   $('admBeta').hidden = !(conectado && esAdmin() && enWeb);
   if (window.BHL_CANAL === 'beta') { $('admBetaIr').textContent = 'Volver a la versión normal'; $('admBetaIr').href = '../'; }
-  $('syncWipe').checked = false;
+  $('syncWipe').checked = true;
   if (conectado && esAdmin()) cargarUsuarios();
-  d.hidden = false; offlineResumen().catch(e => { $('offlineResumen').textContent = 'No se pudo revisar lo guardado: ' + e.message; });
+  d.hidden = false;
 }
 async function loginRest(crear) {
   const msg = $('syncMsg'); msg.className = 'msg'; msg.textContent = crear ? 'Creando cuenta…' : 'Entrando…';
@@ -9015,4 +9174,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
