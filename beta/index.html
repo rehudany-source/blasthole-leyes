@@ -153,6 +153,7 @@ label.f.inl input { width: auto; padding: 5px 6px; }
 input.hin { font: .8rem var(--f-body); padding: 3px 5px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); color: var(--ink); }
 #histTbl td { vertical-align: middle; }
 .limlist { display: grid; gap: 6px; }
+.verplano { display: grid; gap: 4px; margin: 6px 0; }
 .limf { border: 1px solid var(--line); border-radius: 5px; padding: 4px; background: var(--bg); display: grid; gap: 2px; }
 .limh { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 4px 4px; font-size: .82rem; }
 .limh .pn { font-family: var(--f-mono); overflow-wrap: anywhere; }
@@ -908,7 +909,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v99</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v100</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1144,6 +1145,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
             <span class="t">Subir límites de rotura <span class="tag">DXF · CSV</span></span>
             <span class="fn">DXF de AutoCAD o CSV</span>
           </div>
+          <div class="verplano"><label class="chk"><input type="checkbox" id="t2VerLim" checked> Ver contornos (límites y bloques)</label><label class="chk"><input type="checkbox" id="t2VerAv" checked> Ver avances diarios</label></div>
           <div class="limlist" id="limList"></div>
           <p class="msg" id="limMsg"></p>
         </div>
@@ -3931,6 +3933,7 @@ class PlanView {
   }
 }
 
+var t2VerCfg = (() => { try { return Object.assign({ lim: true, av: true }, JSON.parse(localStorage.getItem('bhl-t2ver') || '{}')); } catch (e) { return { lim: true, av: true }; } })();
 const pv = new PlanView($('cad2'), $('cad2wrap'), renderPlan2);
 pv.onMove = (x, y) => { $('coords2').textContent = `E ${x.toFixed(2)}   N ${y.toFixed(2)}`; };
 $('z2in').onclick = () => pv.zoomAt(1.5, pv.W / 2, pv.H / 2);
@@ -4099,6 +4102,7 @@ function renderPlan2(ctx, v) {
   // V44 (C-03): taladros con ID repetido, marcados en rojo (sin ley)
   t2.holes.forEach(h => { if (!h.dup) return; const x = v.sx(h.x), y = v.sy(h.y); if (x < -30 || x > v.W + 30 || y < -30 || y > v.H + 30) return; ctx.save(); ctx.strokeStyle = '#e03131'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(6, Math.min(12, v.v.s * 0.5)), 0, Math.PI * 2); ctx.stroke(); if (v.v.s > 4) { ctx.fillStyle = '#e03131'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('ID repetido ' + h.id, x + 8, y - 6); } ctx.restore(); });
   t2.avs.forEach(a => {
+    if (t2VerCfg.av === false && !(viewing && viewing.id === a.id)) return; // V99: casilla «Ver avances diarios»
     const shapes = avShapes(a); if (!shapes.length) return;
     const cur = viewing && viewing.id === a.id;
     ctx.strokeStyle = cur ? CAD.sel : CAD.ghost; ctx.lineWidth = cur ? 1.8 : 0.8;
@@ -4108,6 +4112,7 @@ function renderPlan2(ctx, v) {
   });
   // polígonos de los avances de los compañeros (solo el contorno, punteado)
   (lib.avComp || []).forEach(a => {
+    if (t2VerCfg.av === false) return;
     const shapes = avShapes(a); if (!shapes.length) return;
     ctx.save(); ctx.strokeStyle = CAD.ghost; ctx.lineWidth = 0.9; ctx.setLineDash([5, 4]);
     let vis = false;
@@ -4840,6 +4845,7 @@ function drawDesmonte(ctx, v) {
   });
 }
 function drawLimits(ctx, v) {
+  if (t2VerCfg.lim === false) return; // V99: casilla «Ver contornos» (solo oculta el dibujo; no cambia los cálculos)
   try { drawDesmonte(ctx, v); } catch (e) {}
   const isMain = L => /rotura|limite|límite/i.test(L.layer);
   // subdivisiones primero; el límite de rotura encima
@@ -4874,6 +4880,13 @@ async function loadLimits() {
   try { t2.limOff = new Set(JSON.parse(localStorage.getItem('bhl-limoff') || '[]')); } catch (e) {}
   renderLimList(); pv.draw();
 }
+// V99: ver/ocultar contornos y avances diarios en el plano (se recuerda en este equipo)
+(function () {
+  const cl = $('t2VerLim'), ca = $('t2VerAv'); if (!cl || !ca) return;
+  cl.checked = t2VerCfg.lim !== false; ca.checked = t2VerCfg.av !== false;
+  const guardar = () => { t2VerCfg.lim = cl.checked; t2VerCfg.av = ca.checked; try { localStorage.setItem('bhl-t2ver', JSON.stringify(t2VerCfg)); } catch (e) {} pv.draw(); };
+  cl.onchange = guardar; ca.onchange = guardar;
+})();
 function renderLimList() {
   const box = $('limList');
   if (!t2.lims.length) { box.innerHTML = ''; return; }
