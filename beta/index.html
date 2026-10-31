@@ -909,7 +909,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v101</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v102</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6885,6 +6885,17 @@ function v3Malla(arrP, arrC, arrN, idx) {
 }
 function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
 function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
+// V101: topografía para el 3D: la activa si cubre los proyectos marcados; si no, la más nueva que los cubra (de la misma mina primero)
+function v3TopoId() {
+  if (!t2.holes.length) return topo.act;
+  const b = t2Bounds(), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  const cubre = t => cx >= t.x0 && cx <= t.x0 + t.W * t.cel && cy >= t.y0 && cy <= t.y0 + t.H * t.cel;
+  const act = topo.lista.find(t => t.id === topo.act);
+  if (act && cubre(act)) return act.id;
+  const mina = $('fMina').value;
+  const c = topo.lista.filter(cubre).sort((a, b2) => ((minaDe(b2) === mina) - (minaDe(a) === mina)) || (a.fecha < b2.fecha ? 1 : -1));
+  return c.length ? c[0].id : topo.act;
+}
 function v3Region() {
   const d = v3.dem; let b = null;
   if (!v3.full && t2.holes.length) { b = t2Bounds(); b = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
@@ -6893,17 +6904,19 @@ function v3Region() {
 }
 async function v3Construir() {
   if (!v3Init()) return;
-  v3.dem = topo.act ? await topoDem(topo.act) : null;
+  // V101: el 3D elige solo la topografía que cubre los proyectos marcados (no depende de la que esté activa en el plano)
+  v3.topoId = v3TopoId(); v3.dem = v3.topoId ? await topoDem(v3.topoId) : null; v3.sinCobertura = false;
+  if (v3.dem && t2.holes.length && !v3.full) { const b = t2Bounds(), d0 = v3.dem; if (b.x1 + 220 < d0.x0 || b.x0 - 220 > d0.x0 + d0.W * d0.cel || b.y1 + 220 < d0.y0 || b.y0 - 220 > d0.y0 + d0.H * d0.cel) { v3.dem = null; v3.sinCobertura = true; } }
   // V76: Multimina: todas las minas en una sola malla
   if (typeof multi !== 'undefined' && multi.on && typeof multiDem3D === 'function') {
     let R0 = null; if (!v3.full && t2.holes.length) { const b = t2Bounds(); R0 = { x0: b.x0 - 220, y0: b.y0 - 220, x1: b.x1 + 220, y1: b.y1 + 220 }; }
     try { const md = await multiDem3D(R0); if (md) v3.dem = md; } catch (e) {}
   }
-  const firma = [typeof multi !== 'undefined' ? (multi.on ? 'M' : '') + multi.pal : '', topo.act, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif, v3.ver.pm, typeof pmFirma === 'function' ? pmFirma() : '', typeof pmVerAuto === 'function' ? pmVerAuto() : false, typeof pmVerMios === 'function' ? pmVerMios() : false, (t2.projs||[]).map(p=>JSON.stringify(p.polMinado||[])).join('|')].join('|');
+  const firma = [typeof multi !== 'undefined' ? (multi.on ? 'M' : '') + multi.pal : '', v3.topoId, v3.full, t2.holes.length, [...(t2.selIds || [])].join(','), t2.analito, t2.leyBy && t2.leyBy.size, t2.avs.length, t2.shapes.length, (t2.lims || []).length, !!topo.dif, v3.ver.dif, v3.ver.pm, typeof pmFirma === 'function' ? pmFirma() : '', typeof pmVerAuto === 'function' ? pmVerAuto() : false, typeof pmVerMios === 'function' ? pmVerMios() : false, (t2.projs||[]).map(p=>JSON.stringify(p.polMinado||[])).join('|')].join('|');
   const R = v3Region();
   // V75: alrededor de los proyectos se usa la topografía de 1 m (si la hay)
   v3.hd = false;
-  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(topo.act, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
+  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(v3.topoId, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
   else if (R && firma === v3.built && v3.hdDem) { v3.dem = v3.hdDem; v3.hd = true; }
   v3.hdDem = v3.hd ? v3.dem : null;
   if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
@@ -6946,7 +6959,7 @@ async function v3Construir() {
   const [ox, oy, oz] = v3.org;
   // ---- taladros: línea collar→fondo y punto en el collar ----
   const lp = [], lc = [], pp = [], pc = []; v3.hpts = [];
-  const minados = topo.minados ? topo.minados.set : new Set();
+  const minados = topo.minados && v3.topoId === topo.act ? topo.minados.set : new Set();
   t2.holes.forEach(h => {
     const zt = v3Z(h.x, h.y), zc = h.z || zt; if (zc == null) return;
     const l = t2.leyBy.get(h.ck), F = anField(), has = l && l.hasData !== false;
@@ -7009,7 +7022,7 @@ async function v3Construir() {
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
   v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
   if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
-  $('v3dMsg').innerHTML = (d ? (d.multi ? `Multimina: todas las minas juntas (celda de ${d.cel} m). ` : v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ') + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
+  $('v3dMsg').innerHTML = (d ? (d.multi ? `Multimina: todas las minas juntas (celda de ${d.cel} m). ` : v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : (v3.sinCobertura ? '<b>Ninguna topografía cargada cubre estos proyectos.</b> Carga el .msr de esa mina con «Cargar archivos». Se ven sin terreno, con la cota de la malla. ' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ')) + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
   v3Dibujar();
 }
 function v3MVP() {
@@ -7107,7 +7120,7 @@ async function v3Mostrar() {
   $('v3dMsg').textContent = 'Preparando la vista 3D…';
   try { if (typeof refreshT2 === 'function' && !t2.holes.length && t2.selIds && t2.selIds.size) refreshT2(); } catch (e) {}
   try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; }
-  const tl = $('v3dTopo'); if (tl) tl.textContent = topo.act ? (() => { const m = topo.lista.find(t => t.id === topo.act); return m ? `⛰ ${fmtDate(m.fecha)} · ${m.nombre}` : ''; })() : 'Sin topografía';
+  const tl = $('v3dTopo'); if (tl) tl.textContent = v3.sinCobertura ? 'Sin topografía que cubra estos proyectos' : v3.topoId ? (() => { const m = topo.lista.find(t => t.id === v3.topoId); return m ? `⛰ ${fmtDate(m.fecha)} · ${m.nombre}` : ''; })() : 'Sin topografía';
 }
 (() => {
   if (!$('tab3')) return;
@@ -7131,7 +7144,7 @@ async function v3Mostrar() {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.id = 'v3dProyBtn';
   const pop = document.createElement('div'); pop.className = 'topo-pop v3d-proy'; pop.id = 'v3dProyPop'; pop.hidden = true;
   bar.prepend(b); $('tab3').appendChild(pop);
-  const pintarBtn = () => { const n = (t2.selIds || new Set()).size; b.textContent = `📁 Proyectos${n ? ' (' + n + ')' : ''} ▾`; };
+  const pintarBtn = () => { const n = visibleProjects().filter(p => (t2.selIds || new Set()).has(p.id)).length; b.textContent = `📁 Proyectos${n ? ' (' + n + ')' : ''} ▾`; };
   const opts = sel => [...$(sel).options].map(o => `<option value="${esc(o.value)}"${o.value === $(sel).value ? ' selected' : ''}>${esc(o.textContent)}</option>`).join('');
   function pintar() {
     const vis = visibleProjects();
