@@ -909,7 +909,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v102</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v103</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6885,16 +6885,18 @@ function v3Malla(arrP, arrC, arrN, idx) {
 }
 function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
 function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
-// V101: topografía para el 3D: la activa si cubre los proyectos marcados; si no, la más nueva que los cubra (de la misma mina primero)
+// V102: topografía para el 3D = la más reciente de la mina de los proyectos marcados (no depende de la activa en el plano).
+// Mina: la del filtro del 3D; si está en «Todas», la de los proyectos marcados (si son de una sola). Solo cuentan las que cubren los proyectos.
 function v3TopoId() {
   if (!t2.holes.length) return topo.act;
   const b = t2Bounds(), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   const cubre = t => cx >= t.x0 && cx <= t.x0 + t.W * t.cel && cy >= t.y0 && cy <= t.y0 + t.H * t.cel;
-  const act = topo.lista.find(t => t.id === topo.act);
-  if (act && cubre(act)) return act.id;
-  const mina = $('fMina').value;
-  const c = topo.lista.filter(cubre).sort((a, b2) => ((minaDe(b2) === mina) - (minaDe(a) === mina)) || (a.fecha < b2.fecha ? 1 : -1));
-  return c.length ? c[0].id : topo.act;
+  let mina = $('fMina').value;
+  if (!mina) { const ms = [...new Set((t2.projs || []).map(p => projCode(p).mina))]; if (ms.length === 1) mina = ms[0]; }
+  const norm = m => String(m || '').toUpperCase();
+  const c = topo.lista.filter(cubre).sort((a, b2) => ((norm(minaDe(b2)) === norm(mina)) - (norm(minaDe(a)) === norm(mina))) || (a.fecha < b2.fecha ? 1 : a.fecha > b2.fecha ? -1 : 0));
+  if (c.length) return c[0].id;
+  return topo.act;
 }
 function v3Region() {
   const d = v3.dem; let b = null;
