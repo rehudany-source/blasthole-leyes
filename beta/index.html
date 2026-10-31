@@ -909,7 +909,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v100</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v101</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3947,6 +3947,7 @@ function projCode(p) {
 }
 const sortNum = (a, b) => (parseFloat(a) - parseFloat(b)) || String(a).localeCompare(String(b));
 
+var v3On = false; // V100: true mientras la vista 3D usa su propia selección y filtros
 let filGuardado = null; try { filGuardado = JSON.parse(localStorage.getItem('bhl-fil') || 'null'); } catch (e) {}
 function fillFilters() {
   const fm = $('fMina'), fn = $('fNivel');
@@ -3980,7 +3981,7 @@ $('pList').addEventListener('change', e => {
   t2.fitted = false; refreshT2();
 });
 // El filtro de mina / nivel también decide qué se ve en el plano: solo esa mina (y ese nivel)
-function filtroCambio() { try { renderLimList(); } catch (e) {} try { localStorage.setItem('bhl-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} t2.fitted = false; refreshT2(); if (enFull) requestAnimationFrame(() => { fitFull(); pv.draw(); }); }
+function filtroCambio() { try { renderLimList(); } catch (e) {} if (!v3On) try { localStorage.setItem('bhl-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} t2.fitted = false; refreshT2(); if (enFull) requestAnimationFrame(() => { fitFull(); pv.draw(); }); }
 $('fMina').addEventListener('change', () => { $('fNivel').value = ''; fillFilters(); filtroCambio(); });
 $('fNivel').addEventListener('change', filtroCambio);
 $('pAll').addEventListener('click', () => { visibleProjects().forEach(p => t2.selIds.add(p.id)); t2.fitted = false; refreshT2(); });
@@ -3995,7 +3996,7 @@ $('letraSel').addEventListener('change', () => { t2.letra = parseFloat($('letraS
 function topoRefrescar() { try { if (topo.act && topo.dems.has(topo.act)) { topoCalcMinados(); topoInfo(); } else topo.minados = null; } catch (e) {} }
 function refreshT2() {
   fillFilters(); renderProjectList();
-  try { localStorage.setItem('bhl-sel', JSON.stringify([...t2.selIds])); } catch (e) {}
+  if (!v3On) try { localStorage.setItem('bhl-sel', JSON.stringify([...t2.selIds])); } catch (e) {}
   const vis = new Set(visibleProjects().map(p => p.id));
   t2.projs = lib.projects.filter(p => t2.selIds.has(p.id) && vis.has(p.id));
   t2.ocultos = [...t2.selIds].filter(id => !vis.has(id) && lib.projects.some(p => p.id === id)).length;
@@ -7138,14 +7139,14 @@ async function v3Mostrar() {
       <div class="grid2"><label class="f">Mina<select data-f="fMina">${opts('fMina')}</select></label><label class="f">Nivel<select data-f="fNivel">${opts('fNivel')}</select></label></div>
       <div class="plist v3d-plist">${vis.length ? vis.map(p => `<label class="pitem"><input type="checkbox" data-id="${esc(p.id)}" ${t2.selIds.has(p.id) ? 'checked' : ''}><span class="pn">${esc(p.name)} ${tipoBadge(p)}</span><span class="pm">${p.holes.length} tal.</span></label>`).join('') : '<p class="note">No hay proyectos con ese filtro.</p>'}</div>
       <div class="btnrow"><button type="button" class="btn sec small" data-v="all">Marcar los de la lista</button><button type="button" class="btn sec small" data-v="none">Ninguno</button><button type="button" class="btn small" data-v="ok">Ver en 3D</button></div>
-      <p class="note">Es la misma selección de la pestaña 2. La vista se arma alrededor de los proyectos marcados.</p>`;
+      <p class="note">La vista 3D tiene su propia selección y su propio filtro de mina y nivel: no cambian el plano de la pestaña 2.</p>`;
   }
   let cambio = false;
-  const aplicar = () => { pintarBtn(); if (!cambio) return; cambio = false; t2.fitted = false; refreshT2(); v3.camOk = false; v3Mostrar(); };
+  const aplicar = () => { pintarBtn(); try { v3Guardar(); } catch (e) {} if (!cambio) return; cambio = false; t2.fitted = false; refreshT2(); v3.camOk = false; v3Mostrar(); };
   b.onclick = () => { if (pop.hidden) { pintar(); pop.hidden = false; } else { pop.hidden = true; aplicar(); } };
   pop.addEventListener('change', e => {
     const f = e.target.closest('select[data-f]');
-    if (f) { const o = $(f.dataset.f); o.value = f.value; o.dispatchEvent(new Event('change', { bubbles: true })); pintar(); cambio = true; return; }
+    if (f) { const o = $(f.dataset.f); o.value = f.value; o.dispatchEvent(new Event('change', { bubbles: true })); pintar(); cambio = true; try { v3Guardar(); } catch (e2) {} return; }
     const cb = e.target.closest('input[type=checkbox][data-id]'); if (!cb) return;
     if (cb.checked) t2.selIds.add(cb.dataset.id); else t2.selIds.delete(cb.dataset.id); cambio = true; pintarBtn();
   });
@@ -7158,6 +7159,30 @@ async function v3Mostrar() {
   pintarBtn();
   const m0 = v3Mostrar; v3Mostrar = async function () { pintarBtn(); return m0.apply(this, arguments); };
 })();
+
+// ===== V100: la vista 3D es independiente del plano 2D: tiene su propia selección de proyectos y su propio filtro Mina / Nivel =====
+var v3Ind = { sel: null, fm: '', fn: '', g2: null };
+try { const s = JSON.parse(localStorage.getItem('bhl-3d-sel') || 'null'); if (Array.isArray(s)) v3Ind.sel = new Set(s); const f = JSON.parse(localStorage.getItem('bhl-3d-fil') || 'null'); if (f) { v3Ind.fm = f.m || ''; v3Ind.fn = f.n || ''; } } catch (e) {}
+function v3Guardar() { try { localStorage.setItem('bhl-3d-sel', JSON.stringify([...t2.selIds])); localStorage.setItem('bhl-3d-fil', JSON.stringify({ m: $('fMina').value, n: $('fNivel').value })); } catch (e) {} }
+function v3PonerFiltros(m, n) { $('fMina').value = m; fillFilters(); $('fNivel').value = n; }
+function v3Entrar() {
+  if (v3On) return;
+  v3Ind.g2 = { sel: t2.selIds, fm: $('fMina').value, fn: $('fNivel').value };
+  if (!v3Ind.sel) { v3Ind.sel = new Set(t2.selIds); v3Ind.fm = v3Ind.g2.fm; v3Ind.fn = v3Ind.g2.fn; } // la primera vez parte de lo que había en el plano
+  v3On = true; t2.selIds = v3Ind.sel; v3PonerFiltros(v3Ind.fm, v3Ind.fn);
+  t2.fitted = false; refreshT2();
+}
+function v3Salir() {
+  if (!v3On) return;
+  v3Guardar(); v3Ind.sel = t2.selIds; v3Ind.fm = $('fMina').value; v3Ind.fn = $('fNivel').value;
+  v3On = false; t2.selIds = v3Ind.g2.sel; v3PonerFiltros(v3Ind.g2.fm, v3Ind.g2.fn);
+  t2.fitted = false; refreshT2();
+}
+{
+  const showTab0 = showTab;
+  showTab = function (n) { try { if (n === 3) v3Entrar(); else v3Salir(); } catch (e) {} return showTab0.apply(this, arguments); };
+  try { if ($('tab3') && !$('tab3').hidden) { v3Entrar(); v3Mostrar(); } } catch (e) {}
+}
 
 
 /* ===== V58: polígonos de minado por ley de Fe (líneas de excavación del ore control) ===== */
