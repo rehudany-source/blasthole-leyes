@@ -777,6 +777,7 @@ body.app .gps-btn[aria-pressed=true] { background: #0a84ff; }
 .topo-pop[hidden] { display: none; }
 .topo-pop > * { min-width: 0; } .topo-pop { grid-template-columns: minmax(0, 1fr); } .topo-pop .topo-tab { display: block; max-width: 100%; overflow-x: auto; }
 .topo-h { display: flex; justify-content: space-between; align-items: center; } .topo-h button { border: 0; background: none; font-size: 17px; color: var(--muted); cursor: pointer; }
+.topo-minasel { margin: 2px 0 6px; }
 .topo-lista { display: grid; gap: 4px; max-height: 220px; overflow: auto; }
 .topo-it { display: grid; grid-template-columns: 2.6em 2.6em 1fr auto; justify-items: start; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
 .topo-it small { color: var(--muted); } .topo-it .q { border: 0; background: none; color: var(--muted); cursor: pointer; }
@@ -909,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v103</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v105</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1284,6 +1285,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
           </label>
           <div class="topo-pop" id="topoPop" hidden>
             <div class="topo-h"><b>⛰ Topografía</b><button type="button" id="topoCerrar" aria-label="Cerrar">✕</button></div>
+            <label class="f topo-minasel">Mina<select id="topoMinaSel" aria-label="Mina de las topografías"></select></label>
             <div id="topoLista" class="topo-lista"></div>
             <label class="chk"><input type="checkbox" id="topoVer" checked> Ver relieve en el plano</label>
             <div class="grid2 topo-umb"><label class="f" title="Por debajo de ~0.5 m la diferencia puede ser error de medición de la topografía">Diferencia mínima (m)<input type="number" id="topoDz" min="0.2" max="15" step="0.1" value="1.5" inputmode="decimal"></label><label class="f">Área mínima (m²)<input type="number" id="topoAmin" min="4" max="5000" step="4" value="100" inputmode="numeric"></label></div>
@@ -6533,7 +6535,14 @@ function topoPintar() {
   const box = $('topoLista'); if (!box) return;
   $('topoBtn').setAttribute('aria-pressed', topo.act && topo.ver ? 'true' : 'false');
   if (!topo.lista.length) { box.innerHTML = '<small>Aún no hay topografías. Sube el .msr que te envían (MinePlan): queda guardado en este equipo.</small>'; $('topoAvance').disabled = true; topoInfo(); return; }
-  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b><input class="topo-mina" data-topomina="${t.id}" value="${esc(minaDe(t))}" placeholder="Mina" title="Mina de esta topografía (se guardan 4 por mina)" size="3"> ${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
+  // V105: se elige primero la mina y solo aparecen las topografías de esa mina
+  const minaDeT = t => String(minaDe(t) || '?');
+  const minasT = [...new Set(topo.lista.map(minaDeT))].sort((a, b) => sortNum(a, b));
+  const actM = topo.lista.find(t => t.id === topo.act);
+  if (!minasT.includes(topo.minaSel)) topo.minaSel = actM ? minaDeT(actM) : minasT[0];
+  const selM = $('topoMinaSel');
+  if (selM) selM.innerHTML = minasT.map(m => `<option value="${esc(m)}"${m === topo.minaSel ? ' selected' : ''}>${m === '?' ? 'Sin mina' : 'Mina ' + esc(m)} · ${topo.lista.filter(t => minaDeT(t) === m).length} topografía${topo.lista.filter(t => minaDeT(t) === m).length === 1 ? '' : 's'}</option>`).join('');
+  box.innerHTML = '<div class="topo-it"><small>Hoy</small><small>Antes</small><small>Topografía</small><span></span></div>' + topo.lista.filter(t => minaDeT(t) === topo.minaSel).map(t => `<div class="topo-it"><label><input type="radio" name="topoAct" value="${t.id}"${t.id === topo.act ? ' checked' : ''}></label><label><input type="radio" name="topoAnt" value="${t.id}"${t.id === topo.ant ? ' checked' : ''}></label><span><b><input class="topo-mina" data-topomina="${t.id}" value="${esc(minaDe(t))}" placeholder="Mina" title="Mina de esta topografía (se guardan 4 por mina)" size="3"> ${fmtDate(t.fecha)}</b> <small>${esc(t.nombre)}${t.nube ? ' · ☁' + (t.de ? ' de ' + esc(t.de) : '') : ''}</small></span><button type="button" class="q" data-topodel="${t.id}" title="Quitar de este equipo">🗑</button></div>`).join('');
   $('topoAvance').disabled = !(topo.act && topo.ant && topo.act !== topo.ant);
   $('topoVer').checked = topo.ver; topoInfo();
 }
@@ -6550,6 +6559,13 @@ function topoInfo(extra) {
   $('topoCerrar').onclick = () => { pop.hidden = true; };
   [['topoDz', 'bhl-topo-dz'], ['topoAmin', 'bhl-topo-amin']].forEach(([id, k]) => { const el = $(id); if (!el) return; try { const v = localStorage.getItem(k); if (v) el.value = v; } catch (e) {} el.addEventListener('change', () => { try { localStorage.setItem(k, el.value); } catch (e) {} }); });
   $('topoVer').onchange = e => { topo.ver = e.target.checked; topoDefaults(); topoPintar(); pv.draw(); };
+  // V105: al elegir otra mina, «Hoy» pasa a su topografía más nueva y «Antes» a la anterior de esa misma mina
+  $('topoMinaSel').onchange = async e => {
+    topo.minaSel = e.target.value; try { localStorage.setItem('bhl-topo-mina', topo.minaSel); } catch (er) {}
+    const de = topo.lista.filter(t => String(minaDe(t) || '?') === topo.minaSel).sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+    if (de.length) { topo.act = de[0].id; topo.ant = de[1] ? de[1].id : ''; }
+    topo.dif = null; await topoDem(topo.act); await topoCalcMinados(); topoPintar(); pv.draw();
+  };
   pop.addEventListener('change', async e => {
     if (e.target.dataset && e.target.dataset.topomina) {
       const m = topo.lista.find(x => x.id === e.target.dataset.topomina); if (!m) return;
@@ -6615,10 +6631,11 @@ async function topoDesempacar(meta, data) {
   return Z;
 }
 async function topoNube() {
-  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine || topo.nubeBusy) return;
-  topo.nubeBusy = true; let cambio = false;
+  if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine) return;
+  if (topo.nubeBusy && Date.now() - (topo._busyDesde || 0) < 6 * 60000) return; // V104: si una descarga se colgó, a los 6 min se vuelve a intentar
+  topo.nubeBusy = true; topo._busyDesde = Date.now(); let cambio = false;
   try {
-    const rem = (await rest.rpc('bhl_topo_lista', {})) || [];
+    const rem = (await rest.rpc('bhl_topo_lista', {}, 60000)) || [];
     const remIds = new Set(rem.map(r => r.id)), ocultas = new Set((await idbGet('topos-ocultas')) || []);
     // 1) las que vinieron de la nube y alguien quitó
     for (const m of topo.lista.slice()) if (m.nube && !remIds.has(m.id)) { topo.lista = topo.lista.filter(x => x.id !== m.id); await idbSet('topo:' + m.id, null); topo.dems.delete(m.id); topo.img.delete(m.id); cambio = true; }
@@ -6645,7 +6662,7 @@ async function topoNube() {
     for (const r of faltan) {
       const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
       const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }); if (!data) continue;
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }, 240000); if (!data) continue;
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
       topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
@@ -8598,12 +8615,17 @@ const rest = {
     }
     return sync.session.access_token;
   },
-  async rpc(fn, body) {
+  async rpc(fn, body, ms) {
     const tk = await rest.token();
-    const r = await fetch(`${SYNC.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const j = await r.json().catch(() => null);
-    if (!r.ok) throw new Error((j && (j.message || j.hint)) || `Error ${r.status}`);
-    return j;
+    // V104: ms (opcional) corta la espera si la nube no responde; sin ms se espera como antes
+    const ac = ms ? new AbortController() : null, to = ms ? setTimeout(() => ac.abort(), ms) : 0;
+    try {
+      const r = await fetch(`${SYNC.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+      const j = await r.json().catch(() => null);
+      if (!r.ok) throw new Error((j && (j.message || j.hint)) || `Error ${r.status}`);
+      return j;
+    } catch (e) { if (e && e.name === 'AbortError') throw new Error('La nube tardó demasiado en responder.'); throw e; }
+    finally { if (to) clearTimeout(to); }
   },
   async cambiarPw(pw) {
     const tk = await rest.token();
@@ -8909,6 +8931,7 @@ async function sincronizar() {
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
     else if (res.now) await idbSet('bhl-since', res.now);
+    try { if (!sync._repT || Date.now() - sync._repT > 10 * 60000) { sync._repT = Date.now(); reportarDispositivo(); } } catch (e) {}
     sync.last = new Date(); sync.err = '';
     if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
     const nConf = (await leerConflictos()).length;
@@ -9139,11 +9162,25 @@ document.addEventListener('click', async e => {
   pintarSync(n ? 'conflicto' : 'ok');
 });
 
+// V104: cada equipo le dice a la nube qué versión usa y qué topografías tiene (solo lo ve el administrador), para saber quién está desactualizado
+async function reportarDispositivo() {
+  try {
+    let id = ''; try { id = localStorage.getItem('bhl-dev') || ''; } catch (e) {}
+    if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); try { localStorage.setItem('bhl-dev', id); } catch (e) {} }
+    const ver = parseInt((($('verBadge') || {}).textContent || '').replace(/\D+/g, ''), 10) || null;
+    const ua = navigator.userAgent || '';
+    const plat = typeof window.bhlVersion === 'function' ? 'PC' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : 'Web';
+    const ts = (typeof topo !== 'undefined' && topo.lista || []).map(t => ({ n: t.nombre, f: t.fecha, m: t.mina }));
+    await rest.rpc('bhl_dispositivo', { p_id: id, p_version: ver, p_plataforma: plat, p_info: { topos: ts.slice(0, 12), nTopos: ts.length, ua: ua.slice(0, 100), sync: new Date().toISOString() } }, 20000);
+  } catch (e) {}
+}
+
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
 // El programa busca BlastHoleLeyes_PC_Setup_V#.exe en Descargas, Escritorio y Documentos.
 const VERSION_APP = 1;
 let avisoActOculto = 0;
+setInterval(() => { avisoActOculto = 0; }, 30 * 60000); // V104: el aviso de versión nueva reaparece si lo cerraron
 function mostrarAvisoAct(a, error) {
   let box = $('avisoAct');
   if (!box) { box = document.createElement('div'); box.id = 'avisoAct'; box.setAttribute('role', 'status'); document.body.appendChild(box); }
