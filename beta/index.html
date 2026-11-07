@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v111</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v112</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1462,6 +1462,10 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
         <div class="grid3 adm-nuevo"><label class="f">Usuario<input type="text" id="admEmail" placeholder="calidad1" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label class="f">Contraseña<input type="text" id="admPw" placeholder="mínimo 6" autocomplete="new-password" autocapitalize="none" spellcheck="false"></label><label class="f">Nombre (opcional)<input type="text" id="admNombre" autocomplete="off" placeholder="ej. Juan Pérez"></label></div>
         <div class="btnrow"><button class="btn small" id="admAgregar" type="button">Crear usuario</button><button class="btn sec small" id="admSerie" type="button" title="Llena el primer usuario calidad que falta">Siguiente «calidad»</button></div>
         <p class="msg" id="admMsg"></p>
+        <h3>Respaldo</h3>
+        <p class="note">Descarga un archivo .zip con <b>todos</b> los proyectos, avances, límites, fotos y usuarios permitidos de todos los usuarios. Guárdalo fuera de la base de datos (tu PC o la nube de tu empresa). Las topografías no van dentro: se vuelven a subir desde los .msr.</p>
+        <div class="btnrow"><button class="btn small" id="admRespaldo" type="button">⬇ Respaldo completo</button></div>
+        <p class="msg" id="admRespMsg"></p>
       </div>
     </div>
     <p class="note" id="syncStatus"></p>
@@ -9250,6 +9254,32 @@ $('admAgregar').addEventListener('click', async () => {
     m.className = 'msg ok'; m.textContent = `Listo. «${v}» ya puede entrar con su contraseña (anótala y entrégasela).`; cargarUsuarios();
   } catch (e) { m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar «usuarios por nombre» en la base de datos.' : e.message; }
 });
+// ---- V112: respaldo completo (solo administrador) ----
+$('admRespaldo').addEventListener('click', async () => {
+  const m = $('admRespMsg'), b = $('admRespaldo'); b.disabled = true; m.className = 'msg';
+  const tablas = ['bhl_proyectos', 'bhl_avances', 'bhl_limites', 'bhl_fotos', 'bhl_permitidos', 'bhl_dispositivos', 'bhl_topos'], files = [], cuenta = {};
+  try {
+    for (const t of tablas) {
+      let filas = [], total = 1, desde = 0;
+      while (desde < total) {
+        m.textContent = `Descargando ${t.replace('bhl_', '')}… ${filas.length}${total > 1 ? ' de ' + total : ''}`;
+        const r = await rest.rpc('bhl_admin_respaldo', { p_tabla: t, p_desde: desde, p_n: 100 }, 120000);
+        total = r.total; if (!r.filas.length) break; filas = filas.concat(r.filas); desde += r.filas.length;
+      }
+      if (filas.length !== total) throw new Error(`La tabla ${t} quedó incompleta (${filas.length} de ${total}). Intenta de nuevo.`);
+      cuenta[t] = filas.length; files.push({ name: t + '.json', data: JSON.stringify(filas) });
+    }
+    const hoy = new Date().toISOString().slice(0, 10);
+    files.unshift({ name: 'LEEME.txt', data: 'Respaldo de BlastHole Leyes (' + hoy + ').\nUn archivo .json por tabla, con todas las filas de todos los usuarios (incluye las marcadas como borradas).\nbhl_topos trae solo la lista de topografías, sin los datos del terreno (se vuelven a subir desde los .msr).\nPara restaurar, escribe al asistente y entrégale este .zip.\n' });
+    files.push({ name: 'manifiesto.json', data: JSON.stringify({ fecha: new Date().toISOString(), version: window.BHL_VERSION || null, filas: cuenta }, null, 1) });
+    m.textContent = 'Comprimiendo…';
+    await save(`Respaldo_BlastHole_${hoy}.zip`, await makeZip(files), m);
+    try { localStorage.setItem('bhl-resp-ultimo', new Date().toISOString()); } catch (e) {}
+    m.className = 'msg ok'; m.textContent = `Respaldo listo: ${Object.entries(cuenta).map(([k, v]) => v + ' ' + k.replace('bhl_', '')).join(' · ')}.`;
+  } catch (e) { m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar el respaldo en la base de datos.' : e.message; }
+  finally { b.disabled = false; }
+});
+try { const u = localStorage.getItem('bhl-resp-ultimo'); $('admRespMsg').textContent = u ? 'Último respaldo hecho desde este equipo: ' + new Date(u).toLocaleString('es-PE') + '.' : 'Aún no has hecho ningún respaldo desde este equipo.'; } catch (e) {}
 $('admSerie').addEventListener('click', () => {
   const ya = new Set((window.ADM_US || []).map(u => u.usuario).filter(Boolean));
   let i = 1; while (ya.has('calidad' + i)) i++;
