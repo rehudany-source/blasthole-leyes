@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v106</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v111</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -2830,12 +2830,16 @@ function leerMSR(buf) {
   }
   const nT = k / 3, nV = vmax + 1;
   // vértices: se juntan los bytes de todas las páginas (un vértice puede quedar partido entre dos páginas)
+  const necesita = nV * 12;
   let tot = 0; vBlocks.forEach(([s, e]) => { tot += e - s; });
-  if (tot < nV * 12) throw new Error('El archivo de topografía está incompleto.');
-  const vb = new Uint8Array(nV * 12); let w = 0;
-  for (const [s, e] of vBlocks) { const n = Math.min(e - s, nV * 12 - w); if (n <= 0) break; vb.set(u8.subarray(s, s + n), w); w += n; }
-  const vdv = new DataView(vb.buffer), V = new Float64Array(nV * 3);
-  for (let i = 0, o = 0; i < nV; i++, o += 12) { V[i * 3] = org[0] + vdv.getFloat32(o, true); V[i * 3 + 1] = org[1] + vdv.getFloat32(o + 8, true); V[i * 3 + 2] = org[2] + vdv.getFloat32(o + 4, true); }
+  if (tot < necesita) throw new Error('El archivo de topografía está incompleto.');
+  const armar = bl => { const vb = new Uint8Array(necesita); let w = 0; for (const [s, e] of bl) { const n = Math.min(e - s, necesita - w); if (n <= 0) break; vb.set(u8.subarray(s, s + n), w); w += n; } const vdv = new DataView(vb.buffer), V = new Float64Array(nV * 3); let mal = 0;
+    for (let i = 0, o = 0; i < nV; i++, o += 12) { const x = vdv.getFloat32(o, true), y = vdv.getFloat32(o + 8, true), z = vdv.getFloat32(o + 4, true); if (!(Math.abs(x) < 60000 && Math.abs(y) < 60000 && Math.abs(z) < 8000)) mal++; V[i * 3] = org[0] + x; V[i * 3 + 1] = org[1] + y; V[i * 3 + 2] = org[2] + z; }
+    return { V, mal }; };
+  let r = armar(vBlocks);
+  // V107: algunos archivos (diseños de fase) traen antes de los vértices otras páginas binarias; entonces se toman las páginas desde las caras hacia atrás
+  if (r.mal > nV * 0.001) { const ult = []; let acc = 0; for (let b = vBlocks.length - 1; b >= 0 && acc < necesita; b--) { ult.unshift(vBlocks[b]); acc += vBlocks[b][1] - vBlocks[b][0]; } const r2 = armar(ult); if (r2.mal < r.mal) r = r2; }
+  const V = r.V;
   return { org, V, F: F.subarray(0, k), nV, nT };
 }
 // Superficie -> grilla de cotas (DEM). Cada celda = cota de la superficie en su centro.
@@ -7157,6 +7161,8 @@ async function v3Mostrar() {
 }
 (() => {
   if (!$('tab3')) return;
+  // V109: en PC no hay GPS: la casilla solo se muestra en iPhone / iPad / Android
+  try { const celu = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); if (!celu) { v3.ver.gps = false; ['v3d_gps'].forEach(k => { const el = $(k), l = el && el.closest('label'); if (el) el.checked = false; if (l) l.style.display = 'none'; }); } } catch (e) {}
   try { if (document.body.classList.contains('app') && innerWidth < 700) $('v3dCapas').open = false; } catch (e) {}
   $('v3dReset').onclick = () => { Object.assign(v3.cam, { yaw: -0.6, pitch: 0.75, dist: v3.span * 1.1, tx: 0, ty: 0 }); v3.sel = null; $('v3dInfo').hidden = true; v3Dibujar(); };
   $('v3dArriba').onclick = () => { Object.assign(v3.cam, { yaw: 0, pitch: 1.55 }); v3Dibujar(); };
@@ -7229,6 +7235,9 @@ function v3Salir() {
   showTab = function (n) { try { if (n === 3) v3Entrar(); else v3Salir(); } catch (e) {} return showTab0.apply(this, arguments); };
   try { if ($('tab3') && !$('tab3').hidden) { v3Entrar(); v3Mostrar(); } } catch (e) {}
 }
+
+// V111: se retiraron las fases de diseño; se borra lo que hubiera quedado guardado en este equipo
+(async () => { try { const l = await idbGet('fases'); if (Array.isArray(l)) for (const f of l) await idbSet('fase:' + f.id, null); if (l) await idbSet('fases', null); ['bhl-fase-ver', 'bhl-fase-eq', 'bhl-fase-dens'].forEach(k => localStorage.removeItem(k)); } catch (e) {} })();
 
 // V106: regla para medir distancias en el plano 2D (pestaña Avance) y en la vista 3D
 (() => {
