@@ -9273,9 +9273,13 @@ $('admRespaldo').addEventListener('click', async () => {
     files.unshift({ name: 'LEEME.txt', data: 'Respaldo de BlastHole Leyes (' + hoy + ').\nUn archivo .json por tabla, con todas las filas de todos los usuarios (incluye las marcadas como borradas).\nbhl_topos trae solo la lista de topografías, sin los datos del terreno (se vuelven a subir desde los .msr).\nPara restaurar, escribe al asistente y entrégale este .zip.\n' });
     files.push({ name: 'manifiesto.json', data: JSON.stringify({ fecha: new Date().toISOString(), version: window.BHL_VERSION || null, filas: cuenta }, null, 1) });
     m.textContent = 'Comprimiendo…';
-    await save(`Respaldo_BlastHole_${hoy}.zip`, await makeZip(files), m);
+    const zip = await makeZip(files), nom = `Respaldo_BlastHole_${hoy}.zip`;
     try { localStorage.setItem('bhl-resp-ultimo', new Date().toISOString()); } catch (e) {}
-    m.className = 'msg ok'; m.textContent = `Respaldo listo: ${Object.entries(cuenta).map(([k, v]) => v + ' ' + k.replace('bhl_', '')).join(' · ')}.`;
+    m.className = 'msg ok'; m.textContent = `Respaldo listo (${Object.entries(cuenta).map(([k, v]) => v + ' ' + k.replace('bhl_', '')).join(' · ')}). Toca el botón para guardarlo: `;
+    // El guardado necesita un toque nuevo (el navegador bloquea descargas tras una espera larga)
+    const g = document.createElement('button'); g.type = 'button'; g.className = 'btn small'; g.textContent = '💾 Guardar respaldo (' + (zip.size ? Math.round(zip.size / 1048576 * 10) / 10 + ' MB' : nom) + ')';
+    g.onclick = async () => { const m2 = document.createElement('span'); g.after(m2); await save(nom, zip, m2); m2.textContent = ' ' + (m2.textContent || ''); };
+    m.appendChild(g);
   } catch (e) { m.className = 'msg err'; m.textContent = /does not exist|could not find|404/i.test(e.message) ? 'Falta activar el respaldo en la base de datos.' : e.message; }
   finally { b.disabled = false; }
 });
