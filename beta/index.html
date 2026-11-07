@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v112</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v113</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1399,6 +1399,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
       <label hidden>Escala<select id="pvEsc"></select></label>
       <div class="pv-tam" title="Tamaño del dibujo en la hoja"><span>Dibujo</span><button type="button" id="pvTamMenos" aria-label="Achicar el dibujo">−</button><button type="button" id="pvCentrar">Centrar</button><button type="button" id="pvTamMas" aria-label="Agrandar el dibujo">+</button></div>
       <label>Letra<select id="pvLetra"></select></label>
+      <label id="pvLeyL" hidden>Ver ley<select id="pvLey"></select></label>
       <div class="pv-mas"><button type="button" id="pvOptBtn" aria-expanded="false">⚙ Opciones ▾</button>
         <div class="pv-pop" id="pvPop" hidden>
           <b>Que no se monten</b>
@@ -1411,6 +1412,8 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
           <b>Qué mostrar</b>
           <label><input type="checkbox" data-po="id"> N° de taladro (ID)</label>
           <label><input type="checkbox" data-po="cuzn"> Cu y Zn</label>
+          <label data-solo="rell"><input type="checkbox" data-po="relleno"> Rellenar los polígonos de minado con color</label>
+          <label data-solo="rell"><input type="checkbox" data-po="rotulos"> Rótulo en cada polígono (clase, Fe y toneladas)</label>
           <label><input type="checkbox" data-po="grid"> Cuadrícula y coordenadas UTM</label>
           <label><input type="checkbox" data-po="leyenda"> Leyenda de colores</label>
           <label><input type="checkbox" data-po="lims"> Límites y polígonos (vista de proyecto guardado)</label>
@@ -2565,6 +2568,7 @@ function layoutPlot(P, o) {
   if (o.grid !== false) for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) if (Y(gy) > ay + 10 && Y(gy) < ay + ah - 10) text('N ' + fmtC(gy), ax + 2, Y(gy) + 2, 5.5, { col: grey });
   // dibujo del DXF
   D.push({ t: 'clip', x: ax, y: ay, w: aw, h: ah });
+  (o.rellenos || []).forEach(r => D.push({ t: 'poly', pts: r.pts.map(q => [X(q.x), Y(q.y)]), fill: r.fill }));
   (o.polys || []).forEach(q => { const n = q.pts.length; for (let i = 0; i < n; i++) { const a = q.pts[i], b = q.pts[(i + 1) % n]; line(X(a.x), Y(a.y), X(b.x), Y(b.y), q.col || grey, q.w || 0.6); } });
   (o.marks || []).forEach(m => { const x = X(m.x), y = Y(m.y), r = Math.max(1.2, 0.3 * k); D.push({ t: 'poly', pts: [[x, y + r], [x + r, y], [x, y - r], [x - r, y]], fill: m.col }); if (m.s) text(m.s, x + r + 1, y - 0.2 * k, Math.max(1.6, 0.32 * k), { col: m.col }); });
   P.forEach(p => {
@@ -2574,9 +2578,11 @@ function layoutPlot(P, o) {
   P.forEach(p => {
     if (p.t === 'line') return;
     const size = Math.max(1.6, p.h * k), col = PRINT_ACI[p.color || layerColor[p.layer]] || BLACK;
-    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col });
-    else text(p.s, X(p.x), Y(p.y), size, { col });
+    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col, bold: !!p.bold });
+    else text(p.s, X(p.x), Y(p.y), size, { col, bold: !!p.bold });
   });
+  // rótulos de los polígonos de minado: clase, Fe y toneladas
+  (o.rotulos || []).forEach(r => { if (r.area * k * k < 1400) return; const sz = Math.max(3.2, Math.min(9, (o.rotPt || 8) * 0.85)); text(r.l1, X(r.x), Y(r.y) + sz * 0.2, sz, { align: 'center', bold: true, col: r.col }); if (r.l2) text(r.l2, X(r.x), Y(r.y) - sz * 0.95, sz * 0.9, { align: 'center', bold: true, col: r.col }); });
   // cuadro de promedio del avance (arriba a la izquierda del plano)
   if (o.cuadro && o.cuadro.filas && o.cuadro.filas.length) {
     const C = o.cuadro, n = C.filas.length, kf = Math.max(1, Math.max(W, H) / 1190), lh = 10.5 * kf, cw = 150 * kf, bx = ax + 8;
@@ -3343,8 +3349,18 @@ const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace
 // Dibujo para imprimir con la letra elegida: busca la escala en la que esa letra cabe sin amontonar
 // los bloques (letra entre 1 y 1.6 veces la del LISP) y la hoja más chica donde entra.
 const ESC_LETRA = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
-function planoSrc() { const A = window.PRINT_AV; return A ? { holes: A.holes, matched: A.matched, P: A.P0 } : { holes: state.rb && state.rb.holes, matched: state.m && state.m.matched, P: state.P }; }
+function leySimple() { const A = window.PRINT_AV, v = (window.PRINT_OPTS || {}).ley; return A && A.ley && v !== undefined && v !== 'all' ? v : null; }
+function planoSrc() { const A = window.PRINT_AV, ls = leySimple(); if (A && ls !== null) { const vacio = new Map(); return { holes: A.holes, matched: vacio, P: layout(A.holes, vacio, Object.assign(opts(), { useZ: false })).concat(A.marco || []) }; } return A ? { holes: A.holes, matched: A.matched, P: A.P0 } : { holes: state.rb && state.rb.holes, matched: state.m && state.m.matched, P: state.P }; }
 function planoP(o) {
+  const P = planoP0(o), ls = leySimple(), A = window.PRINT_AV;
+  if (!A || ls === null) return P;
+  // «Ver ley» de una sola ley (como en la pestaña 2): el valor va sobre el taladro, el ID debajo
+  const F = AVG_FIELDS.find(f => f.k === ls), f = P.tfac || 1, out = P.slice();
+  if (A.marco && !out.some(q => q.layer === 'LINEA_GUIA')) A.marco.forEach(q => out.push(q));
+  if (F) A.holes.forEach(h => { const l = A.matched.get(h.key); const v = l && l[F.k]; if (v == null) return; const fe = F.k === 'fe'; out.push({ t: 'text', layer: 'REGISTRO', x: h.x, y: h.y + 0.62 * f, z: 0, h: 0.55 * f, s: fmt(v, F.dec, ''), j: 'MC', bold: true, color: fe ? (colorFe(v) || 7) : 7 }); });
+  out.conflicts = P.conflicts; out.moved = P.moved; out.tfac = P.tfac; return out;
+}
+function planoP0(o) {
   const SRC = planoSrc();
   const pt = parseFloat($('pdfLetra').value) || 0;
   o.aviso = '';
@@ -3354,7 +3370,7 @@ function planoP(o) {
   const hojas = ['A4', 'A3', 'A2', 'A1'], desde = Math.max(0, hojas.indexOf(o.paper));
   const fijo = parseInt(o.scale, 10) || 0;
   const cache = {}, cero = !!(window.PRINT_OPTS || {}).cero && opts().avoid; let mejor = null;
-  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = layout(SRC.holes, SRC.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f }))); };
+  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = Object.assign(layout(SRC.holes, SRC.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f })), { tfac: f })); };
   for (let hi = desde; hi < hojas.length; hi++) {
     for (const s of (fijo ? [fijo] : ESC_LETRA)) {
       const f = pt * s / PT_PER_M_1 / 0.4;
@@ -3380,6 +3396,7 @@ $('pdfLetra').addEventListener('change', () => { try { localStorage.setItem('bhl
 function planoOpts() {
   const o0 = planoOpts0(); const A = window.PRINT_AV;
   if (A) Object.assign(o0, { title: A.title, subtitle: A.subtitle, polys: A.polys, marks: null, cuadro: A.cuadro });
+  if (A && A.rell) { const PO = window.PRINT_OPTS || {}; o0.rellenos = PO.relleno === false ? null : A.rell; o0.rotulos = PO.rotulos === false ? null : A.rot; o0.rotPt = parseFloat($('pdfLetra').value) || 8; }
   return o0;
 }
 function planoOpts0() {
@@ -3409,7 +3426,11 @@ let prevZoom = 0, prevR = null;
   dst.innerHTML = src.innerHTML;
   dst.addEventListener('change', () => { src.value = dst.value; src.dispatchEvent(new Event('change')); pintarPrevia(); });
 });
+$('pvLey').innerHTML = $('anSel').innerHTML;
+$('pvLey').addEventListener('change', () => { window.PRINT_OPTS.ley = $('pvLey').value; pintarPrevia(); });
 function abrirPrevia() {
+  const A0 = window.PRINT_AV; $('pvLeyL').hidden = !(A0 && A0.ley); if (A0 && A0.ley) $('pvLey').value = (window.PRINT_OPTS || {}).ley != null ? window.PRINT_OPTS.ley : 'all';
+  document.querySelectorAll('#pvPop [data-solo=rell]').forEach(l => { l.hidden = !(A0 && A0.rell && A0.rell.length); });
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
   window.PRINT_ZOOM = 1; // V86: el dibujo llena la hoja; con + / − se agranda o achica de a poco
   $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'hoja'; pintarPrevia();
@@ -7680,8 +7701,21 @@ function imprimirVista() {
     if (pmVerMios()) pmManuales().forEach(({ p, q }) => add(q.pts, rgb(pmmClase(q, p).colL), 2));
     R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
   }
-  window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
+  // V113: relleno de color y rótulos de cada polígono de minado (como en la pantalla)
+  const rell = [], rot = [], marco = P0.filter(q => q.layer === 'LINEA_GUIA' && q.t === 'line' && [b.x0, b.x1, b.y0, b.y1].some(v => q.x1 === v || q.x2 === v));
+  if (R && !R.err) {
+    const suave = c => rgb(c).map(v => 0.62 + v * 0.38);
+    R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => {
+      p.rings.forEach(P => { const r = recortarPoly(P, b); if (r) rell.push({ pts: r, fill: suave(c.colL) }); });
+      if (p.area < 30) return;
+      if (!p._lbl) p._lbl = puntoDentro(p.rings[0]);
+      const q = p._lbl; if (!q || q.x < b.x0 || q.x > b.x1 || q.y < b.y0 || q.y > b.y1) return;
+      rot.push({ x: q.x, y: q.y, area: p.area, col: rgb(c.colL), l1: c.nom + (R.esq === 'm' && p.sfe != null && /^M\d/.test(c.k) ? ` · S/FeS ${p.sfe.toFixed(2)}` : ''), l2: p.fe != null ? `Fe ${p.fe.toFixed(1)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '' });
+    }));
+  }
+  window.PRINT_AV = { holes, matched, P0, polys, rell, rot, marco, ley: true, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
     title: `Plano ${(t2.projs || []).map(p => p.name).slice(0, 4).join(' + ')}${(t2.projs || []).length > 4 ? ' …' : ''}`, subtitle: `${fmtDate(todayISO())} · vista del plano (E ${Math.round(b.x0)}–${Math.round(b.x1)} · N ${Math.round(b.y0)}–${Math.round(b.y1)})` };
+  window.PRINT_OPTS.ley = $('anSel').value; // arranca con la ley que estás viendo en la pestaña 2
   abrirPrevia();
 }
 (() => {
