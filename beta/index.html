@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v114</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v115</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7384,6 +7384,62 @@ function v3Salir() {
       };
     }
   } catch (e) { console.warn('regla3', e); }
+  // ---------- V115: promedios del avance dentro de la vista 3D ----------
+  try {
+    const w3 = document.getElementById('v3dWrap');
+    if (w3 && typeof v3Tocar === 'function' && typeof closeDraft === 'function') {
+      const P3 = window.prom3 = { on: false, pts: [] };
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'regla-btn'; btn.style.top = '106px'; btn.textContent = '📊 Promedio'; btn.setAttribute('aria-pressed', 'false');
+      const box = document.createElement('div'); box.className = 'regla-box'; box.hidden = true; box.style.maxWidth = 'min(94%,360px)';
+      w3.appendChild(btn); w3.appendChild(box);
+      const resumenAv = () => {
+        const r = t2.result; if (!r || !t2.shapes.length) return '';
+        const f = (AVG_FIELDS || []).filter(F => r.fields && r.fields[F.k] && r.fields[F.k].mean != null).map(F => `${F.label} <b>${fmt(r.fields[F.k].mean, F.dec, '—')}</b>`).join(' · ');
+        return `<div style="margin-top:4px;border-top:1px solid #3a434b;padding-top:4px"><b>${t2.shapes.length}</b> polígono(s) · <b>${r.n || 0}</b> taladros${r.nEst ? ` (${r.nEst} estimados)` : ''}${r.tonnage ? ` · <b>${Math.round(r.tonnage).toLocaleString('es-PE')} t</b>` : ''}<div>${f || 'Sin leyes en los taladros de este polígono.'}</div></div>`;
+      };
+      const paint = () => {
+        btn.setAttribute('aria-pressed', String(P3.on)); box.hidden = !P3.on;
+        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono del avance.') + '</div>' + resumenAv()
+          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="x">Salir</button></div>';
+        try { v3Dibujar(); } catch (e) {}
+      };
+      P3.paint = paint;
+      btn.onclick = () => { P3.on = !P3.on; P3.pts = []; if (P3.on && window.regla3 && window.regla3.on) { window.regla3.on = false; window.regla3.pts = []; try { window.regla3.paint(); } catch (e) {} } paint(); };
+      box.addEventListener('click', e => {
+        const b = e.target.closest('button[data-a]'); if (!b) return; const a = b.dataset.a;
+        if (a === 'u') P3.pts.pop();
+        else if (a === 'k') { if (P3.pts.length < 3) { box.querySelector('div').textContent = 'Pon al menos 3 vértices.'; return; } t2.draft = P3.pts.map(q => ({ x: q.x, y: q.y })); P3.pts = []; closeDraft(); }
+        else if (a === 'c') { P3.pts = []; t2.shapes = []; t2.draft = []; selectFromShapes(); computeT2(); pv.draw(); }
+        else { P3.on = false; P3.pts = []; }
+        paint();
+      });
+      ['pointerdown', 'pointerup', 'touchstart'].forEach(n => { btn.addEventListener(n, e => e.stopPropagation()); box.addEventListener(n, e => e.stopPropagation()); });
+      // si enciende la regla, se apaga este modo
+      if (window.regla3) { const rb = w3.querySelector('.regla-btn'); if (rb) rb.addEventListener('click', () => { if (window.regla3.on && P3.on) { P3.on = false; P3.pts = []; paint(); } }); }
+      const t1 = v3Tocar;
+      v3Tocar = (px, py) => {
+        if (!P3.on) return t1(px, py);
+        let p = pick3(px, py);
+        if (!p) { // sin topografía: se toca sobre el plano de la elevación media de los taladros
+          const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : (v3.org ? v3.org[2] : 0);
+          const { M, W, H } = v3MVP(), I = inv4(M), o = v3.org, ex = v3.ex || 1;
+          if (I) { const nx = px / W * 2 - 1, ny = 1 - py / H * 2, un = z => { const w = I[3] * nx + I[7] * ny + I[11] * z + I[15]; return [(I[0] * nx + I[4] * ny + I[8] * z + I[12]) / w, (I[1] * nx + I[5] * ny + I[9] * z + I[13]) / w, (I[2] * nx + I[6] * ny + I[10] * z + I[14]) / w]; };
+            const A = un(-1), B = un(1), zt = (zc - o[2]) * ex; if (Math.abs(B[2] - A[2]) > 1e-9) { const t = (zt - A[2]) / (B[2] - A[2]); if (t > 0) p = { x: A[0] + (B[0] - A[0]) * t + o[0], y: A[1] + (B[1] - A[1]) * t + o[1], z: zc }; } }
+        }
+        if (!p) { const m = document.getElementById('v3dMsg'); if (m) m.textContent = 'Toca sobre el terreno para poner el vértice.'; return; }
+        P3.pts.push(p); paint();
+      };
+      const tx1 = v3Textos;
+      v3Textos = (M, W, H) => {
+        tx1(M, W, H);
+        if (!P3.on || !P3.pts.length) return;
+        const cv = document.getElementById('v3dTxt'), ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? o[2] : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
+        dibujar(ctx, S, P3.pts);
+      };
+    }
+  } catch (e) { console.warn('prom3', e); }
 })();
 
 
