@@ -7410,11 +7410,11 @@ const PM_ESQ = {
 };
 // V114: clasificación por ley de Cu (%): 0–0.15 · 0.15–0.30 · 0.30–0.60 · 0.60–1.00 · > 1.00 (sin corte mineral/desmonte)
 PM_ESQ.cu = { nom: 'Ley de Cu', clases: [
-    { k: 'C1', nom: 'Cu 0–0.15', sub: '0 – 0.15', col: '#30d158', colL: '#138a2c', aci: 3 },
-    { k: 'C2', nom: 'Cu 0.15–0.30', sub: '0.15 – 0.30', col: '#c6e01a', colL: '#7d8f00', aci: 2 },
-    { k: 'C3', nom: 'Cu 0.30–0.60', sub: '0.30 – 0.60', col: '#ffb01a', colL: '#c77f00', aci: 40 },
-    { k: 'C4', nom: 'Cu 0.60–1.00', sub: '0.60 – 1.00', col: '#ff6a1f', colL: '#d04800', aci: 30 },
-    { k: 'C5', nom: 'Cu ≥ 1.00', sub: '1.00 o más', col: '#ff2d55', colL: '#c0102f', aci: 1 }],
+    { k: 'C1', nom: 'Cu 0–0.15', sub: '0 – 0.15', col: '#2f6bff', colL: '#1b49d6', aci: 5 },
+    { k: 'C2', nom: 'Cu 0.15–0.30', sub: '0.15 – 0.30', col: '#00e0c6', colL: '#009c8c', aci: 4 },
+    { k: 'C3', nom: 'Cu 0.30–0.60', sub: '0.30 – 0.60', col: '#ffe21a', colL: '#b89a00', aci: 2 },
+    { k: 'C4', nom: 'Cu 0.60–1.00', sub: '0.60 – 1.00', col: '#ff7a1a', colL: '#d65a00', aci: 30 },
+    { k: 'C5', nom: 'Cu ≥ 1.00', sub: '1.00 o más', col: '#ff1744', colL: '#b00030', aci: 1 }],
   mineral: new Set(),
   clase: (cu) => { const r = Math.round(cu * 100) / 100; return r < 0.15 ? 0 : r < 0.30 ? 1 : r < 0.60 ? 2 : r < 1.00 ? 3 : 4; } };
 const pm = { on: false, res: null, firma: '', celda: 1, esq: 'fe' };
@@ -7582,7 +7582,7 @@ function pmDibujar(ctx, v) {
     if (!G.img || G.imgClaro !== claro) {
       const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
       const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
-      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 90; }
+      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = R.esq === 'cu' ? 140 : 90; }
       cx.putImageData(im, 0, 0); G.img = cv; G.imgClaro = claro;
     }
     ctx.imageSmoothingEnabled = false; ctx.drawImage(G.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
