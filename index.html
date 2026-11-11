@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v116</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v117</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6952,6 +6952,8 @@ function v3Region() {
 }
 async function v3Construir() {
   if (!v3Init()) return;
+  // V117: al activar/desactivar capas no se mueve la vista: se guarda dónde está mirando la cámara (coordenadas reales)
+  const prevCam = v3.camOk && v3.org ? { ox: v3.org[0], oy: v3.org[1], oz: v3.org[2], tx: v3.cam.tx, ty: v3.cam.ty, tz: v3.cam.tz } : null;
   // V101: el 3D elige solo la topografía que cubre los proyectos marcados (no depende de la que esté activa en el plano)
   v3.topoId = v3TopoId(); v3.dem = v3.topoId ? await topoDem(v3.topoId) : null; v3.sinCobertura = false;
   if (v3.dem && t2.holes.length && !v3.full) { const b = t2Bounds(), d0 = v3.dem; if (b.x1 + 220 < d0.x0 || b.x0 - 220 > d0.x0 + d0.W * d0.cel || b.y1 + 220 < d0.y0 || b.y0 - 220 > d0.y0 + d0.H * d0.cel) { v3.dem = null; v3.sinCobertura = true; } }
@@ -7072,7 +7074,8 @@ async function v3Construir() {
   guardarLinea('lnPm');
   // etiquetas de proyectos
   v3.labels = t2.projs.map(p => { const c = projCentro(p); const z = v3Z(c.x, c.y); return { t: p.name, x: c.x - ox, y: c.y - oy, z: (z != null ? z : oz) - oz + 12 }; });
-  v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0;
+  if (prevCam) { v3.cam.tx = prevCam.tx + prevCam.ox - v3.org[0]; v3.cam.ty = prevCam.ty + prevCam.oy - v3.org[1]; v3.cam.tz = prevCam.tz + prevCam.oz - v3.org[2]; }
+  else { v3.cam.tx = 0; v3.cam.ty = 0; v3.cam.tz = d ? (zmax - zmin) * 0.3 : 0; }
   if (!v3.camOk) { v3.cam.dist = v3.span * 1.1; v3.camOk = true; }
   $('v3dMsg').innerHTML = (d ? (d.multi ? `Multimina: todas las minas juntas (celda de ${d.cel} m). ` : v3.hd ? 'Topografía en alta resolución (1 m). ' : 'Topografía de 2 m. Para verla en alta resolución (1 m), vuelve a cargar el .msr en una PC. ') : '') + (d ? '' : (v3.sinCobertura ? '<b>Ninguna topografía cargada cubre estos proyectos.</b> Carga el .msr de esa mina con «Cargar archivos». Se ven sin terreno, con la cota de la malla. ' : '<b>Sin topografía:</b> los taladros se ven con la cota de la malla. Sube el .msr para ver el terreno. ')) + (t2.holes.length ? '' : 'Marca proyectos en la pestaña 2 para ver sus taladros.');
   v3Dibujar();
