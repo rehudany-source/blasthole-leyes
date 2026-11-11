@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v122</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v123</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7001,6 +7001,7 @@ function v3Malla(arrP, arrC, arrN, idx) {
   return o;
 }
 function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
+function v3Vis() { return !$('tab3').hidden || !!v3.split; }
 function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
 // V102: topografía para el 3D = la más reciente de la mina de los proyectos marcados (no depende de la activa en el plano).
 // Mina: la del filtro del 3D; si está en «Todas», la de los proyectos marcados (si son de una sola). Solo cuentan las que cubren los proyectos.
@@ -7160,7 +7161,7 @@ function v3MVP() {
 function v3Proy(M, W, H, x, y, z) { const X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], w = M[3] * x + M[7] * y + M[11] * z + M[15]; if (w <= 0) return null; return [(X / w + 1) / 2 * W, (1 - Y / w) / 2 * H]; }
 function v3Dibujar() { if (v3.need) return; v3.need = true; requestAnimationFrame(() => { v3.need = false; v3Pintar(); }); }
 function v3Pintar() {
-  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || $('tab3').hidden) return;
+  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || !v3Vis()) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0.09, 0.11, 0.13, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -7248,7 +7249,7 @@ function v3Eventos(cv) {
   const tfin = e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
   cv.addEventListener('touchend', tfin, { passive: false }); cv.addEventListener('touchcancel', tfin, { passive: false });
   cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
-  window.addEventListener('resize', () => { if (!$('tab3').hidden) v3Dibujar(); });
+  window.addEventListener('resize', () => { if (v3Vis()) v3Dibujar(); });
 }
 function v3Mover(dx, dy) {
   const c = v3.cam, k = c.dist / ($('v3dCv').clientHeight || 500) * 0.83;
@@ -7284,7 +7285,7 @@ async function v3Mostrar() {
     if (typeof gps === 'undefined' || !gps.on || !gps.pos) { flashHint('Prende el GPS (📍) en la pestaña 2 y espera la señal.'); return; }
     const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
   };
-  setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
+  setInterval(() => { if (v3Vis() && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
 })();
 // ===== V75: elegir los proyectos desde la vista 3D (es la misma selección de la pestaña 2) =====
 (() => {
@@ -7347,6 +7348,38 @@ function v3Salir() {
 
 // V111: se retiraron las fases de diseño; se borra lo que hubiera quedado guardado en este equipo
 (async () => { try { const l = await idbGet('fases'); if (Array.isArray(l)) for (const f of l) await idbSet('fase:' + f.id, null); if (l) await idbSet('fases', null); ['bhl-fase-ver', 'bhl-fase-eq', 'bhl-fase-dens'].forEach(k => localStorage.removeItem(k)); } catch (e) {} })();
+
+// ===== V123: plano y 3D lado a lado (pestaña Avance, pantallas anchas) =====
+(() => {
+  const w2 = document.getElementById('cad2wrap'), w3 = document.getElementById('v3dWrap');
+  if (!w2 || !w3 || typeof pv === 'undefined') return;
+  const st = document.createElement('style');
+  st.textContent = `.cadwrap.split3 > #cad2 { width: 50% !important; }
+.cadwrap.split3 > #v3dWrap.v3split { position: absolute !important; right: 0; top: 0; bottom: 0; width: 50%; height: auto !important; min-height: 0 !important; border-radius: 0; border: 0; border-left: 2px solid #ffd60a; z-index: 4; }
+.cadwrap.split3 > .regla-btn.rg2, .cadwrap.split3 > .regla-box.rg2 { display: none !important; }
+.split-btn { position: absolute; z-index: 7; right: 12px; top: calc(46% + 58px); padding: 7px 11px; border-radius: 9px; border: 1px solid #4a535b; background: rgba(32,38,44,.92); color: #fff; font: 700 .85rem system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.split-btn[aria-pressed=true] { background: #ffd60a; color: #1a1500; border-color: #ffd60a; right: calc(50% + 12px); }
+body.app .split-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
+@media (max-width: 899px) { .split-btn { display: none; } }`;
+  document.head.appendChild(st);
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'split-btn'; btn.textContent = '◫ Plano + 3D'; btn.setAttribute('aria-pressed', 'false'); w2.appendChild(btn);
+  ['pointerdown', 'pointerup', 'touchstart'].forEach(n => btn.addEventListener(n, e => e.stopPropagation()));
+  const home = { par: w3.parentNode, next: w3.nextSibling };
+  let firma = '';
+  const sig = () => t2.shapes.map(s => s.id + ':' + (s.pts || []).length).join(',') + '|' + (t2.draft || []).length + '|' + (t2.result ? Math.round(t2.result.tonnage || t2.result.wsum || 0) + ':' + t2.result.n : '');
+  const poner = async on => {
+    v3.split = on; btn.setAttribute('aria-pressed', String(on)); w2.classList.toggle('split3', on);
+    if (on) { w3.classList.add('v3split'); w2.appendChild(w3); }
+    else { w3.classList.remove('v3split'); home.par.insertBefore(w3, home.next && home.next.parentNode === home.par ? home.next : null); }
+    try { pv.resize(); } catch (e) {}
+    if (on) { try { await v3Mostrar(); } catch (e) {} firma = sig(); } 
+  };
+  btn.onclick = () => poner(!v3.split);
+  // al ir a la pestaña 3D, se vuelve a su lugar
+  const sT = showTab; showTab = n => { if (v3.split) poner(false); return sT(n); };
+  // el 3D sigue al plano: cuando cambian los polígonos o el resultado, se redibuja
+  const a1 = pv.after; pv.after = (ctx, v) => { if (a1) a1(ctx, v); if (v3.split) { const f = sig(); if (f !== firma) { firma = f; clearTimeout(poner.t); poner.t = setTimeout(() => { try { v3Dibujar(); } catch (e) {} }, 120); } } };
+})();
 
 // V106: regla para medir distancias en el plano 2D (pestaña Avance) y en la vista 3D
 (() => {
@@ -7485,7 +7518,7 @@ function v3Salir() {
       const paint = () => {
         btn.setAttribute('aria-pressed', String(P3.on)); box.hidden = !P3.on;
         if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono, o traza el contorno con el Apple Pencil (se cierra al levantarlo).') + '</div>' + resumenAv()
-          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="x">Salir</button></div>';
+          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="s">💾 Guardar avance</button><button type="button" data-a="x">Salir</button></div>';
         try { v3Dibujar(); } catch (e) {}
       };
       P3.paint = paint;
@@ -7494,6 +7527,7 @@ function v3Salir() {
         const b = e.target.closest('button[data-a]'); if (!b) return; const a = b.dataset.a;
         if (a === 'u') P3.pts.pop();
         else if (a === 'k') { if (P3.pts.length < 3) { box.querySelector('div').textContent = 'Pon al menos 3 vértices.'; return; } t2.draft = P3.pts.map(q => ({ x: q.x, y: q.y })); P3.pts = []; closeDraft(); }
+        else if (a === 's') { const g = document.getElementById('btnSaveAv'); if (!t2.result || !t2.result.n || !g || g.disabled) { box.querySelector('div').textContent = 'Primero cierra un polígono con taladros con ley.'; return; } box.querySelector('div').textContent = 'Guardando…'; g.click(); setTimeout(() => { try { const d = box.querySelector('div'), m = document.getElementById('t2Msg'); if (d && m && m.textContent) d.textContent = m.textContent; } catch (e) {} }, 1800); return; }
         else if (a === 'c') { P3.pts = []; t2.shapes = []; t2.draft = []; selectFromShapes(); computeT2(); pv.draw(); }
         else { P3.on = false; P3.pts = []; }
         paint();
@@ -7559,6 +7593,22 @@ function v3Salir() {
           ctx.save(); ctx.lineJoin = 'round'; ctx.beginPath(); L.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.closePath();
           ctx.fillStyle = 'rgba(255,214,10,.18)'; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.stroke(); ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.8; ctx.stroke(); ctx.restore();
         });
+        // etiqueta con el promedio de cada polígono (Fe, S/FeS, material y tonelaje)
+        try {
+          const R = t2.result, gr = R && R.groups, sh = t2.shapes || [];
+          sh.forEach((shp, i) => {
+            const q = shp.pts || shp; if (!q || q.length < 3) return;
+            const g = gr && gr.length ? gr.find(x => x.idx === i) : (sh.length === 1 ? R : null); if (!g) return;
+            const F = g.fields || {}, fe = F.fe && F.fe.mean != null ? F.fe.mean : F.fe, sf = F.sfe && F.sfe.mean != null ? F.sfe.mean : F.sfe;
+            const cx = q.reduce((a, b) => a + b.x, 0) / q.length, cy = q.reduce((a, b) => a + b.y, 0) / q.length;
+            const sc = v3Proy(M, W, H, cx - o[0], cy - o[1], (zT(cx, cy) + 1 - o[2]) * ex); if (!sc) return;
+            const mat = fe == null ? '' : fe < 20 ? 'Desmonte' : fe < 30 ? 'Marginal' : sf == null ? '' : sf <= 0.30 ? 'M1' : sf <= 0.60 ? 'M2' : sf <= 0.90 ? 'M3' : sf <= 1.5 ? 'M4' : 'M5';
+            const t = g.tonnage || g.mass || 0, L1 = `P${i + 1} · ${g.n != null ? g.n + ' tal' : ''}${t ? ' · ' + Math.round(t).toLocaleString('es-PE') + ' t' : ''}`, L2 = fe == null ? 'sin leyes' : `Fe ${fe.toFixed(1)}${sf != null ? ' · S/FeS ' + sf.toFixed(2) : ''}${mat ? ' · ' + mat : ''}`;
+            ctx.save(); ctx.font = '700 12px system-ui,sans-serif'; const w = Math.max(ctx.measureText(L1).width, ctx.measureText(L2).width) + 14;
+            ctx.fillStyle = 'rgba(15,18,22,.86)'; ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(sc[0] - w / 2, sc[1] - 20, w, 38, 7) : ctx.rect(sc[0] - w / 2, sc[1] - 20, w, 38); ctx.fill(); ctx.stroke();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd60a'; ctx.fillText(L1, sc[0], sc[1] - 8); ctx.fillStyle = '#fff'; ctx.fillText(L2, sc[0], sc[1] + 8); ctx.restore();
+          });
+        } catch (e) {}
         if (!P3.pts.length) return;
         const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? zT(p.x, p.y) : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
         dibujar(ctx, S, P3.pts, true);
