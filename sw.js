@@ -1,7 +1,7 @@
 // BlastHole Leyes · service worker (funciona sin internet)
 const CANAL = 'normal';
 const PREF = CANAL === 'beta' ? 'bhl-beta-' : 'bhl-v-';
-const CACHE = PREF + '112-1794083440';
+const CACHE = PREF + '116-1794356124';
 const FONTS = 'bhl-fuentes';
 const BASE = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'favicon-32.png'];
 

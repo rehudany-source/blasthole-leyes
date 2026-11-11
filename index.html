@@ -910,7 +910,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v112</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v116</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1399,6 +1399,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
       <label hidden>Escala<select id="pvEsc"></select></label>
       <div class="pv-tam" title="Tamaño del dibujo en la hoja"><span>Dibujo</span><button type="button" id="pvTamMenos" aria-label="Achicar el dibujo">−</button><button type="button" id="pvCentrar">Centrar</button><button type="button" id="pvTamMas" aria-label="Agrandar el dibujo">+</button></div>
       <label>Letra<select id="pvLetra"></select></label>
+      <label id="pvLeyL" hidden>Ver ley<select id="pvLey"></select></label>
       <div class="pv-mas"><button type="button" id="pvOptBtn" aria-expanded="false">⚙ Opciones ▾</button>
         <div class="pv-pop" id="pvPop" hidden>
           <b>Que no se monten</b>
@@ -1411,6 +1412,8 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
           <b>Qué mostrar</b>
           <label><input type="checkbox" data-po="id"> N° de taladro (ID)</label>
           <label><input type="checkbox" data-po="cuzn"> Cu y Zn</label>
+          <label data-solo="rell"><input type="checkbox" data-po="relleno"> Rellenar los polígonos de minado con color</label>
+          <label data-solo="rell"><input type="checkbox" data-po="rotulos"> Rótulo en cada polígono (clase, Fe y toneladas)</label>
           <label><input type="checkbox" data-po="grid"> Cuadrícula y coordenadas UTM</label>
           <label><input type="checkbox" data-po="leyenda"> Leyenda de colores</label>
           <label><input type="checkbox" data-po="lims"> Límites y polígonos (vista de proyecto guardado)</label>
@@ -2565,6 +2568,7 @@ function layoutPlot(P, o) {
   if (o.grid !== false) for (let gy = Math.ceil(wy0 / step) * step; gy <= wy1; gy += step) if (Y(gy) > ay + 10 && Y(gy) < ay + ah - 10) text('N ' + fmtC(gy), ax + 2, Y(gy) + 2, 5.5, { col: grey });
   // dibujo del DXF
   D.push({ t: 'clip', x: ax, y: ay, w: aw, h: ah });
+  (o.rellenos || []).forEach(r => D.push({ t: 'poly', pts: r.pts.map(q => [X(q.x), Y(q.y)]), fill: r.fill }));
   (o.polys || []).forEach(q => { const n = q.pts.length; for (let i = 0; i < n; i++) { const a = q.pts[i], b = q.pts[(i + 1) % n]; line(X(a.x), Y(a.y), X(b.x), Y(b.y), q.col || grey, q.w || 0.6); } });
   (o.marks || []).forEach(m => { const x = X(m.x), y = Y(m.y), r = Math.max(1.2, 0.3 * k); D.push({ t: 'poly', pts: [[x, y + r], [x + r, y], [x, y - r], [x - r, y]], fill: m.col }); if (m.s) text(m.s, x + r + 1, y - 0.2 * k, Math.max(1.6, 0.32 * k), { col: m.col }); });
   P.forEach(p => {
@@ -2574,9 +2578,11 @@ function layoutPlot(P, o) {
   P.forEach(p => {
     if (p.t === 'line') return;
     const size = Math.max(1.6, p.h * k), col = PRINT_ACI[p.color || layerColor[p.layer]] || BLACK;
-    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col });
-    else text(p.s, X(p.x), Y(p.y), size, { col });
+    if (p.j === 'MC') text(p.s, X(p.x), Y(p.y) - size * 0.36, size, { align: 'center', col, bold: !!p.bold });
+    else text(p.s, X(p.x), Y(p.y), size, { col, bold: !!p.bold });
   });
+  // rótulos de los polígonos de minado: clase, Fe y toneladas
+  (o.rotulos || []).forEach(r => { if (r.area * k * k < 1400) return; const sz = Math.max(3.2, Math.min(9, (o.rotPt || 8) * 0.85)); text(r.l1, X(r.x), Y(r.y) + sz * 0.2, sz, { align: 'center', bold: true, col: r.col }); if (r.l2) text(r.l2, X(r.x), Y(r.y) - sz * 0.95, sz * 0.9, { align: 'center', bold: true, col: r.col }); });
   // cuadro de promedio del avance (arriba a la izquierda del plano)
   if (o.cuadro && o.cuadro.filas && o.cuadro.filas.length) {
     const C = o.cuadro, n = C.filas.length, kf = Math.max(1, Math.max(W, H) / 1190), lh = 10.5 * kf, cw = 150 * kf, bx = ax + 8;
@@ -3343,8 +3349,18 @@ const baseName = () => ($('outName').value.trim() || 'blastholes_leyes').replace
 // Dibujo para imprimir con la letra elegida: busca la escala en la que esa letra cabe sin amontonar
 // los bloques (letra entre 1 y 1.6 veces la del LISP) y la hoja más chica donde entra.
 const ESC_LETRA = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000];
-function planoSrc() { const A = window.PRINT_AV; return A ? { holes: A.holes, matched: A.matched, P: A.P0 } : { holes: state.rb && state.rb.holes, matched: state.m && state.m.matched, P: state.P }; }
+function leySimple() { const A = window.PRINT_AV, v = (window.PRINT_OPTS || {}).ley; return A && A.ley && v !== undefined && v !== 'all' ? v : null; }
+function planoSrc() { const A = window.PRINT_AV, ls = leySimple(); if (A && ls !== null) { const vacio = new Map(); return { holes: A.holes, matched: vacio, P: layout(A.holes, vacio, Object.assign(opts(), { useZ: false })).concat(A.marco || []) }; } return A ? { holes: A.holes, matched: A.matched, P: A.P0 } : { holes: state.rb && state.rb.holes, matched: state.m && state.m.matched, P: state.P }; }
 function planoP(o) {
+  const P = planoP0(o), ls = leySimple(), A = window.PRINT_AV;
+  if (!A || ls === null) return P;
+  // «Ver ley» de una sola ley (como en la pestaña 2): el valor va sobre el taladro, el ID debajo
+  const F = AVG_FIELDS.find(f => f.k === ls), f = P.tfac || 1, out = P.slice();
+  if (A.marco && !out.some(q => q.layer === 'LINEA_GUIA')) A.marco.forEach(q => out.push(q));
+  if (F) A.holes.forEach(h => { const l = A.matched.get(h.key); const v = l && l[F.k]; if (v == null) return; const fe = F.k === 'fe'; out.push({ t: 'text', layer: 'REGISTRO', x: h.x, y: h.y + 0.62 * f, z: 0, h: 0.55 * f, s: fmt(v, F.dec, ''), j: 'MC', bold: true, color: fe ? (colorFe(v) || 7) : 7 }); });
+  out.conflicts = P.conflicts; out.moved = P.moved; out.tfac = P.tfac; return out;
+}
+function planoP0(o) {
   const SRC = planoSrc();
   const pt = parseFloat($('pdfLetra').value) || 0;
   o.aviso = '';
@@ -3354,7 +3370,7 @@ function planoP(o) {
   const hojas = ['A4', 'A3', 'A2', 'A1'], desde = Math.max(0, hojas.indexOf(o.paper));
   const fijo = parseInt(o.scale, 10) || 0;
   const cache = {}, cero = !!(window.PRINT_OPTS || {}).cero && opts().avoid; let mejor = null;
-  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = layout(SRC.holes, SRC.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f }))); };
+  const conF = f => { const k = f.toFixed(3); return cache[k] || (cache[k] = Object.assign(layout(SRC.holes, SRC.matched, Object.assign(opts(), PL, { tf: f, idH: 0.4 * f, idDx: -0.7 * f, idDy: -1.65 * f })), { tfac: f })); };
   for (let hi = desde; hi < hojas.length; hi++) {
     for (const s of (fijo ? [fijo] : ESC_LETRA)) {
       const f = pt * s / PT_PER_M_1 / 0.4;
@@ -3380,6 +3396,7 @@ $('pdfLetra').addEventListener('change', () => { try { localStorage.setItem('bhl
 function planoOpts() {
   const o0 = planoOpts0(); const A = window.PRINT_AV;
   if (A) Object.assign(o0, { title: A.title, subtitle: A.subtitle, polys: A.polys, marks: null, cuadro: A.cuadro });
+  if (A && A.rell) { const PO = window.PRINT_OPTS || {}; o0.rellenos = PO.relleno === false ? null : A.rell; o0.rotulos = PO.rotulos === false ? null : A.rot; o0.rotPt = parseFloat($('pdfLetra').value) || 8; }
   return o0;
 }
 function planoOpts0() {
@@ -3409,7 +3426,11 @@ let prevZoom = 0, prevR = null;
   dst.innerHTML = src.innerHTML;
   dst.addEventListener('change', () => { src.value = dst.value; src.dispatchEvent(new Event('change')); pintarPrevia(); });
 });
+$('pvLey').innerHTML = $('anSel').innerHTML;
+$('pvLey').addEventListener('change', () => { window.PRINT_OPTS.ley = $('pvLey').value; pintarPrevia(); });
 function abrirPrevia() {
+  const A0 = window.PRINT_AV; $('pvLeyL').hidden = !(A0 && A0.ley); if (A0 && A0.ley) $('pvLey').value = (window.PRINT_OPTS || {}).ley != null ? window.PRINT_OPTS.ley : 'all';
+  document.querySelectorAll('#pvPop [data-solo=rell]').forEach(l => { l.hidden = !(A0 && A0.rell && A0.rell.length); });
   ['Hoja', 'Esc', 'Letra'].forEach(k => { $('pv' + k).value = $('pdf' + k).value; });
   window.PRINT_ZOOM = 1; // V86: el dibujo llena la hoja; con + / − se agranda o achica de a poco
   $('dlgPrev').hidden = false; document.body.style.overflow = 'hidden'; prevZoom = 0; prevModo = 'hoja'; pintarPrevia();
@@ -7028,15 +7049,19 @@ async function v3Construir() {
     if (leyenda) leyenda.textContent = 'Clasificación: '+(typeof pmE==='function'?pmE().nom:'')+' · cambiar en Minado del plano.';
     if (d && M && !M.err && pmVerAuto()) {
       const classes=PM_ESQ[M.esq].clases;
-      for(const G of (M.grids||[])) for(let j=0;j<G.H;j++) for(let i=0;i<G.W;i++) {
-        const ci=G.C[j*G.W+i]; if(ci<0 || !classes[ci])continue;
-        if(pos.length/18>=120000){omitted++;continue;}
-        const x=G.x0+i*G.cel,y=G.y0+j*G.cel,sz=G.cel;
-        if(x+sz<R.x0||x>R.x1||y+sz<R.y0||y>R.y1)continue;
-        const xy=[[x,y],[x+sz,y],[x+sz,y+sz],[x,y+sz]],z=xy.map(p=>v3Z(p[0],p[1]));
-        if(z.some(v=>v==null))continue;
-        const color=v3Hex(classes[ci].col);for(const n of [0,1,2,0,2,3]){pos.push(xy[n][0]-ox,xy[n][1]-oy,z[n]+1.1-oz);cols.push(...color);}
-      }
+      // V116: celdas de la misma clase en una fila se unen en tiras de hasta ~8 m (muchísimas menos caras: ya no se omite nada)
+      for(const G of (M.grids||[])) { const maxRun=Math.max(1,Math.round(8/G.cel));
+        for(let j=0;j<G.H;j++) { const y=G.y0+j*G.cel,sz=G.cel; if(y+sz<R.y0||y>R.y1)continue;
+          for(let i=0;i<G.W;) {
+            const ci=G.C[j*G.W+i]; if(ci<0 || !classes[ci]){i++;continue;}
+            let n=1; while(n<maxRun && i+n<G.W && G.C[j*G.W+i+n]===ci)n++;
+            const x=G.x0+i*G.cel,w=n*sz; i+=n;
+            if(x+w<R.x0||x>R.x1)continue;
+            if(pos.length/18>=400000){omitted++;continue;}
+            const xy=[[x,y],[x+w,y],[x+w,y+sz],[x,y+sz]],z=xy.map(p=>v3Z(p[0],p[1]));
+            if(z.some(v=>v==null))continue;
+            const color=v3Hex(classes[ci].col);for(const k of [0,1,2,0,2,3]){pos.push(xy[k][0]-ox,xy[k][1]-oy,z[k]+1.1-oz);cols.push(...color);}
+          } } }
       for(const item of M.clases||[]) for(const poly of item.polys||[]) for(const ring of poly.rings||[]) if(ring.length>2)drapar(ring,v3Hex(item.c.colL||item.c.col),true,1.4);
       for(const cut of M.corte||[]) if(cut.length>1)drapar(cut,[1,.12,.12],false,1.6);
     }
@@ -7154,7 +7179,7 @@ function v3LeyendaMinado() {
  const box=$('v3dPmLegend');if(!box)return;
  if(!v3.ver.pm || typeof pm==='undefined' || !PM_ESQ[pm.esq]){box.hidden=true;return;}
  const esquema=PM_ESQ[pm.esq];box.hidden=false;
- box.innerHTML='<b>'+esc(pm.esq==='m'?'Material M1–M5 · S/FeS':'Ley de Fe')+'</b>'+esquema.clases.map(c=>'<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><i style="display:inline-block;flex:none;width:11px;height:11px;border-radius:2px;background:'+esc(c.col)+'"></i><span>'+esc(c.nom)+(c.sub?' · '+esc(c.sub):'')+'</span></div>').join('');
+ box.innerHTML='<b>'+esc(pm.esq==='m'?'Material M1–M5 · S/FeS':pm.esq==='cu'?'Ley de Cu (%)':'Ley de Fe')+'</b>'+esquema.clases.map(c=>'<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><i style="display:inline-block;flex:none;width:11px;height:11px;border-radius:2px;background:'+esc(c.col)+'"></i><span>'+esc(c.nom)+(c.sub?' · '+esc(c.sub):'')+'</span></div>').join('');
 }
 async function v3Mostrar() {
   v3LeyendaMinado();
@@ -7363,6 +7388,62 @@ function v3Salir() {
       };
     }
   } catch (e) { console.warn('regla3', e); }
+  // ---------- V115: promedios del avance dentro de la vista 3D ----------
+  try {
+    const w3 = document.getElementById('v3dWrap');
+    if (w3 && typeof v3Tocar === 'function' && typeof closeDraft === 'function') {
+      const P3 = window.prom3 = { on: false, pts: [] };
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'regla-btn'; btn.style.top = '106px'; btn.textContent = '📊 Promedio'; btn.setAttribute('aria-pressed', 'false');
+      const box = document.createElement('div'); box.className = 'regla-box'; box.hidden = true; box.style.maxWidth = 'min(94%,360px)';
+      w3.appendChild(btn); w3.appendChild(box);
+      const resumenAv = () => {
+        const r = t2.result; if (!r || !t2.shapes.length) return '';
+        const f = (AVG_FIELDS || []).filter(F => r.fields && r.fields[F.k] && r.fields[F.k].mean != null).map(F => `${F.label} <b>${fmt(r.fields[F.k].mean, F.dec, '—')}</b>`).join(' · ');
+        return `<div style="margin-top:4px;border-top:1px solid #3a434b;padding-top:4px"><b>${t2.shapes.length}</b> polígono(s) · <b>${r.n || 0}</b> taladros${r.nEst ? ` (${r.nEst} estimados)` : ''}${r.tonnage ? ` · <b>${Math.round(r.tonnage).toLocaleString('es-PE')} t</b>` : ''}<div>${f || 'Sin leyes en los taladros de este polígono.'}</div></div>`;
+      };
+      const paint = () => {
+        btn.setAttribute('aria-pressed', String(P3.on)); box.hidden = !P3.on;
+        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono del avance.') + '</div>' + resumenAv()
+          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="x">Salir</button></div>';
+        try { v3Dibujar(); } catch (e) {}
+      };
+      P3.paint = paint;
+      btn.onclick = () => { P3.on = !P3.on; P3.pts = []; if (P3.on && window.regla3 && window.regla3.on) { window.regla3.on = false; window.regla3.pts = []; try { window.regla3.paint(); } catch (e) {} } paint(); };
+      box.addEventListener('click', e => {
+        const b = e.target.closest('button[data-a]'); if (!b) return; const a = b.dataset.a;
+        if (a === 'u') P3.pts.pop();
+        else if (a === 'k') { if (P3.pts.length < 3) { box.querySelector('div').textContent = 'Pon al menos 3 vértices.'; return; } t2.draft = P3.pts.map(q => ({ x: q.x, y: q.y })); P3.pts = []; closeDraft(); }
+        else if (a === 'c') { P3.pts = []; t2.shapes = []; t2.draft = []; selectFromShapes(); computeT2(); pv.draw(); }
+        else { P3.on = false; P3.pts = []; }
+        paint();
+      });
+      ['pointerdown', 'pointerup', 'touchstart'].forEach(n => { btn.addEventListener(n, e => e.stopPropagation()); box.addEventListener(n, e => e.stopPropagation()); });
+      // si enciende la regla, se apaga este modo
+      if (window.regla3) { const rb = w3.querySelector('.regla-btn'); if (rb) rb.addEventListener('click', () => { if (window.regla3.on && P3.on) { P3.on = false; P3.pts = []; paint(); } }); }
+      const t1 = v3Tocar;
+      v3Tocar = (px, py) => {
+        if (!P3.on) return t1(px, py);
+        let p = pick3(px, py);
+        if (!p) { // sin topografía: se toca sobre el plano de la elevación media de los taladros
+          const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : (v3.org ? v3.org[2] : 0);
+          const { M, W, H } = v3MVP(), I = inv4(M), o = v3.org, ex = v3.ex || 1;
+          if (I) { const nx = px / W * 2 - 1, ny = 1 - py / H * 2, un = z => { const w = I[3] * nx + I[7] * ny + I[11] * z + I[15]; return [(I[0] * nx + I[4] * ny + I[8] * z + I[12]) / w, (I[1] * nx + I[5] * ny + I[9] * z + I[13]) / w, (I[2] * nx + I[6] * ny + I[10] * z + I[14]) / w]; };
+            const A = un(-1), B = un(1), zt = (zc - o[2]) * ex; if (Math.abs(B[2] - A[2]) > 1e-9) { const t = (zt - A[2]) / (B[2] - A[2]); if (t > 0) p = { x: A[0] + (B[0] - A[0]) * t + o[0], y: A[1] + (B[1] - A[1]) * t + o[1], z: zc }; } }
+        }
+        if (!p) { const m = document.getElementById('v3dMsg'); if (m) m.textContent = 'Toca sobre el terreno para poner el vértice.'; return; }
+        P3.pts.push(p); paint();
+      };
+      const tx1 = v3Textos;
+      v3Textos = (M, W, H) => {
+        tx1(M, W, H);
+        if (!P3.on || !P3.pts.length) return;
+        const cv = document.getElementById('v3dTxt'), ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? o[2] : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
+        dibujar(ctx, S, P3.pts);
+      };
+    }
+  } catch (e) { console.warn('prom3', e); }
 })();
 
 
@@ -7387,6 +7468,15 @@ const PM_ESQ = {
     mineral: new Set(['M1', 'M2', 'M3', 'M4', 'M5', 'MS']),
     clase: (fe, sfe) => { const r = Math.round(fe * 10) / 10; if (r < 20.1) return 7; if (r < 30.1) return 6; if (sfe == null || isNaN(sfe)) return 5; const m = matSFe(sfe); return { M1: 0, M2: 1, M3: 2, M4: 3, M5: 4 }[m]; } },
 };
+// V114: clasificación por ley de Cu (%): 0–0.15 · 0.15–0.30 · 0.30–0.60 · 0.60–1.00 · > 1.00 (sin corte mineral/desmonte)
+PM_ESQ.cu = { nom: 'Ley de Cu', clases: [
+    { k: 'C1', nom: 'Cu 0–0.15', sub: '0 – 0.15', col: '#2f6bff', colL: '#1b49d6', aci: 5 },
+    { k: 'C2', nom: 'Cu 0.15–0.30', sub: '0.15 – 0.30', col: '#00e0c6', colL: '#009c8c', aci: 4 },
+    { k: 'C3', nom: 'Cu 0.30–0.60', sub: '0.30 – 0.60', col: '#ffe21a', colL: '#b89a00', aci: 2 },
+    { k: 'C4', nom: 'Cu 0.60–1.00', sub: '0.60 – 1.00', col: '#ff7a1a', colL: '#d65a00', aci: 30 },
+    { k: 'C5', nom: 'Cu ≥ 1.00', sub: '1.00 o más', col: '#ff1744', colL: '#b00030', aci: 1 }],
+  mineral: new Set(),
+  clase: (cu) => { const r = Math.round(cu * 100) / 100; return r < 0.15 ? 0 : r < 0.30 ? 1 : r < 0.60 ? 2 : r < 1.00 ? 3 : 4; } };
 const pm = { on: false, res: null, firma: '', celda: 1, esq: 'fe' };
 // V64: opciones del método (excavadora para mineral, óxidos, marginal y contactos; pala para desmonte)
 const PM_OPC0 = { metodo: 'suav', minMin: 36, minDes: 100, movD: 0, movAz: 0, eqDes: 'cont' };
@@ -7394,7 +7484,9 @@ function pmOpc() { let o = {}; try { o = JSON.parse(localStorage.getItem('bhl-pm
 function pmOpcGuardar(o) { try { localStorage.setItem('bhl-pm-opc', JSON.stringify(o)); } catch (e) {} pm.res = null; }
 try { pm.on = localStorage.getItem('bhl-pm') === '1'; pm.esq = PM_ESQ[localStorage.getItem('bhl-pm-esq')] ? localStorage.getItem('bhl-pm-esq') : 'fe'; } catch (e) {}
 const pmE = () => PM_ESQ[pm.esq];
-function pmClase(fe, sfe) { if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
+function pmClase(fe, sfe, cu) { if (pm.esq === 'cu') return cu == null || isNaN(cu) ? -1 : pmE().clase(cu); if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
+const pmEsCu = R => R && R.esq === 'cu';
+const pmValTxt = (R, p) => pmEsCu(R) ? (p.cu != null ? `Cu ${p.cu.toFixed(2)}` : '') : (p.fe != null ? `Fe ${p.fe.toFixed(1)}` : '');
 function pmColor(c) { return (typeof planClaro === 'function' && planClaro()) ? c.colL : c.col; }
 // Cada celda de 1 m toma la clase del taladro con ley más cercano (como en los polígonos de ore control), hasta ~0.75 del espaciamiento
 function pmCalcularHoles(lista) {
@@ -7402,9 +7494,9 @@ function pmCalcularHoles(lista) {
   const doms = [];
   lista.forEach(h => {
     if (h.dup) return; const l = t2.leyBy.get(h.ck), has = l && l.hasData !== false;
-    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null;
-    const c = pmClase(fe, sfe); if (c < 0) return;
-    src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
+    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null, cu = has ? l.cu : null;
+    const c = pmClase(fe, sfe, cu); if (c < 0) return;
+    src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, cu, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
   });
   if (src.length < 3) return { err: src.length ? 'Hay muy pocos taladros con ley para trazar polígonos.' : 'Los proyectos marcados no tienen taladros con ley.' };
   // V80: el espaciamiento y la huella del proyecto salen de TODOS los taladros (con y sin ley).
@@ -7509,7 +7601,8 @@ function pmCalcularHoles(lista) {
       const wD = t => densFe(t.fe), sw = ts.reduce((s, t) => s + wD(t), 0);
       const area = z.cel.length * cel * cel, dens = ts.length ? sw / ts.length : densFe(25);
       const feP = ts.length ? ts.reduce((s, t) => s + t.fe * wD(t), 0) / sw : null, sf = ts.filter(t => t.sfe != null), swf = sf.reduce((s, t) => s + wD(t), 0), sfeP = sf.length ? sf.reduce((s, t) => s + t.sfe * wD(t), 0) / swf : null;
-      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
+      const sc = ts.filter(t => t.cu != null), swc = sc.reduce((s, t) => s + wD(t), 0), cuP = sc.length ? sc.reduce((s, t) => s + t.cu * wD(t), 0) / swc : null;
+      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, cu: cuP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
     }).filter(p => p.rings.length);
     return { c, polys };
   }).filter(Boolean);
@@ -7549,7 +7642,7 @@ function pmDibujar(ctx, v) {
     if (!G.img || G.imgClaro !== claro) {
       const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
       const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
-      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = 90; }
+      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = R.esq === 'cu' ? 140 : 90; }
       cx.putImageData(im, 0, 0); G.img = cv; G.imgClaro = claro;
     }
     ctx.imageSmoothingEnabled = false; ctx.drawImage(G.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
@@ -7564,7 +7657,7 @@ function pmDibujar(ctx, v) {
     R.clases.forEach(({ c, polys }) => polys.forEach(p => {
       if (p.area * v.v.s * v.v.s < 1800) return;
       if (!p._lbl) p._lbl = puntoDentro(p.rings[0]); const x = v.sx(p._lbl.x), y = v.sy(p._lbl.y); if (x < -50 || x > v.W + 50 || y < -50 || y > v.H + 50) return;
-      const t1 = c.nom + (R.esq === 'm' && p.sfe != null && /^M\d/.test(c.k) ? ` · S/FeS ${p.sfe.toFixed(2)}` : ''), t2t = p.fe != null ? `Fe ${p.fe.toFixed(1)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '';
+      const t1 = c.nom + (R.esq === 'm' && p.sfe != null && /^M\d/.test(c.k) ? ` · S/FeS ${p.sfe.toFixed(2)}` : ''), t2t = pmValTxt(R, p) ? `${pmValTxt(R, p)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '';
       ctx.fillStyle = pmColor(c); ctx.strokeText(t1, x, y - 7); ctx.fillText(t1, x, y - 7); if (t2t) { ctx.font = '600 10px system-ui, sans-serif'; ctx.strokeText(t2t, x, y + 7); ctx.fillText(t2t, x, y + 7); ctx.font = '700 11px system-ui, sans-serif'; }
     }));
   }
@@ -7574,14 +7667,15 @@ function pmResumen() {
   const el = $('pmRes'); if (!el) return; const R = pmActual();
   if (!t2.holes.length) { el.innerHTML = '<p class="msg">Marca uno o varios proyectos con leyes.</p>'; return; }
   if (!R || R.err) { el.innerHTML = `<p class="msg err">${esc((R && R.err) || '')}</p>`; return; }
-  const conM = R.esq === 'm';
+  const conM = R.esq === 'm', conCu = R.esq === 'cu';
   const fila = (c, polys) => { const a = polys.reduce((s, p) => s + p.area, 0), t = polys.reduce((s, p) => s + p.t, 0), n = polys.reduce((s, p) => s + p.n, 0), fe = n ? polys.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null;
+    const pc = polys.filter(p => p.cu != null), cu = pc.length ? pc.reduce((s, p) => s + p.cu * p.n, 0) / pc.reduce((s, p) => s + p.n, 0) : null;
     const ps = polys.filter(p => p.sfe != null), sf = ps.length ? ps.reduce((s, p) => s + p.sfe * p.n, 0) / ps.reduce((s, p) => s + p.n, 0) : null;
-    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td>${conM ? `<td>${sf != null ? sf.toFixed(2) : '—'}</td>` : ''}<td>${n}</td></tr>`; };
+    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td>${conCu ? `<td>${cu != null ? cu.toFixed(2) : '—'}</td>` : ''}${conM ? `<td>${sf != null ? sf.toFixed(2) : '—'}</td>` : ''}<td>${n}</td></tr>`; };
   const mineral = PM_ESQ[R.esq].mineral;
   const tot = R.clases.reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0), min = R.clases.filter(x => mineral.has(x.c.k)).reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0);
-  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th>${conM ? '<th>S/FeS</th>' : ''}<th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
-    <p class="msg">Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}. ${R.opc.metodo === 'suav' ? `Método suavizado por equipo: mínimo ${R.opc.minMin} m² con excavadora y ${R.opc.minDes} m² con pala; desmonte con ${R.opc.eqDes === 'exc' ? 'excavadora' : R.opc.eqDes === 'pala' ? 'pala' : 'excavadora en los contactos con mineral y pala en lo demás'}` : 'Método por taladro (sin suavizar)'}${R.opc.movD ? ` · desplazado ${R.opc.movD} m al ${R.opc.movAz}°` : ''}.</p>`;
+  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th>${conCu ? '<th>Cu</th>' : ''}${conM ? '<th>S/FeS</th>' : ''}<th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
+    <p class="msg">${conCu ? `Total: <b>${Math.round(tot).toLocaleString('es-PE')} t</b> en polígonos por ley de Cu. ` : `Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. `}Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}. ${R.opc.metodo === 'suav' ? `Método suavizado por equipo: mínimo ${R.opc.minMin} m² con excavadora y ${R.opc.minDes} m² con pala; desmonte con ${R.opc.eqDes === 'exc' ? 'excavadora' : R.opc.eqDes === 'pala' ? 'pala' : 'excavadora en los contactos con mineral y pala en lo demás'}` : 'Método por taladro (sin suavizar)'}${R.opc.movD ? ` · desplazado ${R.opc.movD} m al ${R.opc.movAz}°` : ''}.</p>`;
 }
 function pmDXF() {
   const R = pmActual(); if (!R || R.err) return null;
@@ -7590,15 +7684,15 @@ function pmDXF() {
   const aci = {}; PM_ESQ[R.esq].clases.forEach(c => { aci[c.k] = c.aci; });
   R.clases.forEach(({ c, polys }) => polys.forEach(p => {
     p.rings.forEach(P => poly(P, 'PM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[̀-ͯ]/g, ''), aci[c.k]));
-    const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${p.fe != null ? ' Fe ' + p.fe.toFixed(1) : ''}${R.esq === 'm' && p.sfe != null ? ' S/FeS ' + p.sfe.toFixed(2) : ''}`);
+    const q = p._lbl || puntoDentro(p.rings[0]); L.push('0', 'TEXT', '8', 'PM_TEXTO', '62', String(aci[c.k]), '10', q.x.toFixed(3), '20', q.y.toFixed(3), '40', '1.5', '1', `${c.nom}${pmValTxt(R, p) ? ' ' + pmValTxt(R, p) : ''}${R.esq === 'm' && p.sfe != null ? ' S/FeS ' + p.sfe.toFixed(2) : ''}`);
   }));
   pmManuales().forEach(({ p, q }) => { const c = pmmClase(q, p); poly(q.pts, 'PMM_' + c.nom.toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.aci); });
   R.corte.forEach(P => { L.push('0', 'LWPOLYLINE', '8', 'PM_CORTE_MINERAL', '62', '1', '90', String(P.length), '70', '0'); P.forEach(q => L.push('10', q.x.toFixed(3), '20', q.y.toFixed(3))); });
   L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
 }
 function pmCSV() {
-  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,SFeS_prom,Taladros'];
-  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.sfe != null ? p.sfe.toFixed(3) : '', p.n].join(',')))); }));
+  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,SFeS_prom,Cu_prom,Taladros'];
+  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.sfe != null ? p.sfe.toFixed(3) : '', p.cu != null ? p.cu.toFixed(3) : '', p.n].join(',')))); }));
   return out.join('\r\n');
 }
 (() => {
@@ -7608,7 +7702,7 @@ function pmCSV() {
   const pop = document.createElement('div'); pop.className = 'topo-pop pm-pop'; pop.id = 'pmPop'; pop.hidden = true;
   pop.innerHTML = `<div class="topo-h"><b>⛏ Polígonos de minado</b><button type="button" id="pmCerrar" aria-label="Cerrar">✕</button></div>
     <label class="chk"><input type="checkbox" id="pmVer"> Ver polígonos en el plano</label>
-    <div class="pm-esq"><span>Clasificar por</span><div class="seg"><button type="button" data-pmesq="fe">Ley de Fe</button><button type="button" data-pmesq="m">Material M1–M5</button></div></div>
+    <div class="pm-esq"><span>Clasificar por</span><div class="seg"><button type="button" data-pmesq="fe">Ley de Fe</button><button type="button" data-pmesq="m">Material M1–M5</button><button type="button" data-pmesq="cu">Ley de Cu</button></div></div>
     <div class="pm-ley" id="pmLey"></div>
     <details class="pm-opc"><summary>Método y unidad mínima</summary>
       <div class="pm-esq"><span>Método</span><div class="seg"><button type="button" data-pmmet="suav">Suavizado por equipo</button><button type="button" data-pmmet="tal">Por taladro</button></div></div>
@@ -7623,7 +7717,7 @@ function pmCSV() {
     <p class="msg" id="pmMsg"></p>`;
   $('topoPop').parentNode.insertBefore(pop, $('topoPop'));
   $('pmVer').checked = pm.on;
-  const pintarEsq = () => { pop.querySelectorAll('[data-pmesq]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmesq === pm.esq ? 'true' : 'false')); $('pmLey').innerHTML = pmE().clases.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${esc(c.sub)}</small></span>`).join('') + (pm.esq === 'm' ? '<small class="pm-nota">M1–M5 solo en el mineral (Fe &gt; 30), según S/FeS como en el historial.</small>' : ''); };
+  const pintarEsq = () => { pop.querySelectorAll('[data-pmesq]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmesq === pm.esq ? 'true' : 'false')); $('pmLey').innerHTML = pmE().clases.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${esc(c.sub)}</small></span>`).join('') + (pm.esq === 'm' ? '<small class="pm-nota">M1–M5 solo en el mineral (Fe &gt; 30), según S/FeS como en el historial.</small>' : pm.esq === 'cu' ? '<small class="pm-nota">Por ley de Cu (%) de cada taladro. Solo se usan taladros con resultado de Cu; sin corte mineral / desmonte.</small>' : ''); };
   pintarEsq();
   const pintarOpc = () => { const o = pmOpc(); pop.querySelectorAll('[data-pmmet]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmmet === o.metodo ? 'true' : 'false')); $('pmMinMin').value = o.minMin; $('pmMinDes').value = o.minDes; $('pmMovD').value = o.movD; $('pmMovAz').value = o.movAz; $('pmEqDes').value = o.eqDes; };
   pintarOpc();
@@ -7680,8 +7774,21 @@ function imprimirVista() {
     if (pmVerMios()) pmManuales().forEach(({ p, q }) => add(q.pts, rgb(pmmClase(q, p).colL), 2));
     R.clases.forEach(({ c, polys: ps }) => { const t = ps.reduce((s, p) => s + p.t, 0), n = ps.reduce((s, p) => s + p.n, 0), fe = n ? ps.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null; filas.push([c.nom, `${Math.round(t).toLocaleString('es-PE')} t · Fe ${fe != null ? fe.toFixed(1) : '—'}`, rgb(c.colL)]); });
   }
-  window.PRINT_AV = { holes, matched, P0, polys, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
+  // V113: relleno de color y rótulos de cada polígono de minado (como en la pantalla)
+  const rell = [], rot = [], marco = P0.filter(q => q.layer === 'LINEA_GUIA' && q.t === 'line' && [b.x0, b.x1, b.y0, b.y1].some(v => q.x1 === v || q.x2 === v));
+  if (R && !R.err) {
+    const suave = c => rgb(c).map(v => 0.62 + v * 0.38);
+    R.clases.forEach(({ c, polys: ps }) => ps.forEach(p => {
+      p.rings.forEach(P => { const r = recortarPoly(P, b); if (r) rell.push({ pts: r, fill: suave(c.colL) }); });
+      if (p.area < 30) return;
+      if (!p._lbl) p._lbl = puntoDentro(p.rings[0]);
+      const q = p._lbl; if (!q || q.x < b.x0 || q.x > b.x1 || q.y < b.y0 || q.y > b.y1) return;
+      rot.push({ x: q.x, y: q.y, area: p.area, col: rgb(c.colL), l1: c.nom + (R.esq === 'm' && p.sfe != null && /^M\d/.test(c.k) ? ` · S/FeS ${p.sfe.toFixed(2)}` : ''), l2: pmValTxt(R, p) ? `${pmValTxt(R, p)} · ${Math.round(p.t).toLocaleString('es-PE')} t` : '' });
+    }));
+  }
+  window.PRINT_AV = { holes, matched, P0, polys, rell, rot, marco, ley: true, cuadro: { titulo: R && !R.err ? 'Polígonos de minado' : 'Plano', filas },
     title: `Plano ${(t2.projs || []).map(p => p.name).slice(0, 4).join(' + ')}${(t2.projs || []).length > 4 ? ' …' : ''}`, subtitle: `${fmtDate(todayISO())} · vista del plano (E ${Math.round(b.x0)}–${Math.round(b.x1)} · N ${Math.round(b.y0)}–${Math.round(b.y1)})` };
+  window.PRINT_OPTS.ley = $('anSel').value; // arranca con la ley que estás viendo en la pestaña 2
   abrirPrevia();
 }
 (() => {
@@ -7700,13 +7807,14 @@ const PMM_SL = { k: 'SL', nom: 'Sin ley', sub: 'taladros sin resultados', col: '
 // V68: clasificación calculada con las leyes de los taladros dentro del polígono (Fe y M por S/FeS)
 function pmmCalc(p, q) {
   const s = pmmSt(p, q).st;
-  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, grupo: 'Sin ley', nota: '' }; }
+  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, cu: PMM_SL, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, cu: PMM_SL, grupo: 'Sin ley', nota: '' }; }
   const fe = PM_ESQ.fe.clases[PM_ESQ.fe.clase(s.fe, s.sfe)], m = PM_ESQ.m.clases[PM_ESQ.m.clase(s.fe, s.sfe)];
   const r = Math.round(s.fe * 10) / 10, grupo = r >= 30.1 ? 'Mineral' : r >= 20.1 ? 'Marginal' : 'Desmonte';
-  return { s, fe, m, grupo, nota: '' };
+  const cuc = s.cu != null ? PM_ESQ.cu.clases[PM_ESQ.cu.clase(s.cu)] : PMM_SL;
+  return { s, fe, m, cu: cuc, grupo, nota: '' };
 }
 function pmmClase(q, p) {
-  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : c.fe; } return PMM_SL; }
+  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : pm.esq === 'cu' ? c.cu : c.fe; } return PMM_SL; }
   const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1];
 }
 function pmmTexto(p, q) {
@@ -7717,9 +7825,9 @@ function pmManuales() { const out = []; (t2.projs || []).forEach(p => (p.polMina
 function pmmStats(p, q) {
   const P = q.pts, b = bboxOf(P), hs = t2.holes.filter(h => h.pid === p.id && h.x >= b.x0 && h.x <= b.x1 && h.y >= b.y0 && h.y <= b.y1 && pointInPoly(h.x, h.y, P));
   const ls = hs.map(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false ? l : (t2.estBy && t2.estBy.get(h.ck)) || null; }).filter(l => l && l.fe != null);
-  const wf = l => densFe(l.fe), sw = ls.reduce((s, l) => s + wf(l), 0), fe = ls.length ? ls.reduce((s, l) => s + l.fe * wf(l), 0) / sw : null, sf = ls.filter(l => l.sfe != null), swf = sf.reduce((s, l) => s + wf(l), 0), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe * wf(l), 0) / swf : null;
+  const lc = ls.filter(l => l.cu != null && !l.est), wf = l => densFe(l.fe), swcu = lc.reduce((s, l) => s + wf(l), 0), cuM = lc.length ? lc.reduce((s, l) => s + l.cu * wf(l), 0) / swcu : null, sw = ls.reduce((s, l) => s + wf(l), 0), fe = ls.length ? ls.reduce((s, l) => s + l.fe * wf(l), 0) / sw : null, sf = ls.filter(l => l.sfe != null), swf = sf.reduce((s, l) => s + wf(l), 0), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe * wf(l), 0) / swf : null;
   const area = polyArea(P), banco = num('avBanco') || 12, dens = ls.length ? ls.reduce((s, l) => s + densFe(l.fe), 0) / ls.length : densFe(25);
-  return { n: hs.length, nLey: ls.length, fe, sfe, area, t: area * banco * dens };
+  return { n: hs.length, nLey: ls.length, fe, sfe, cu: cuM, area, t: area * banco * dens };
 }
 function pmmDibujar(ctx, v) {
   if (!pm.on) return;
