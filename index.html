@@ -374,6 +374,7 @@ html:has(body.app), body.app { overflow-x: hidden; overflow-x: clip; max-width: 
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
 body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
+.appbar button[hidden] { display: none; }
 .appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .appbar button[aria-current="page"] { color: var(--accent); }
 .appbar button[aria-current="page"] svg { stroke-width: 2.1; }
@@ -436,6 +437,32 @@ body.app .cadwrap:not(.full) > .cadbar #z2in, body.app .cadwrap:not(.full) > .ca
 body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius: 10px; padding: 6px 12px; }
 .avgtiles:empty { display: none; }
 @media (max-width: 600px) { body.app .cadwrap:not(.full) > .cadbar #z2fit { display: none; } body.app #z2full { font-size: 0; padding: 6px 10px; } body.app #z2full::before { content: "⤢"; font-size: 18px; } }
+/* ===== V118 · iPad: pantalla dividida en horizontal, sin botones encimados, tacto cómodo ===== */
+.t2dock { display: none; }
+body.app .cadbar { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 16px); row-gap: 6px; }
+body.app .cadwrap:not(.full) > .cadbar button { min-height: 44px; }
+body.app .regla-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
+body.app .regla-box button { min-height: 44px; font-size: .88rem; }
+body.app .cadwrap .regla-btn.rg2 { top: 46% !important; right: 12px; left: auto; bottom: auto; }
+body.app .cadwrap .regla-box.rg2 { bottom: 66px; }
+body.app .cadwrap.full .regla-btn.rg2 { top: 46% !important; left: auto; right: 12px; bottom: auto; }
+body.app .cadwrap.full .regla-box.rg2 { left: 96px; bottom: calc(66px + var(--sb, 0px)); }
+body.app .cadwrap.full:not(.nopanel) .foto-btn, body.app .cadwrap.full:not(.nopanel) .gps-btn { right: calc(var(--pw, 0px) + 24px); }
+.t2dock .t2ah { font: 700 .78rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 2px 4px; }
+body.app .cadwrap:not(.full) .anl { right: 8px; flex-wrap: wrap; row-gap: 6px; width: auto; }
+body.app .cadwrap:not(.full) .anl select { max-width: 190px; }
+@media (min-width: 761px) { body.app .t2mini { top: auto; bottom: 12px; right: 12px; } }
+@media (min-width: 700px) and (orientation: portrait) { body.app .t2plano .cadwrap:not(.full) { height: calc(100dvh - 300px - env(safe-area-inset-bottom, 0px)); min-height: 460px; } }
+@media (min-width: 1000px) and (orientation: landscape) {
+  body.app .t2plano .cadwrap:not(.full) { height: calc(100dvh - 196px - env(safe-area-inset-bottom, 0px)); min-height: 420px; }
+  body.app.t2app .t2dock { display: flex; flex-direction: column; gap: 10px; flex: 0 0 350px; min-width: 0; max-height: calc(100dvh - 196px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  body.app.t2app .t2mini { display: none; }
+  body.app.t2app .t2dock > * { flex: none; }
+  body.app.t2app .t2dock .avgtiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  body.app.t2app .t2dock .avgtiles .v { font-size: 1.22rem; overflow-wrap: anywhere; }
+  body.app.t2app .t2dock .avgtiles .n { overflow-wrap: anywhere; }
+  body.app.t2app .t2dock .btnrow { display: grid; grid-template-columns: 1fr; gap: 8px; position: sticky; bottom: 0; background: var(--bg, #fff); padding: 8px 0 2px; z-index: 2; }
+}
 /* filtro de mina / nivel / proyectos dentro del plano (iPad y iPhone) */
 .fs-filbtn { display: none; }
 body.app .cadwrap.full .fs-fil { display: none; }
@@ -910,7 +937,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v117</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v126</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1350,6 +1377,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
   <button type="button" data-at="3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>3D</span></button>
   <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
+  <button type="button" data-at="pila" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19.5h19M4 19.5 9 9l3.5 5 2.5-3.5 5 9"/></svg><span>Pila PQ4</span></button>
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
 
@@ -3902,7 +3930,11 @@ class PlanView {
         this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 260);
       }
     });
+    // V119: el Apple Pencil flotando sobre la pantalla (hover) muestra dónde caería el punto
+    canvas.addEventListener('pointerleave', () => { if (this.hov) { this.hov = null; this.draw(); } });
     canvas.addEventListener('pointermove', e => {
+      if (e.pointerType === 'pen' && !e.buttons && !ptrs.size && this.drawId == null) { const r0 = canvas.getBoundingClientRect(); this.hov = { px: e.clientX - r0.left, py: e.clientY - r0.top }; this.draw(); }
+      else if (e.pointerType === 'pen' && this.hov && e.buttons) { this.hov = null; }
       if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
       if (this.drawId != null) return;
       const r = canvas.getBoundingClientRect();
@@ -3921,6 +3953,9 @@ class PlanView {
       if (ptrs.has(e.pointerId) && moved < 5 && ptrs.size === 1 && this.onTap) { const r = canvas.getBoundingClientRect(); this.onTap(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)); }
       ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) canvas.classList.remove('drag');
     };
+    // V118: toque rápido con dos dedos = deshacer (último vértice; si no hay, el último polígono)
+    canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && ptrs.size === 1) { this._two = { t: performance.now(), m0: moved }; } }, true);
+    canvas.addEventListener('pointerup', e => { const t = this._two; if (t && e.pointerType === 'touch' && ptrs.size === 2 && performance.now() - t.t < 320 && moved - t.m0 < 24 && this.onTwoTap) { this._two = null; pinch0 = null; this.onTwoTap(); } }, true);
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', e => { clearTimeout(this._aimT); this.aim = null; if (this.drawId === e.pointerId) { this.drawId = null; this.onDraw('end'); } ptrs.delete(e.pointerId); canvas.classList.remove('drag'); });
     new ResizeObserver(() => this.resize()).observe(wrap);
@@ -4303,6 +4338,11 @@ pv.onDraw = (fase, x, y) => {
   if (fase === 'start') { t2.draft = [{ x, y }]; t2.viewing = null; pv.draw(); paintHint(); return; }
   if (fase === 'move') { const q = t2.draft[t2.draft.length - 1]; if (q && Math.hypot(q.x - x, q.y - y) * pv.v.s >= 3) { t2.draft.push({ x, y }); pv.draw(); } return; }
   if (t2.draft.length >= 3) closeDraft(); else { t2.draft = []; pv.draw(); paintHint(); }
+};
+pv.onTwoTap = () => {
+  if (window.regla2 && window.regla2.on && window.regla2.pts.length) { window.regla2.pts.pop(); window.regla2.paint(); return; }
+  if (t2.draft.length) { t2.draft.pop(); pv.draw(); paintHint(); return; }
+  if (t2.shapes.length) { t2.shapes.pop(); t2.viewing = null; selectFromShapes(); computeT2(); pv.draw(); paintTools(); flashHint('Se quitó el último polígono (toque con 2 dedos).', true); }
 };
 pv.onTap = (x, y) => {
   if (t2.tool === 'pick') {
@@ -5248,7 +5288,7 @@ const ES_APP = (() => {
     return ios || (tactil && (matchMedia('(display-mode: standalone)').matches || innerWidth < 1100));
   } catch (e) { return false; }
 })();
-const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', ajustes: 'Ajustes' };
+const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', pila: 'Pila PQ4', ajustes: 'Ajustes' };
 function appTab(at) {
   if (!APP_TIT[at]) at = 'avance';
   document.body.dataset.apptab = at;
@@ -5256,6 +5296,7 @@ function appTab(at) {
   document.querySelectorAll('#appBar button').forEach(b => b.setAttribute('aria-current', b.dataset.at === at ? 'page' : 'false'));
   const aj = at === 'ajustes';
   $('appAjustes').hidden = !aj;
+  try { if (at === 'pila' && window.abrirPilaPQ4) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; $('appAjustes').hidden = true; window.abrirPilaPQ4(); try { localStorage.setItem('bhl-apptab', at); } catch (e) {} return; } else if (window.cerrarPilaPQ4) window.cerrarPilaPQ4(); } catch (e) {}
   if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; pintarAjustes(); }
   else showTab(at === 'proy' ? 1 : at === '3d' ? 3 : 2);
   try { localStorage.setItem('bhl-apptab', at); } catch (e) {}
@@ -5963,6 +6004,17 @@ function t2Layout() {
     panel('proy', [bProy]); panel('lim', [bLim]); panel('av', [tiles, msg, saveRow, bAv]);
     const plano = document.createElement('div'); plano.className = 't2plano';
     viewer.prepend(row); row.append(rail, dw, plano); plano.appendChild(wrap);
+    // V118: iPad en horizontal: el resultado del avance queda fijo a la derecha del plano
+    const dock = document.createElement('aside'); dock.className = 't2dock'; dock.setAttribute('aria-label', 'Resultado del avance');
+    const dh = document.createElement('div'); dh.className = 't2ah'; dh.textContent = 'Resultado del avance'; dock.appendChild(dh);
+    row.append(dock);
+    const mq = matchMedia('(min-width: 1000px) and (orientation: landscape)'), pAv = dw.querySelector('[data-p=av]');
+    const acomodar = () => {
+      if (mq.matches) { dock.append(tiles, msg, saveRow); }
+      else { pAv.prepend(saveRow); pAv.prepend(msg); pAv.prepend(tiles); }
+      requestAnimationFrame(() => { pv.resize(); pv.draw(); });
+    };
+    mq.addEventListener('change', acomodar); acomodar();
     const mini = document.createElement('div'); mini.id = 't2mini'; mini.className = 't2mini'; mini.hidden = true;
     mini.innerHTML = `<div><b class="mt"></b> <span class="mm"></span></div><div class="ml"></div><button type="button" class="btn small" id="t2miniSave">Guardar</button>`;
     wrap.appendChild(mini);
@@ -6877,6 +6929,28 @@ function drawBloqueModelo(ctx, v, L) {
   s.onchange = () => { try { localStorage.setItem('bhl-blq', s.value); } catch (e) {} pv.draw(); };
 })();
 
+// ===== V119: vista previa del Apple Pencil flotando (hover): anillo, imán y línea hasta el último vértice =====
+{
+  const a1 = pv.after;
+  pv.after = (ctx, v) => {
+    if (a1) a1(ctx, v);
+    const h = pv.hov; if (!h || (t2.tool !== 'pen' && t2.tool !== 'erase' && !(window.regla2 && window.regla2.on))) return;
+    let px = h.px, py = h.py, snap = false;
+    if (t2.tool === 'pen' && typeof snapActivo === 'function' && snapActivo()) { const q = snapPt(pv.wx(px), pv.wy(py)); if (q) { px = v.sx(q.x); py = v.sy(q.y); snap = true; } }
+    ctx.save();
+    const D = t2.draft, last = D[D.length - 1];
+    if (t2.tool === 'pen' && last) {
+      ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = '#ffd60a'; ctx.beginPath(); ctx.moveTo(v.sx(last.x), v.sy(last.y)); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
+      if (D.length >= 3 && Math.hypot(px - v.sx(D[0].x), py - v.sy(D[0].y)) < 18) { ctx.strokeStyle = '#30d158'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(v.sx(D[0].x), v.sy(D[0].y), 13, 0, 7); ctx.stroke(); }
+    }
+    const col = t2.tool === 'erase' ? '#ff6b6b' : snap ? '#00b4d8' : '#ffd60a', r = t2.tool === 'erase' ? 18 : 10;
+    ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px - r - 5, py); ctx.lineTo(px - 3, py); ctx.moveTo(px + 3, py); ctx.lineTo(px + r + 5, py); ctx.moveTo(px, py - r - 5); ctx.lineTo(px, py - 3); ctx.moveTo(px, py + 3); ctx.lineTo(px, py + r + 5); ctx.stroke();
+    ctx.restore();
+  };
+}
+
 
 /* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
 const v3 = { gl: null, prog: null, built: '', cam: { yaw: -0.6, pitch: 0.75, dist: 600, tx: 0, ty: 0, tz: 0 }, ex: 1, org: [0, 0, 0], buf: {}, full: false,
@@ -6930,6 +7004,7 @@ function v3Malla(arrP, arrC, arrN, idx) {
   return o;
 }
 function v3Borrar() { const gl = v3.gl; Object.values(v3.buf).forEach(o => { if (!o) return; ['p', 'c', 'n', 'i'].forEach(k => o[k] && gl.deleteBuffer(o[k])); }); v3.buf = {}; }
+function v3Vis() { return !$('tab3').hidden || !!v3.split; }
 function v3Z(x, y) { const d = v3.dem; if (!d) return null; const z = demZ(d, x, y); return z == null || isNaN(z) ? null : z; }
 // V102: topografía para el 3D = la más reciente de la mina de los proyectos marcados (no depende de la activa en el plano).
 // Mina: la del filtro del 3D; si está en «Todas», la de los proyectos marcados (si son de una sola). Solo cuentan las que cubren los proyectos.
@@ -7089,7 +7164,7 @@ function v3MVP() {
 function v3Proy(M, W, H, x, y, z) { const X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], w = M[3] * x + M[7] * y + M[11] * z + M[15]; if (w <= 0) return null; return [(X / w + 1) / 2 * W, (1 - Y / w) / 2 * H]; }
 function v3Dibujar() { if (v3.need) return; v3.need = true; requestAnimationFrame(() => { v3.need = false; v3Pintar(); }); }
 function v3Pintar() {
-  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || $('tab3').hidden) return;
+  const gl = v3.gl, cv = $('v3dCv'); if (!gl || !cv || !v3Vis()) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0.09, 0.11, 0.13, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -7143,20 +7218,26 @@ function v3Eventos(cv) {
   cv.style.touchAction = 'none'; cv.style.webkitUserSelect = 'none'; cv.style.userSelect = 'none'; cv.style.webkitTouchCallout = 'none';
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // ratón y lápiz (el dedo va por los eventos táctiles de abajo: en iPhone los pointer events del canvas no respondían)
-  cv.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; try { cv.setPointerCapture(e.pointerId); } catch (err) {} P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
+  // V119: con el Apple Pencil y «📊 Promedio» activo, el trazo a mano alzada dibuja el polígono (se cierra al levantar el lápiz)
+  const penH = e => e.pointerType === 'pen' && window.prom3 && window.prom3.on && window.prom3.pen;
+  const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  // el Apple Pencil también genera eventos táctiles: se ignoran (ya van por pointer events) para no duplicar giro ni toques
+  const stylus = e => [...e.changedTouches, ...e.touches].some(t => t.touchType === 'stylus');
+  cv.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; { const H = penH(e); if (H) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} H.down(...rel(e), e.pointerId); return; } } try { cv.setPointerCapture(e.pointerId); } catch (err) {} P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
   cv.addEventListener('pointermove', e => {
+    { const H = penH(e); if (H && H.id === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => H.move(...rel(ev))); return; } }
     if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; const q = P.get(e.pointerId), dx = e.clientX - q.x, dy = e.clientY - q.y; mov += Math.abs(dx) + Math.abs(dy);
     if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
     q.x = e.clientX; q.y = e.clientY; v3Dibujar();
   });
-  const fin = e => { if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
-  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => P.delete(e.pointerId));
+  const fin = e => { { const H = e.pointerType === 'pen' && window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) H.cancel(); P.delete(e.pointerId); });
   // ---- dedo: 1 dedo gira, 2 dedos acercan/alejan y mueven, toque corto elige taladro ----
   let tp = null, tmov = 0, tmulti = false;
   const pos = ts => [...ts].map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
-  cv.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches); }, { passive: false });
+  cv.addEventListener('touchstart', e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches); }, { passive: false });
   cv.addEventListener('touchmove', e => {
-    e.preventDefault(); const now = pos(e.touches); if (!tp || !now.length) return;
+    if (stylus(e)) return; e.preventDefault(); const now = pos(e.touches); if (!tp || !now.length) return;
     if (now.length === 1 && tp.length === 1) {
       const dx = now[0].x - tp[0].x, dy = now[0].y - tp[0].y; tmov += Math.abs(dx) + Math.abs(dy);
       c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006));
@@ -7168,10 +7249,10 @@ function v3Eventos(cv) {
     }
     tp = now; v3Dibujar();
   }, { passive: false });
-  const tfin = e => { e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
+  const tfin = e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
   cv.addEventListener('touchend', tfin, { passive: false }); cv.addEventListener('touchcancel', tfin, { passive: false });
   cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
-  window.addEventListener('resize', () => { if (!$('tab3').hidden) v3Dibujar(); });
+  window.addEventListener('resize', () => { if (v3Vis()) v3Dibujar(); });
 }
 function v3Mover(dx, dy) {
   const c = v3.cam, k = c.dist / ($('v3dCv').clientHeight || 500) * 0.83;
@@ -7207,7 +7288,7 @@ async function v3Mostrar() {
     if (typeof gps === 'undefined' || !gps.on || !gps.pos) { flashHint('Prende el GPS (📍) en la pestaña 2 y espera la señal.'); return; }
     const p = gpsXY(); if (!p) return; Object.assign(v3.cam, { tx: p.x - v3.org[0], ty: p.y - v3.org[1], dist: 180 }); v3Dibujar();
   };
-  setInterval(() => { if (!$('tab3').hidden && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
+  setInterval(() => { if (v3Vis() && v3.ver.gps && typeof gps !== 'undefined' && gps.on) v3Dibujar(); }, 2000);
 })();
 // ===== V75: elegir los proyectos desde la vista 3D (es la misma selección de la pestaña 2) =====
 (() => {
@@ -7271,6 +7352,38 @@ function v3Salir() {
 // V111: se retiraron las fases de diseño; se borra lo que hubiera quedado guardado en este equipo
 (async () => { try { const l = await idbGet('fases'); if (Array.isArray(l)) for (const f of l) await idbSet('fase:' + f.id, null); if (l) await idbSet('fases', null); ['bhl-fase-ver', 'bhl-fase-eq', 'bhl-fase-dens'].forEach(k => localStorage.removeItem(k)); } catch (e) {} })();
 
+// ===== V123: plano y 3D lado a lado (pestaña Avance, pantallas anchas) =====
+(() => {
+  const w2 = document.getElementById('cad2wrap'), w3 = document.getElementById('v3dWrap');
+  if (!w2 || !w3 || typeof pv === 'undefined') return;
+  const st = document.createElement('style');
+  st.textContent = `.cadwrap.split3 > #cad2 { width: 50% !important; }
+.cadwrap.split3 > #v3dWrap.v3split { position: absolute !important; right: 0; top: 0; bottom: 0; width: 50%; height: auto !important; min-height: 0 !important; border-radius: 0; border: 0; border-left: 2px solid #ffd60a; z-index: 4; }
+.cadwrap.split3 > .regla-btn.rg2, .cadwrap.split3 > .regla-box.rg2 { display: none !important; }
+.split-btn { position: absolute; z-index: 7; right: 12px; top: calc(46% + 58px); padding: 7px 11px; border-radius: 9px; border: 1px solid #4a535b; background: rgba(32,38,44,.92); color: #fff; font: 700 .85rem system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.split-btn[aria-pressed=true] { background: #ffd60a; color: #1a1500; border-color: #ffd60a; right: calc(50% + 12px); }
+body.app .split-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
+@media (max-width: 899px) { .split-btn { display: none; } }`;
+  document.head.appendChild(st);
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'split-btn'; btn.textContent = '◫ Plano + 3D'; btn.setAttribute('aria-pressed', 'false'); w2.appendChild(btn);
+  ['pointerdown', 'pointerup', 'touchstart'].forEach(n => btn.addEventListener(n, e => e.stopPropagation()));
+  const home = { par: w3.parentNode, next: w3.nextSibling };
+  let firma = '';
+  const sig = () => t2.shapes.map(s => s.id + ':' + (s.pts || []).length).join(',') + '|' + (t2.draft || []).length + '|' + (t2.result ? Math.round(t2.result.tonnage || t2.result.wsum || 0) + ':' + t2.result.n : '');
+  const poner = async on => {
+    v3.split = on; btn.setAttribute('aria-pressed', String(on)); w2.classList.toggle('split3', on);
+    if (on) { w3.classList.add('v3split'); w2.appendChild(w3); }
+    else { w3.classList.remove('v3split'); home.par.insertBefore(w3, home.next && home.next.parentNode === home.par ? home.next : null); }
+    try { pv.resize(); } catch (e) {}
+    if (on) { try { await v3Mostrar(); } catch (e) {} firma = sig(); } 
+  };
+  btn.onclick = () => poner(!v3.split);
+  // al ir a la pestaña 3D, se vuelve a su lugar
+  const sT = showTab; showTab = n => { if (v3.split) poner(false); return sT(n); };
+  // el 3D sigue al plano: cuando cambian los polígonos o el resultado, se redibuja
+  const a1 = pv.after; pv.after = (ctx, v) => { if (a1) a1(ctx, v); if (v3.split) { const f = sig(); if (f !== firma) { firma = f; clearTimeout(poner.t); poner.t = setTimeout(() => { try { v3Dibujar(); } catch (e) {} }, 120); } } };
+})();
+
 // V106: regla para medir distancias en el plano 2D (pestaña Avance) y en la vista 3D
 (() => {
   if (!document.getElementById('cad2wrap') && !document.getElementById('v3dWrap')) return;
@@ -7300,6 +7413,7 @@ function v3Salir() {
   function crear(wrap, topPx, R, vista, boxTop) {
     const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'regla-btn'; btn.style.top = topPx + 'px'; btn.textContent = '📏 Regla'; btn.setAttribute('aria-pressed', 'false');
     const box = document.createElement('div'); box.className = 'regla-box'; box.hidden = true;
+    if (wrap.id === 'cad2wrap') { btn.classList.add('rg2'); box.classList.add('rg2'); }
     if (boxTop != null) { box.style.top = boxTop + 'px'; box.style.bottom = 'auto'; }
     wrap.appendChild(btn); wrap.appendChild(box);
     const paint = () => {
@@ -7313,12 +7427,12 @@ function v3Salir() {
     R.paint = paint; return paint;
   }
   const rotulo = (ctx, txt, x, y) => { ctx.font = '700 12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.fillStyle = '#ffd60a'; ctx.strokeText(txt, x, y); ctx.fillText(txt, x, y); };
-  function dibujar(ctx, S, pts) {
+  function dibujar(ctx, S, pts, sinDist) {
     if (!pts.length) return;
     ctx.save(); ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4.5; ctx.beginPath(); S.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.stroke();
     ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.5; ctx.setLineDash([8, 5]); ctx.beginPath(); S.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.stroke(); ctx.setLineDash([]);
     S.forEach(s => { ctx.fillStyle = '#ffd60a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s[0], s[1], 5, 0, 7); ctx.fill(); ctx.stroke(); });
-    for (let i = 1; i < S.length; i++) rotulo(ctx, fm(tramo(pts[i - 1], pts[i]).h), (S[i - 1][0] + S[i][0]) / 2, (S[i - 1][1] + S[i][1]) / 2 - 12);
+    if (!sinDist) for (let i = 1; i < S.length; i++) rotulo(ctx, fm(tramo(pts[i - 1], pts[i]).h), (S[i - 1][0] + S[i][0]) / 2, (S[i - 1][1] + S[i][1]) / 2 - 12);
     ctx.restore();
   }
   // ---------- 2D ----------
@@ -7406,8 +7520,8 @@ function v3Salir() {
       };
       const paint = () => {
         btn.setAttribute('aria-pressed', String(P3.on)); box.hidden = !P3.on;
-        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono del avance.') + '</div>' + resumenAv()
-          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="x">Salir</button></div>';
+        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono, o traza el contorno con el Apple Pencil (se cierra al levantarlo).') + '</div>' + resumenAv()
+          + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="s">💾 Guardar avance</button><button type="button" data-a="x">Salir</button></div>';
         try { v3Dibujar(); } catch (e) {}
       };
       P3.paint = paint;
@@ -7416,6 +7530,7 @@ function v3Salir() {
         const b = e.target.closest('button[data-a]'); if (!b) return; const a = b.dataset.a;
         if (a === 'u') P3.pts.pop();
         else if (a === 'k') { if (P3.pts.length < 3) { box.querySelector('div').textContent = 'Pon al menos 3 vértices.'; return; } t2.draft = P3.pts.map(q => ({ x: q.x, y: q.y })); P3.pts = []; closeDraft(); }
+        else if (a === 's') { const g = document.getElementById('btnSaveAv'); if (!t2.result || !t2.result.n || !g || g.disabled) { box.querySelector('div').textContent = 'Primero cierra un polígono con taladros con ley.'; return; } box.querySelector('div').textContent = 'Guardando…'; g.click(); setTimeout(() => { try { const d = box.querySelector('div'), m = document.getElementById('t2Msg'); if (d && m && m.textContent) d.textContent = m.textContent; } catch (e) {} }, 1800); return; }
         else if (a === 'c') { P3.pts = []; t2.shapes = []; t2.draft = []; selectFromShapes(); computeT2(); pv.draw(); }
         else { P3.on = false; P3.pts = []; }
         paint();
@@ -7424,8 +7539,7 @@ function v3Salir() {
       // si enciende la regla, se apaga este modo
       if (window.regla3) { const rb = w3.querySelector('.regla-btn'); if (rb) rb.addEventListener('click', () => { if (window.regla3.on && P3.on) { P3.on = false; P3.pts = []; paint(); } }); }
       const t1 = v3Tocar;
-      v3Tocar = (px, py) => {
-        if (!P3.on) return t1(px, py);
+      const pickAny = (px, py) => {
         let p = pick3(px, py);
         if (!p) { // sin topografía: se toca sobre el plano de la elevación media de los taladros
           const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : (v3.org ? v3.org[2] : 0);
@@ -7433,17 +7547,74 @@ function v3Salir() {
           if (I) { const nx = px / W * 2 - 1, ny = 1 - py / H * 2, un = z => { const w = I[3] * nx + I[7] * ny + I[11] * z + I[15]; return [(I[0] * nx + I[4] * ny + I[8] * z + I[12]) / w, (I[1] * nx + I[5] * ny + I[9] * z + I[13]) / w, (I[2] * nx + I[6] * ny + I[10] * z + I[14]) / w]; };
             const A = un(-1), B = un(1), zt = (zc - o[2]) * ex; if (Math.abs(B[2] - A[2]) > 1e-9) { const t = (zt - A[2]) / (B[2] - A[2]); if (t > 0) p = { x: A[0] + (B[0] - A[0]) * t + o[0], y: A[1] + (B[1] - A[1]) * t + o[1], z: zc }; } }
         }
+        return p;
+      };
+      v3Tocar = (px, py) => {
+        if (!P3.on) return t1(px, py);
+        const p = pickAny(px, py);
         if (!p) { const m = document.getElementById('v3dMsg'); if (m) m.textContent = 'Toca sobre el terreno para poner el vértice.'; return; }
         P3.pts.push(p); paint();
       };
+      // Apple Pencil: trazo a mano alzada sobre el terreno → polígono simplificado que se cierra al levantar el lápiz
+      const dp = (pts, tol) => {
+        if (pts.length < 3) return pts;
+        const a = pts[0], b = pts[pts.length - 1], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+        let im = -1, dm = 0; for (let i = 1; i < pts.length - 1; i++) { const d = L ? Math.abs(dy * (pts[i].x - a.x) - dx * (pts[i].y - a.y)) / L : Math.hypot(pts[i].x - a.x, pts[i].y - a.y); if (d > dm) { dm = d; im = i; } }
+        if (dm <= tol) return [a, b];
+        return dp(pts.slice(0, im + 1), tol).slice(0, -1).concat(dp(pts.slice(im), tol));
+      };
+      P3.pen = { id: null, stroke: [], last: null, mov: 0,
+        down(px, py, id) { this.id = id; this.stroke = []; this.last = [px, py]; this.mov = 0; this.p0 = [px, py]; },
+        move(px, py) {
+          if (this.id == null) return; const d = Math.hypot(px - this.last[0], py - this.last[1]); this.mov = Math.max(this.mov, Math.hypot(px - this.p0[0], py - this.p0[1]));
+          if (d < 7) return; this.last = [px, py]; const p = pickAny(px, py); if (!p) return;
+          this.stroke.push(p); P3.pts = this.stroke.slice(); try { v3Dibujar(); } catch (e) {}
+        },
+        up(px, py) {
+          const st = this.stroke, tap = this.mov < 8; this.id = null; this.stroke = [];
+          if (tap || st.length < 4) { P3.pts = []; return v3Tocar(px, py); }
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; st.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+          const poly = dp(st.concat([st[0]]), Math.max(0.6, Math.hypot(x1 - x0, y1 - y0) * 0.012)); poly.pop();
+          P3.pts = [];
+          if (poly.length < 3) { paint(); return; }
+          t2.draft = poly.map(q => ({ x: q.x, y: q.y })); closeDraft(); paint();
+        },
+        cancel() { this.id = null; this.stroke = []; P3.pts = []; try { v3Dibujar(); } catch (e) {} } };
       const tx1 = v3Textos;
       v3Textos = (M, W, H) => {
         tx1(M, W, H);
-        if (!P3.on || !P3.pts.length) return;
+        if (!P3.on) return;
         const cv = document.getElementById('v3dTxt'), ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? o[2] : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
-        dibujar(ctx, S, P3.pts);
+        // polígonos ya cerrados: contorno pegado al terreno y relleno suave
+        const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : o[2];
+        const zT = (x, y) => { try { const z = v3Z(x, y); if (z != null) return z; } catch (e) {} return zc; };
+        (t2.shapes || []).forEach(sh => {
+          const q = sh.pts || sh; if (!q || q.length < 3) return; const L = [];
+          for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], n = Math.max(1, Math.min(60, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4))); for (let k = 0; k < n; k++) { const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n; L.push(v3Proy(M, W, H, x - o[0], y - o[1], (zT(x, y) + 0.15 - o[2]) * ex)); } }
+          if (L.some(s => !s)) return;
+          ctx.save(); ctx.lineJoin = 'round'; ctx.beginPath(); L.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.closePath();
+          ctx.fillStyle = 'rgba(255,214,10,.18)'; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.stroke(); ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.8; ctx.stroke(); ctx.restore();
+        });
+        // etiqueta con el promedio de cada polígono (Fe, S/FeS, material y tonelaje)
+        try {
+          const R = t2.result, gr = R && R.groups, sh = t2.shapes || [];
+          sh.forEach((shp, i) => {
+            const q = shp.pts || shp; if (!q || q.length < 3) return;
+            const g = gr && gr.length ? gr.find(x => x.idx === i) : (sh.length === 1 ? R : null); if (!g) return;
+            const F = g.fields || {}, fe = F.fe && F.fe.mean != null ? F.fe.mean : F.fe, sf = F.sfe && F.sfe.mean != null ? F.sfe.mean : F.sfe;
+            const cx = q.reduce((a, b) => a + b.x, 0) / q.length, cy = q.reduce((a, b) => a + b.y, 0) / q.length;
+            const sc = v3Proy(M, W, H, cx - o[0], cy - o[1], (zT(cx, cy) + 1 - o[2]) * ex); if (!sc) return;
+            const mat = fe == null ? '' : fe < 20 ? 'Desmonte' : fe < 30 ? 'Marginal' : sf == null ? '' : sf <= 0.30 ? 'M1' : sf <= 0.60 ? 'M2' : sf <= 0.90 ? 'M3' : sf <= 1.5 ? 'M4' : 'M5';
+            const t = g.tonnage || g.mass || 0, L1 = `P${i + 1} · ${g.n != null ? g.n + ' tal' : ''}${t ? ' · ' + Math.round(t).toLocaleString('es-PE') + ' t' : ''}`, L2 = fe == null ? 'sin leyes' : `Fe ${fe.toFixed(1)}${sf != null ? ' · S/FeS ' + sf.toFixed(2) : ''}${mat ? ' · ' + mat : ''}`;
+            ctx.save(); ctx.font = '700 12px system-ui,sans-serif'; const w = Math.max(ctx.measureText(L1).width, ctx.measureText(L2).width) + 14;
+            ctx.fillStyle = 'rgba(15,18,22,.86)'; ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(sc[0] - w / 2, sc[1] - 20, w, 38, 7) : ctx.rect(sc[0] - w / 2, sc[1] - 20, w, 38); ctx.fill(); ctx.stroke();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd60a'; ctx.fillText(L1, sc[0], sc[1] - 8); ctx.fillStyle = '#fff'; ctx.fillText(L2, sc[0], sc[1] + 8); ctx.restore();
+          });
+        } catch (e) {}
+        if (!P3.pts.length) return;
+        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? zT(p.x, p.y) : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
+        dibujar(ctx, S, P3.pts, true);
       };
     }
   } catch (e) { console.warn('prom3', e); }
@@ -8800,6 +8971,305 @@ async function exportarModelos(files) {
   else await save(`Modelos_P_R_${n}_proyectos_${new Date().toISOString().slice(0, 10)}.zip`, await makeZip(out), $('limMsg'));
   setMsg('limMsg', 'ok', `${n} proyecto(s): _P y _R descargados (mismo formato de MinePlan; sirven para AssMining).`);
 }
+
+// V124: Pila PQ4 — perfil de la cancha de apilamiento (formato FR-SHP-01), editable y con promedio por capa
+(() => {
+  const LS = 'bhl-pila-pq4';
+  const CFG = { cap: 427350, muerto: 100000, largo: 600, angMin: -5, angMax: 16, paso: 5, pasoAng: 1 };
+  const CLASES = [
+    { max: 0.15, c: '#5ce8ff', t: '0.00 - 0.15' }, { max: 0.30, c: '#3b6bff', t: '0.15 - 0.30' }, { max: 0.60, c: '#4cd37a', t: '0.30 - 0.60' },
+    { max: 0.90, c: '#ffd89b', t: '0.60 - 0.90' }, { max: 1.50, c: '#ff4b4b', t: '0.90 - 1.50' }, { max: 1e9, c: '#e63cff', t: '> 1.50' }];
+  const RUTAS = ['Directo', 'Dry Cobbing', 'Transferencia', 'Otro'];
+  const claseDe = v => v == null || isNaN(v) ? null : CLASES.findIndex(k => Math.round(v * 100) / 100 <= k.max);
+  const uid = () => 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const dmy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : (iso || ''); };
+  const dmyLargo = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]} / ${m[2]} / ${m[1]}` : ''; };
+  const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- datos ----------
+  let D = { fechas: {}, ver: null };
+  try { D = Object.assign(D, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+  const vacio = f => ({ fecha: f, turno: '', ficha: '', realiza: '', hora: '', chancado: '', stacker: null, rotopala: null, capas: [] });
+  const guardar = () => { try { localStorage.setItem(LS, JSON.stringify({ fechas: D.fechas, ver: D.ver })); } catch (e) {} };
+  const fechas = () => Object.keys(D.fechas).sort();
+  const snap = () => { if (!D.ver || !D.fechas[D.ver]) { const f = fechas(); D.ver = f.length ? f[f.length - 1] : hoyISO(); if (!D.fechas[D.ver]) D.fechas[D.ver] = vacio(D.ver); } return D.fechas[D.ver]; };
+
+  // ---------- orígenes ----------
+  function parseOrigs(txt) {
+    return String(txt || '').split('+').map(s => s.trim()).filter(Boolean).map(s => { const m = /^(.*?)\s*(?:\(([^)]*)\))?\s*$/.exec(s); return { code: (m[1] || s).trim(), m: (m[2] || '').trim() }; });
+  }
+  const origTxt = c => (c.origs || []).map(o => o.code + (o.m ? `(${o.m})` : '')).join(' + ');
+  function proyDeCodigo(code) {
+    try {
+      const m = /^(\d{1,2}A?)(\d{3})_(\d{1,3})$/i.exec(code) || /^(\d{1,2}A?)(\d{2})_(\d{1,3})$/i.exec(code); if (!m || typeof lib === 'undefined') return null;
+      const mina = m[1].toUpperCase(), banco = m[2], nro = String(parseInt(m[3], 10));
+      return (lib.projects || []).find(p => { const c = parseProjectCode(p.name); return c && c.mina === mina && String(parseInt(c.nro, 10)) === nro && String(c.nivel).endsWith(banco); }) || null;
+    } catch (e) { return null; }
+  }
+  function leyDeProy(p) {
+    try {
+      const L = leyesForProject(p); if (!L.leyes || !L.leyes.length) return null;
+      const f = k => { const v = L.leyes.filter(l => l.hasData !== false && l[k] != null && !isNaN(l[k])).map(l => +l[k]); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+      return { sfe: f('sfe'), fe: f('fe'), n: L.leyes.length };
+    } catch (e) { return null; }
+  }
+  function leyAuto(c) {
+    const r = (c.origs || []).map(o => { const p = proyDeCodigo(o.code); return { o, p, l: p ? leyDeProy(p) : null }; });
+    const ok = r.filter(x => x.l && x.l.sfe != null), okFe = r.filter(x => x.l && x.l.fe != null);
+    return { sfe: ok.length ? ok.reduce((a, x) => a + x.l.sfe, 0) / ok.length : null, fe: okFe.length ? okFe.reduce((a, x) => a + x.l.fe, 0) / okFe.length : null, n: ok.length, de: r.length, enc: r.filter(x => x.p).length };
+  }
+  const sfesCapa = c => (c.sfes != null ? c.sfes : leyAuto(c).sfe);
+  const etiqueta = c => `${c.ruta || ''} ${dmy(c.fecha)}${c.turno ? ' (' + c.turno + ')' : ''}`.trim();
+
+  // ---------- geometría ----------
+  // fila 0: 600 → 300 (arriba); fila 1: 300 → 0 (abajo). La distancia crece hacia la izquierda.
+  const FILA = [[300, 600], [0, 300]];
+  function geo(box) { // box {x,y,w,h} = zona de las dos filas
+    const gap = box.h * 0.12, fh = (box.h - gap) / 2;
+    return { box, fh, filas: [0, 1].map(i => ({ i, x: box.x, y: box.y + i * (fh + gap), w: box.w, h: fh })) };
+  }
+  const mx = (F, m, i) => F.x + (FILA[i][1] - m) / 300 * F.w;
+  const my = (F, a) => F.y + (CFG.angMax + 0.5 - a) / (CFG.angMax - CFG.angMin + 1.5) * F.h;
+  const invM = (F, px, i) => FILA[i][1] - (px - F.x) / F.w * 300;
+  const invA = (F, py) => CFG.angMax + 0.5 - (py - F.y) / F.h * (CFG.angMax - CFG.angMin + 1.5);
+
+  function dentro(pts, m, a) { let r = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > a) !== (yj > a) && m < (xj - xi) * (a - yi) / (yj - yi) + xi) r = !r; } return r; }
+
+  function dibujarFilas(ctx, G, S, o) {
+    o = o || {}; const px = o.k || 1;
+    G.filas.forEach(F => {
+      ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip();
+      ctx.fillStyle = o.bg || '#fff'; ctx.fillRect(F.x, F.y, F.w, F.h);
+      // líneas de nivel
+      ctx.lineWidth = 1 * px; ctx.strokeStyle = o.grid || '#b9c0c7'; ctx.setLineDash([6 * px, 5 * px]);
+      for (let a = CFG.angMin; a <= CFG.angMax; a += 1) { const y = my(F, a); ctx.beginPath(); ctx.moveTo(F.x, y); ctx.lineTo(F.x + F.w, y); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.strokeStyle = o.grid2 || '#8b949c'; ctx.lineWidth = 1.2 * px;
+      for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) { const x = mx(F, m, F.i); ctx.beginPath(); ctx.moveTo(x, F.y); ctx.lineTo(x, F.y + F.h); ctx.globalAlpha = m % 50 === 0 ? .5 : .16; ctx.stroke(); ctx.globalAlpha = 1; }
+      // base de material Rlump
+      ctx.fillStyle = '#ffee00'; ctx.fillRect(F.x, my(F, CFG.angMin - 0.6), F.w, F.y + F.h - my(F, CFG.angMin - 0.6));
+      // capas
+      (S.capas || []).forEach(c => {
+        if (!c.pts || c.pts.length < 3) return;
+        const k = claseDe(sfesCapa(c)), col = k == null ? '#d6d9dc' : CLASES[k].c, sel = o.sel === c.id;
+        ctx.beginPath(); c.pts.forEach(([m, a], j) => (j ? ctx.lineTo(mx(F, m, F.i), my(F, a)) : ctx.moveTo(mx(F, m, F.i), my(F, a)))); ctx.closePath();
+        ctx.fillStyle = col; ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.save(); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1 * px; for (let x = F.x - F.h; x < F.x + F.w; x += 7 * px) { ctx.beginPath(); ctx.moveTo(x, F.y + F.h); ctx.lineTo(x + F.h * .6, F.y); ctx.stroke(); } ctx.restore();
+        ctx.strokeStyle = sel ? '#000' : '#111'; ctx.lineWidth = (sel ? 3.2 : 1.4) * px; ctx.stroke();
+        // rótulo
+        const xs = c.pts.map(p => mx(F, p[0], F.i)), ys = c.pts.map(p => my(F, p[1])), vx0 = Math.max(F.x, Math.min(...xs)), vx1 = Math.min(F.x + F.w, Math.max(...xs)), cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        if (vx1 - vx0 > 70 * px) {
+          const fs = Math.max(7, Math.min(11 * px, (Math.max(...ys) - Math.min(...ys)) / 3.2)), tx = (vx0 + vx1) / 2; ctx.font = `700 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000';
+          const L1 = etiqueta(c), L2 = origTxt(c), wmax = vx1 - vx0 - 6 * px, cut = (t) => { while (ctx.measureText(t).width > wmax && t.length > 4) t = t.slice(0, -2); return t; };
+          ctx.fillText(cut(L1), tx, cy - fs * .6); ctx.font = `600 ${fs * .9}px system-ui,sans-serif`; ctx.fillText(cut(L2), tx, cy + fs * .55);
+          if (c.ton) { ctx.font = `700 ${fs * .85}px system-ui,sans-serif`; ctx.fillText(Math.round(c.ton).toLocaleString('es-PE') + ' t', tx, cy + fs * 1.6); }
+        }
+      });
+      // stacker / rotopala
+      [[S.stacker, 'STACKER', '#19c24a'], [S.rotopala, 'ROTOPALA', '#19c24a']].forEach(([m, t, col]) => {
+        if (m == null || m < FILA[F.i][0] || m > FILA[F.i][1]) return; const x = mx(F, m, F.i), y = my(F, CFG.angMax + .1);
+        ctx.fillStyle = col; ctx.strokeStyle = '#063'; ctx.lineWidth = 1.5 * px; ctx.beginPath(); ctx.moveTo(x, y - 9 * px); ctx.lineTo(x + 6 * px, y); ctx.lineTo(x, y + 9 * px); ctx.lineTo(x - 6 * px, y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.font = `700 ${10 * px}px system-ui`; ctx.fillStyle = '#000'; ctx.textBaseline = 'middle'; if (x > F.x + F.w - 80 * px) { ctx.textAlign = 'right'; ctx.fillText(t, x - 9 * px, y); } else { ctx.textAlign = 'left'; ctx.fillText(t, x + 9 * px, y); }
+      });
+      // asas de edición
+      if (o.sel) { const c = (S.capas || []).find(q => q.id === o.sel); if (c) c.pts.forEach(([m, a]) => { if (m < FILA[F.i][0] - 2 || m > FILA[F.i][1] + 2) return; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(mx(F, m, F.i), my(F, a), 7, 0, 7); ctx.fill(); ctx.stroke(); }); }
+      if (o.draft && o.draft.length) { ctx.strokeStyle = '#e8590c'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 4]); ctx.beginPath(); o.draft.forEach(([m, a], j) => (j ? ctx.lineTo(mx(F, m, F.i), my(F, a)) : ctx.moveTo(mx(F, m, F.i), my(F, a)))); ctx.stroke(); ctx.setLineDash([]); o.draft.forEach(([m, a]) => { ctx.fillStyle = '#e8590c'; ctx.beginPath(); ctx.arc(mx(F, m, F.i), my(F, a), 5, 0, 7); ctx.fill(); }); }
+      ctx.restore();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.6 * px; ctx.strokeRect(F.x, F.y, F.w, F.h);
+      // reglas: ángulos a la izquierda y derecha; metros debajo
+      ctx.fillStyle = '#000'; ctx.font = `${10 * px}px system-ui,sans-serif`; ctx.textBaseline = 'middle';
+      [-5, 0, 3, 8, 12, 14, 16].forEach(a => { ctx.textAlign = 'right'; ctx.fillText(a + '°', F.x - 4 * px, my(F, a)); ctx.textAlign = 'left'; ctx.fillText(a + '°', F.x + F.w + 4 * px, my(F, a)); });
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) ctx.fillText(String(m), mx(F, m, F.i), F.y + F.h + 4 * px);
+      ctx.textBaseline = 'bottom'; for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) { if (m === 0 && F.i === 1) continue; ctx.fillText(String(Math.round(m / 10)), mx(F, m, F.i), F.y - 4 * px); }
+    });
+  }
+
+  // ---------- resumen ----------
+  function resumen(S) {
+    const caps = S.capas || []; let t = 0, ts = 0, tfe = 0, nfe = 0, sinT = 0, sinL = 0; const cl = CLASES.map(() => 0), rutas = {};
+    caps.forEach(c => { const tn = c.ton || 0; t += tn; if (!c.ton) sinT++; const s = sfesCapa(c); if (s == null) sinL++; else { ts += tn * s; const k = claseDe(s); cl[k] += tn; }
+      const fe = c.fe != null ? c.fe : leyAuto(c).fe; if (fe != null && tn) { tfe += tn * fe; nfe += tn; } rutas[c.ruta || '—'] = (rutas[c.ruta || '—'] || 0) + tn; });
+    const tsC = caps.reduce((a, c) => a + (sfesCapa(c) != null ? (c.ton || 0) : 0), 0);
+    return { t, total: t + CFG.muerto, pct: (t + CFG.muerto) / CFG.cap * 100, libre: Math.max(0, CFG.cap - CFG.muerto - t), sfes: tsC ? ts / tsC : null, fe: nfe ? tfe / nfe : null, cl, rutas, sinT, sinL, n: caps.length };
+  }
+
+  // ---------- hoja completa (pantalla y PDF) ----------
+  function dibujarHoja(ctx, W, H, S) {
+    const k = W / 1180; ctx.save(); ctx.scale(k, k); const w = 1180, h = H / k;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(6, 6, w - 12, h - 12);
+    ctx.fillStyle = '#000'; ctx.textBaseline = 'middle';
+    ctx.font = '400 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText('SHOUGANG HIERRO PERÚ', 60, 52); ctx.font = '600 25px system-ui'; ctx.fillText('CANCHA DE APILAMIENTO DE PQ 4 - PILA #1', 270, 52);
+    ctx.strokeRect(1020, 34, 130, 52); ctx.beginPath(); ctx.moveTo(1020, 60); ctx.lineTo(1150, 60); ctx.stroke(); ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText('01', 1085, 47); ctx.fillText('FR - SHP - 01', 1085, 73);
+    ctx.font = '15px system-ui'; ctx.fillText('CONTROL DE CALIDAD MINA', w / 2 - 70, 112); ctx.beginPath(); ctx.moveTo(w / 2 - 175, 121); ctx.lineTo(w / 2 + 35, 121); ctx.stroke();
+    ctx.font = '12px system-ui'; ctx.textAlign = 'left'; ctx.fillText('FECHA:  ' + dmyLargo(S.fecha), 40, 150); ctx.fillText('TURNO:  ' + (S.turno || ''), 215, 150); ctx.fillText('FICHA:  ' + (S.ficha || ''), 410, 150); ctx.fillText('REALIZA PERFIL:  ' + (S.realiza || ''), 640, 150); ctx.fillText('FIRMA: ______________', 900, 150);
+    const G = geo({ x: 120, y: 185, w: 990, h: 335 }); dibujarFilas(ctx, G, S, { k: 1 });
+    ctx.font = '700 9px system-ui'; ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.fillText('Material Rlump', 800, G.filas[1].y + G.filas[1].h - 6);
+    ctx.font = '12px system-ui'; ctx.textAlign = 'right'; ctx.fillText('Punto de inicio', 1150, G.filas[1].y + G.filas[1].h + 24); ctx.fillText('distancia en metros', 1150, G.filas[1].y + G.filas[1].h + 42); ctx.textAlign = 'left';
+    const y2 = G.filas[1].y + G.filas[1].h + 56, R = resumen(S);
+    ctx.font = '700 11px system-ui'; ctx.fillText('ACTUALIZACIÓN', 40, y2 + 6); ctx.fillText('HORA: ' + (S.hora || ''), 40, y2 + 22);
+    ctx.font = '13px system-ui'; ctx.fillText(S.chancado || '', 200, y2 + 14);
+    ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(`CAPACIDAD TOTAL : ${CFG.cap.toLocaleString('es-PE')} TM`, 1150, y2 + 6); ctx.fillText(`TONELAJE MUERTO : ${CFG.muerto.toLocaleString('es-PE')} TM`, 1150, y2 + 22);
+    // leyenda
+    const lx = 1000, ly = y2 + 36; ctx.strokeRect(lx, ly, 150, 20 + CLASES.length * 26 + 14); ctx.textAlign = 'center'; ctx.font = '700 10px system-ui'; ctx.fillText('LEYENDA', lx + 75, ly + 12); ctx.fillText('SFES (%)', lx + 75, ly + 24);
+    CLASES.forEach((c, i) => { const y = ly + 48 + i * 26; ctx.textAlign = 'left'; ctx.font = '11px system-ui'; ctx.fillStyle = '#000'; ctx.fillText(c.t, lx + 14, y); ctx.fillStyle = c.c; ctx.fillRect(lx + 100, y - 8, 36, 16); ctx.strokeRect(lx + 100, y - 8, 36, 16); });
+    // resumen al pie izquierdo
+    ctx.fillStyle = '#000'; ctx.textAlign = 'left'; ctx.font = '700 12px system-ui'; ctx.fillText('RESUMEN DE LA PILA', 40, ly + 10);
+    ctx.font = '12px system-ui'; const ln = [`Tonelaje apilado: ${Math.round(R.t).toLocaleString('es-PE')} TM  ·  con tonelaje muerto: ${Math.round(R.total).toLocaleString('es-PE')} TM (${R.pct.toFixed(1)} % de la capacidad)`, `Espacio libre: ${Math.round(R.libre).toLocaleString('es-PE')} TM`, `S/FeS promedio ponderado: ${R.sfes == null ? '—' : R.sfes.toFixed(2)}${R.fe != null ? '   ·   Fe promedio: ' + R.fe.toFixed(1) : ''}`, 'Por ruta: ' + (Object.entries(R.rutas).map(([a, b]) => `${a} ${Math.round(b).toLocaleString('es-PE')} t`).join('  ·  ') || '—')];
+    ln.forEach((t, i) => ctx.fillText(t, 40, ly + 34 + i * 20));
+    ctx.restore();
+  }
+
+  // ---------- interfaz ----------
+  const css = document.createElement('style');
+  css.textContent = `#pilaDlg{position:fixed;inset:0;z-index:300;background:var(--bg,#f4f1ec);color:var(--ink,#222);display:flex;flex-direction:column}
+#pilaDlg[hidden]{display:none}
+body.app #pilaDlg{z-index:40;bottom:calc(64px + env(safe-area-inset-bottom,0px));top:calc(env(safe-area-inset-top,0px) + 0px)}
+body.app #plCerrar,body.app #btnPila{display:none}
+.pl-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line,#ccc);background:var(--panel,#fff)}
+.pl-top h2{margin:0;font-size:1.05rem;margin-right:auto}
+.pl-top button,.pl-top select,.pl-top input{min-height:40px;font:600 .88rem system-ui;border-radius:9px;border:1px solid var(--line,#bbb);background:var(--panel,#fff);color:inherit;padding:0 11px}
+.pl-top select,.pl-top input{width:auto!important;margin:0}.pl-top label{margin:0}
+.pl-top .pri{background:#c2410c;color:#fff;border-color:#c2410c}
+.pl-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 330px;gap:10px;padding:10px}
+@media (max-width:900px){.pl-body{grid-template-columns:1fr;grid-template-rows:minmax(240px,45%) 1fr}}
+.pl-cv{position:relative;background:#fff;border:1px solid var(--line,#ccc);border-radius:10px;overflow:hidden;touch-action:none}
+.pl-cv canvas{width:100%;height:100%;display:block}
+.pl-side{overflow:auto;background:var(--panel,#fff);border:1px solid var(--line,#ccc);border-radius:10px;padding:10px;font-size:.88rem}
+.pl-side label{display:block;margin:6px 0 2px;font-weight:600;font-size:.78rem;opacity:.8}
+.pl-side input,.pl-side select,.pl-side textarea{width:100%;box-sizing:border-box;min-height:40px;border:1px solid var(--line,#bbb);border-radius:8px;padding:6px 8px;font:inherit;background:var(--bg,#fff);color:inherit}
+.pl-row{display:flex;gap:6px}.pl-row>*{flex:1}
+.pl-side button{min-height:40px;border-radius:9px;border:1px solid var(--line,#bbb);background:var(--bg,#fff);color:inherit;font:600 .85rem system-ui;padding:0 10px}
+.pl-side .pri{background:#c2410c;color:#fff;border-color:#c2410c}
+.pl-tools{position:absolute;left:8px;top:8px;display:flex;gap:6px;z-index:2}
+.pl-tools button{min-height:40px;padding:0 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .85rem system-ui}
+.pl-tools button[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}
+.pl-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #0006;vertical-align:-2px;margin-right:5px}
+.pl-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}.pl-kpi div{background:var(--bg,#f2f2f2);border-radius:8px;padding:6px 8px}.pl-kpi b{display:block;font-size:1.05rem}
+.pl-bar{height:12px;background:#e3e3e3;border-radius:6px;overflow:hidden;margin:4px 0}.pl-bar i{display:block;height:100%;background:#c2410c}
+.pl-msg{font-size:.8rem;opacity:.85;margin:6px 0}`;
+  document.head.appendChild(css);
+  const dlg = document.createElement('div'); dlg.id = 'pilaDlg'; dlg.hidden = true; dlg.setAttribute('role', 'dialog');
+  dlg.innerHTML = `<div class="pl-top"><h2>🏔 Pila PQ4 · perfil</h2><label style="display:flex;gap:6px;align-items:center">Fecha <input type="date" id="plFecha"></label><select id="plHist" title="Perfiles guardados"></select><button id="plNuevoDia" type="button">📅 Nuevo día (copia el último)</button><button id="plImp" type="button">🖨 PDF / Imprimir</button><button id="plResp" type="button">⬇ Respaldo</button><button id="plRest" type="button">⬆ Cargar respaldo</button><button id="plCerrar" type="button" class="pri">✕ Cerrar</button></div>
+<div class="pl-body"><div class="pl-cv" id="plCv"><div class="pl-tools"><button id="plToolSel" type="button" aria-pressed="true">☝ Seleccionar</button><button id="plToolDib" type="button" aria-pressed="false">✏ Dibujar capa</button><button id="plToolCerrar" type="button" hidden>✔ Cerrar capa</button><button id="plToolDesh" type="button" hidden>↶</button></div><canvas id="plCanvas"></canvas></div><div class="pl-side" id="plSide"></div></div><input type="file" id="plFile" accept=".json" hidden>`;
+  document.body.appendChild(dlg);
+  const $$ = id => document.getElementById(id);
+  const cv = $$('plCanvas'), cx = cv.getContext('2d');
+  const E = { tool: 'sel', sel: null, draft: [], drag: null, G: null };
+
+  function pintar() {
+    const S = snap(), r = $$('plCv').getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = r.width, H = r.height, padL = 38, padR = 38, padT = 26, padB = 20;
+    cx.fillStyle = getComputedStyle(document.body).color === '' ? '#000' : '#000'; cx.clearRect(0, 0, W, H); cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+    E.G = geo({ x: padL, y: padT + 58, w: W - padL - padR, h: H - padT - padB - 58 - 18 });
+    dibujarFilas(cx, E.G, S, { k: 1, sel: E.sel, draft: E.draft });
+    cx.fillStyle = '#000'; cx.font = '600 12px system-ui'; cx.textAlign = 'left'; cx.fillText('Distancia en metros · 0 = punto de inicio (derecha, fila de abajo)', padL + 250, 26);
+  }
+  const punto = ev => {
+    const r = cv.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top; if (!E.G) return null;
+    const F = E.G.filas.find(f => py >= f.y - 6 && py <= f.y + f.h + 6 && px >= f.x - 6 && px <= f.x + f.w + 6); if (!F) return null;
+    let m = invM(F, px, F.i), a = invA(F, py); m = Math.max(FILA[F.i][0], Math.min(FILA[F.i][1], Math.round(m / CFG.paso) * CFG.paso)); a = Math.max(CFG.angMin - 1, Math.min(CFG.angMax + .5, Math.round(a / CFG.pasoAng) * CFG.pasoAng));
+    return { F, m, a, px, py };
+  };
+  const capaSel = () => (snap().capas || []).find(c => c.id === E.sel);
+
+  cv.addEventListener('pointerdown', ev => {
+    const p = punto(ev); if (!p) return; const S = snap();
+    if (E.tool === 'dib') { E.draft.push([p.m, p.a]); pintarTodo(); return; }
+    const c = capaSel();
+    if (c) { for (let i = 0; i < c.pts.length; i++) { const [m, a] = c.pts[i]; for (const F of E.G.filas) { const dx = mx(F, m, F.i) - p.px, dy = my(F, a) - p.py; if (Math.hypot(dx, dy) < 18) { E.drag = { c, i }; try { cv.setPointerCapture(ev.pointerId); } catch (e) {} return; } } } }
+    const hit = [...(S.capas || [])].reverse().find(q => dentro(q.pts, p.m, p.a)); E.sel = hit ? hit.id : null; pintarTodo();
+  });
+  cv.addEventListener('pointermove', ev => { if (!E.drag) return; const p = punto(ev); if (!p) return; E.drag.c.pts[E.drag.i] = [p.m, p.a]; pintar(); });
+  const fin = () => { if (E.drag) { E.drag = null; guardar(); pintarTodo(); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+
+  function setTool(t) { E.tool = t; E.draft = []; $$('plToolSel').setAttribute('aria-pressed', String(t === 'sel')); $$('plToolDib').setAttribute('aria-pressed', String(t === 'dib')); $$('plToolCerrar').hidden = $$('plToolDesh').hidden = t !== 'dib'; pintarTodo(); }
+  $$('plToolSel').onclick = () => setTool('sel'); $$('plToolDib').onclick = () => setTool('dib');
+  $$('plToolDesh').onclick = () => { E.draft.pop(); pintarTodo(); };
+  $$('plToolCerrar').onclick = () => {
+    if (E.draft.length < 3) return; const S = snap(), c = { id: uid(), pts: E.draft.slice(), ruta: 'Directo', fecha: S.fecha, turno: '', origs: [], ton: null, sfes: null };
+    S.capas.push(c); E.sel = c.id; E.draft = []; guardar(); setTool('sel');
+  };
+
+  function nuevaCapaForm(S) {
+    const g = id => num($$(id).value), d = g('nfDesde'), h = g('nfHasta'), b = g('nfBase'), t = g('nfTecho'), tal = g('nfTalud') || 0;
+    if (d == null || h == null || b == null || t == null || h <= d) { $$('plMsg').textContent = 'Completa desde, hasta (m), base y techo (°).'; return; }
+    const pts = [[d, b], [h, b], [h - tal, t], [d + tal, t]];
+    const c = { id: uid(), pts, ruta: 'Directo', fecha: S.fecha, turno: '', origs: [], ton: null, sfes: null }; S.capas.push(c); E.sel = c.id; guardar(); pintarTodo();
+  }
+
+  function pintarPanel() {
+    const S = snap(), R = resumen(S), c = capaSel(), side = $$('plSide');
+    const kp = `<div class="pl-kpi"><div>Apilado<b>${Math.round(R.t).toLocaleString('es-PE')} t</b></div><div>S/FeS prom.<b>${R.sfes == null ? '—' : R.sfes.toFixed(2)}</b></div><div>Con tonelaje muerto<b>${Math.round(R.total).toLocaleString('es-PE')} t</b></div><div>Libre<b>${Math.round(R.libre).toLocaleString('es-PE')} t</b></div></div><div class="pl-bar"><i style="width:${Math.min(100, R.pct)}%"></i></div><div class="pl-msg">${R.pct.toFixed(1)} % de la capacidad (${CFG.cap.toLocaleString('es-PE')} t)${R.sinT ? ` · ⚠ ${R.sinT} capa(s) sin tonelaje` : ''}${R.sinL ? ` · ⚠ ${R.sinL} sin S/FeS (gris)` : ''}</div>` + CLASES.map((k, i) => R.cl[i] ? `<div><span class="pl-sw" style="background:${k.c}"></span>${k.t}: <b>${Math.round(R.cl[i]).toLocaleString('es-PE')} t</b> (${R.t ? (R.cl[i] / R.t * 100).toFixed(0) : 0} %)</div>` : '').join('');
+    let ed;
+    if (c) {
+      const A = leyAuto(c), k = claseDe(sfesCapa(c));
+      ed = `<hr><b>Capa seleccionada</b> ${k != null ? `<span class="pl-sw" style="background:${CLASES[k].c}"></span>${CLASES[k].t}` : ''}
+<label>Ruta</label><select id="cRuta">${RUTAS.map(r => `<option${c.ruta === r ? ' selected' : ''}>${r}</option>`).join('')}</select>
+<div class="pl-row"><div><label>Fecha</label><input type="date" id="cFecha" value="${esc(c.fecha)}"></div><div><label>Turno / ángulo</label><input id="cTurno" value="${esc(c.turno)}" placeholder="ej. 12°"></div></div>
+<label>Orígenes (ej. 14455_12(M3) + 14A26_11(M1))</label><textarea id="cOrig" rows="2">${esc(origTxt(c))}</textarea>
+<div class="pl-msg">${A.de ? `Encontré ${A.enc} de ${A.de} en tus proyectos${A.sfe != null ? ` · S/FeS auto <b>${A.sfe.toFixed(2)}</b>` : ''}${A.fe != null ? ` · Fe ${A.fe.toFixed(1)}` : ''}.` : 'Escribe los códigos para traer sus leyes.'}</div>
+<div class="pl-row"><div><label>Tonelaje (t)</label><input id="cTon" inputmode="decimal" value="${c.ton == null ? '' : c.ton}"></div><div><label>S/FeS (vacío = auto)</label><input id="cSfes" inputmode="decimal" value="${c.sfes == null ? '' : c.sfes}" placeholder="${A.sfe != null ? A.sfe.toFixed(2) : ''}"></div></div>
+<div class="pl-row" style="margin-top:8px"><button id="cDup" type="button">⧉ Duplicar</button><button id="cDel" type="button">🗑 Borrar capa</button></div><button id="cNueva" type="button" class="pri" style="width:100%;margin-top:8px">＋ Nueva capa</button>`;
+    } else {
+      ed = `<hr><b>Nueva capa por medidas</b>
+<div class="pl-row"><div><label>Desde (m)</label><input id="nfDesde" inputmode="decimal"></div><div><label>Hasta (m)</label><input id="nfHasta" inputmode="decimal"></div></div>
+<div class="pl-row"><div><label>Base (°)</label><input id="nfBase" inputmode="decimal"></div><div><label>Techo (°)</label><input id="nfTecho" inputmode="decimal"></div><div><label>Talud (m)</label><input id="nfTalud" inputmode="decimal" placeholder="10"></div></div>
+<button id="nfCrear" type="button" class="pri" style="width:100%;margin-top:8px">＋ Crear capa</button><div class="pl-msg" id="plMsg">O usa «✏ Dibujar capa» y toca los vértices sobre el perfil. Toca una capa para editarla; sus puntos blancos se arrastran.</div>`;
+    }
+    const ca = `<hr><b>Datos de la hoja</b><div class="pl-row"><div><label>Turno</label><input id="hTurno" value="${esc(S.turno)}"></div><div><label>Ficha</label><input id="hFicha" value="${esc(S.ficha)}"></div></div><label>Realiza perfil</label><input id="hReal" value="${esc(S.realiza)}"><div class="pl-row"><div><label>Hora actualización</label><input id="hHora" value="${esc(S.hora)}" placeholder="6:20 a.m."></div><div><label>Stacker (m)</label><input id="hSt" inputmode="decimal" value="${S.stacker == null ? '' : S.stacker}"></div><div><label>Rotopala (m)</label><input id="hRot" inputmode="decimal" value="${S.rotopala == null ? '' : S.rotopala}"></div></div><label>Chancado / envío</label><input id="hChan" value="${esc(S.chancado)}" placeholder="CHANCADO / ENVÍO, 3° TURNO, 09-11-2026">`;
+    side.innerHTML = kp + ed + ca;
+    const on = (id, fn) => { const e = $$(id); if (e) e.onchange = fn; };
+    on('cRuta', e => { c.ruta = e.target.value; cambio(); }); on('cFecha', e => { c.fecha = e.target.value; cambio(); }); on('cTurno', e => { c.turno = e.target.value; cambio(); });
+    on('cOrig', e => { c.origs = parseOrigs(e.target.value); cambio(); }); on('cTon', e => { c.ton = num(e.target.value); cambio(); }); on('cSfes', e => { c.sfes = num(e.target.value); cambio(); });
+    if ($$('cDel')) $$('cDel').onclick = () => { S.capas = S.capas.filter(q => q.id !== c.id); E.sel = null; cambio(); };
+    if ($$('cDup')) $$('cDup').onclick = () => { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.pts = n.pts.map(([m, a]) => [m, a + 1]); S.capas.push(n); E.sel = n.id; cambio(); };
+    if ($$('cNueva')) $$('cNueva').onclick = () => { E.sel = null; pintarTodo(); };
+    if ($$('nfCrear')) $$('nfCrear').onclick = () => nuevaCapaForm(S);
+    on('hTurno', e => { S.turno = e.target.value; cambio(true); }); on('hFicha', e => { S.ficha = e.target.value; cambio(true); }); on('hReal', e => { S.realiza = e.target.value; cambio(true); }); on('hHora', e => { S.hora = e.target.value; cambio(true); }); on('hChan', e => { S.chancado = e.target.value; cambio(true); });
+    on('hSt', e => { S.stacker = num(e.target.value); cambio(); }); on('hRot', e => { S.rotopala = num(e.target.value); cambio(); });
+  }
+  const cambio = suave => { guardar(); if (suave) return; pintarTodo(); };
+  function pintarCab() {
+    const S = snap(); $$('plFecha').value = S.fecha;
+    $$('plHist').innerHTML = fechas().map(f => `<option value="${f}"${f === D.ver ? ' selected' : ''}>${dmy(f)}</option>`).join('');
+  }
+  function pintarTodo() { pintarCab(); pintar(); pintarPanel(); }
+  $$('plHist').onchange = e => { D.ver = e.target.value; E.sel = null; guardar(); pintarTodo(); };
+  $$('plFecha').onchange = e => {
+    const f = e.target.value; if (!f) return; const S = snap();
+    if (D.fechas[f]) { D.ver = f; } else { delete D.fechas[S.fecha]; S.fecha = f; D.fechas[f] = S; D.ver = f; }
+    guardar(); pintarTodo();
+  };
+  $$('plNuevoDia').onclick = () => {
+    const S = snap(), f = hoyISO(); let dest = f;
+    if (D.fechas[f] && f !== S.fecha) { if (!confirm('Ya existe un perfil de hoy. ¿Reemplazarlo con una copia del que estás viendo?')) return; }
+    const n = JSON.parse(JSON.stringify(S)); n.fecha = dest; n.turno = ''; n.hora = ''; n.chancado = ''; D.fechas[dest] = n; D.ver = dest; E.sel = null; guardar(); pintarTodo();
+  };
+  $$('plImp').onclick = () => {
+    const S = snap(), W = 3508, H = 2480, c = document.createElement('canvas'); c.width = W; c.height = H; dibujarHoja(c.getContext('2d'), W, H, S);
+    const url = c.toDataURL('image/png');
+    printPlotSVG({ W: 842, H: 595, svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 842 595" width="842" height="595"><image href="${url}" x="0" y="0" width="842" height="595"/></svg>` });
+  };
+  $$('plResp').onclick = () => {
+    const b = new Blob([JSON.stringify({ tipo: 'bhl-pila-pq4', fechas: D.fechas }, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `PQ4_respaldo_${hoyISO()}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  };
+  $$('plRest').onclick = () => $$('plFile').click();
+  $$('plFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const j = JSON.parse(await f.text()); if (j.tipo !== 'bhl-pila-pq4' || !j.fechas) throw 0; Object.assign(D.fechas, j.fechas); D.ver = fechas().pop(); guardar(); pintarTodo(); } catch (er) { alert('Ese archivo no es un respaldo de la pila PQ4.'); } };
+  $$('plCerrar').onclick = () => { dlg.hidden = true; document.body.style.overflow = ''; };
+  window.addEventListener('resize', () => { if (!dlg.hidden) pintar(); });
+  window.cerrarPilaPQ4 = () => { dlg.hidden = true; document.body.style.overflow = ''; };
+  window.abrirPilaPQ4 = () => { snap(); dlg.hidden = false; document.body.style.overflow = 'hidden'; E.sel = null; setTool('sel'); pintarTodo(); };
+  window.PILA_TEST = { dibujarHoja, resumen, proyDeCodigo, parseOrigs, D: () => D };
+  // botón de entrada junto al Tablero
+  const bt = document.getElementById('btnTablero');
+  const PILA_VISIBLE = false; // se vuelve a mostrar cuando el usuario lo pida: true aquí y quitar «hidden» del botón data-at=pila (6 columnas en .appbar)
+  if (bt && PILA_VISIBLE) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
