@@ -372,8 +372,9 @@ body.app .apptop h1 { flex-shrink: 0; }
 body.app .apptop-r .syncb { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html:has(body.app), body.app { overflow-x: hidden; overflow-x: clip; max-width: 100vw; }
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
-body.app .appbar { display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
+.appbar button[hidden] { display: none; }
 .appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .appbar button[aria-current="page"] { color: var(--accent); }
 .appbar button[aria-current="page"] svg { stroke-width: 2.1; }
@@ -936,7 +937,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v125</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v126</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1376,7 +1377,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
   <button type="button" data-at="3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>3D</span></button>
   <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
-  <button type="button" data-at="pila"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19.5h19M4 19.5 9 9l3.5 5 2.5-3.5 5 9"/></svg><span>Pila PQ4</span></button>
+  <button type="button" data-at="pila" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19.5h19M4 19.5 9 9l3.5 5 2.5-3.5 5 9"/></svg><span>Pila PQ4</span></button>
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
 
@@ -9266,7 +9267,8 @@ body.app #plCerrar,body.app #btnPila{display:none}
   window.PILA_TEST = { dibujarHoja, resumen, proyDeCodigo, parseOrigs, D: () => D };
   // botón de entrada junto al Tablero
   const bt = document.getElementById('btnTablero');
-  if (bt) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
+  const PILA_VISIBLE = false; // se vuelve a mostrar cuando el usuario lo pida: true aquí y quitar «hidden» del botón data-at=pila (6 columnas en .appbar)
+  if (bt && PILA_VISIBLE) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
