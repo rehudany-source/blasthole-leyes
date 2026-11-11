@@ -9273,6 +9273,94 @@ body.app #plCerrar,body.app #btnPila{display:none}
   if (bt && PILA_VISIBLE) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
 })();
 
+// V127: Tinta — dibujar y escribir a mano libre sobre el plano (Apple Pencil), sin sacar promedios
+(() => {
+  const LS = 'bhl-tinta';
+  const COLS = ['#ff3b30', '#ffd60a', '#34c759', '#0a84ff', '#ffffff', '#111111'];
+  const ANCH = [2, 4, 8];
+  const wrap = $('cad2wrap'), bar = wrap && wrap.querySelector('.cadbar');
+  if (!wrap || !bar || typeof pv === 'undefined') return;
+  let strokes = []; try { strokes = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) { strokes = []; }
+  const S = { on: false, show: true, col: COLS[0], w: 4, borra: false, dedo: false, cur: null, pend: false, hist: [] };
+  const guardar = () => { try { localStorage.setItem(LS, JSON.stringify(strokes)); } catch (e) {} };
+
+  const st = document.createElement('style');
+  st.textContent = `.tinta-pan{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;bottom:14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;max-width:calc(100% - 16px);padding:6px 8px;border-radius:12px;background:rgba(20,24,28,.94);border:1px solid #3a424a;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.tinta-pan[hidden]{display:none}
+.tinta-pan button{min-width:42px;min-height:42px;border-radius:9px;border:1px solid #4a535b;background:#2a3138;color:#fff;font:600 1.05rem system-ui,sans-serif;touch-action:manipulation;padding:0 6px}
+.tinta-pan button[aria-pressed=true]{outline:2px solid #ffd60a}
+.tinta-pan .tc{width:32px;min-width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;border:2px solid #6a747c}
+.tinta-pan .tw{display:inline-flex;align-items:center;justify-content:center;width:42px}
+.cadwrap.tinta-on .inplan{display:none!important}
+.tinta-pan .tw i{display:block;background:#fff;border-radius:50%}
+.tinta-pan .sep{width:1px;height:28px;background:#4a535b}
+#btnTinta{position:absolute;z-index:7;left:10px;top:46%;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+.cadwrap.full #btnTinta{top:46%}
+#btnTinta[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}`;
+  document.head.appendChild(st);
+
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'btnTinta'; b.textContent = '🖍 Tinta'; b.setAttribute('aria-pressed', 'false'); b.title = 'Dibujar encima del plano (no calcula nada)';
+  wrap.appendChild(b);
+  const pan = document.createElement('div'); pan.className = 'tinta-pan'; pan.hidden = true;
+  pan.innerHTML = COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
+    + ANCH.map(w => `<button type="button" class="tw" data-w="${w}" aria-label="grosor"><i style="width:${w + 4}px;height:${w + 4}px"></i></button>`).join('') + '<span class="sep"></span>'
+    + '<button type="button" data-a="e" title="Borrar trazo">🧽</button><button type="button" data-a="u" title="Deshacer">↩</button><button type="button" data-a="v" title="Ocultar o mostrar">👁</button><button type="button" data-a="f" title="Dibujar también con el dedo">☝</button><button type="button" data-a="x" title="Borrar todo">🗑</button><button type="button" data-a="ok" title="Listo" style="background:#ffd60a;color:#1a1500">✓</button>';
+  wrap.appendChild(pan);
+
+  const pintaPan = () => {
+    pan.querySelectorAll('.tc').forEach(x => x.setAttribute('aria-pressed', String(!S.borra && x.dataset.c === S.col)));
+    pan.querySelectorAll('.tw').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.w === S.w)));
+    pan.querySelector('[data-a=e]').setAttribute('aria-pressed', String(S.borra));
+    pan.querySelector('[data-a=v]').setAttribute('aria-pressed', String(!S.show)); pan.querySelector('[data-a=f]').setAttribute('aria-pressed', String(S.dedo));
+    b.setAttribute('aria-pressed', String(S.on));
+  };
+  const setOn = on => { S.on = on; pan.hidden = !on; wrap.classList.toggle('tinta-on', on); if (on) S.show = true; pintaPan(); pv.draw(); };
+  b.addEventListener('click', () => setOn(!S.on));
+  pan.addEventListener('click', e => {
+    const x = e.target.closest('button'); if (!x) return;
+    if (x.dataset.c) { S.col = x.dataset.c; S.borra = false; }
+    else if (x.dataset.w) S.w = +x.dataset.w;
+    else if (x.dataset.a === 'e') S.borra = !S.borra;
+    else if (x.dataset.a === 'u') { const h = S.hist.pop(); if (h) { if (h.add) strokes = strokes.filter(s => s !== h.add); else if (h.del) strokes.push(...h.del); guardar(); } }
+    else if (x.dataset.a === 'v') S.show = !S.show;
+    else if (x.dataset.a === 'f') S.dedo = !S.dedo;
+    else if (x.dataset.a === 'x') { if (strokes.length && confirm('¿Borrar todos los trazos de tinta?')) { S.hist.push({ del: strokes.slice() }); strokes = []; guardar(); } }
+    else if (x.dataset.a === 'ok') { setOn(false); return; }
+    pintaPan(); pv.draw();
+  });
+
+  // el lápiz (o el ratón) dibuja; el dedo sigue moviendo y haciendo zoom, salvo que se active «Dedo»
+  const w0 = pv.wantsDraw, d0 = pv.onDraw;
+  pv.wantsDraw = e => { if (S.on && (e.pointerType !== 'touch' || S.dedo)) { S.pend = true; return true; } S.pend = false; return w0 ? w0(e) : false; };
+  const borrarEn = (x, y) => {
+    const r = 14 / pv.v.s, r2 = r * r; const caen = strokes.filter(s => s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }));
+    if (caen.length) { strokes = strokes.filter(s => !caen.includes(s)); S.hist.push({ del: caen }); guardar(); pv.draw(); }
+  };
+  pv.onDraw = (fase, x, y) => {
+    if (!S.pend && !S.cur) return d0 && d0(fase, x, y);
+    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else { S.cur = { c: S.col, w: S.w, p: [[x, y]] }; } }
+    else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) S.cur.p.push([x, y]); } }
+    else if (fase === 'end') { const c = S.cur; S.cur = null; if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01 / pv.v.s, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } }
+    pv.draw();
+  };
+
+  const trazo = (ctx, v, s) => {
+    const P = s.p; if (!P.length) return; ctx.beginPath(); ctx.moveTo(v.sx(P[0][0]), v.sy(P[0][1]));
+    for (let i = 1; i < P.length - 1; i++) { const mx = (v.sx(P[i][0]) + v.sx(P[i + 1][0])) / 2, my = (v.sy(P[i][1]) + v.sy(P[i + 1][1])) / 2; ctx.quadraticCurveTo(v.sx(P[i][0]), v.sy(P[i][1]), mx, my); }
+    const L = P[P.length - 1]; ctx.lineTo(v.sx(L[0]), v.sy(L[1]));
+    ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.stroke();
+  };
+  const a0 = pv.after;
+  pv.after = (ctx, v) => {
+    if (a0) a0(ctx, v);
+    if (!S.show || (!strokes.length && !S.cur)) return;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    strokes.forEach(s => trazo(ctx, v, s)); if (S.cur && S.cur.p) trazo(ctx, v, S.cur);
+    ctx.restore();
+  };
+  window.TINTA = S; pintaPan();
+})();
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
