@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v123</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v124</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -8968,6 +8968,300 @@ async function exportarModelos(files) {
   else await save(`Modelos_P_R_${n}_proyectos_${new Date().toISOString().slice(0, 10)}.zip`, await makeZip(out), $('limMsg'));
   setMsg('limMsg', 'ok', `${n} proyecto(s): _P y _R descargados (mismo formato de MinePlan; sirven para AssMining).`);
 }
+
+// V124: Pila PQ4 — perfil de la cancha de apilamiento (formato FR-SHP-01), editable y con promedio por capa
+(() => {
+  const LS = 'bhl-pila-pq4';
+  const CFG = { cap: 427350, muerto: 100000, largo: 600, angMin: -5, angMax: 16, paso: 5, pasoAng: 1 };
+  const CLASES = [
+    { max: 0.15, c: '#5ce8ff', t: '0.00 - 0.15' }, { max: 0.30, c: '#3b6bff', t: '0.15 - 0.30' }, { max: 0.60, c: '#4cd37a', t: '0.30 - 0.60' },
+    { max: 0.90, c: '#ffd89b', t: '0.60 - 0.90' }, { max: 1.50, c: '#ff4b4b', t: '0.90 - 1.50' }, { max: 1e9, c: '#e63cff', t: '> 1.50' }];
+  const RUTAS = ['Directo', 'Dry Cobbing', 'Transferencia', 'Otro'];
+  const claseDe = v => v == null || isNaN(v) ? null : CLASES.findIndex(k => Math.round(v * 100) / 100 <= k.max);
+  const uid = () => 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const dmy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : (iso || ''); };
+  const dmyLargo = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]} / ${m[2]} / ${m[1]}` : ''; };
+  const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- datos ----------
+  let D = { fechas: {}, ver: null };
+  try { D = Object.assign(D, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+  const vacio = f => ({ fecha: f, turno: '', ficha: '', realiza: '', hora: '', chancado: '', stacker: null, rotopala: null, capas: [] });
+  const guardar = () => { try { localStorage.setItem(LS, JSON.stringify({ fechas: D.fechas, ver: D.ver })); } catch (e) {} };
+  const fechas = () => Object.keys(D.fechas).sort();
+  const snap = () => { if (!D.ver || !D.fechas[D.ver]) { const f = fechas(); D.ver = f.length ? f[f.length - 1] : hoyISO(); if (!D.fechas[D.ver]) D.fechas[D.ver] = vacio(D.ver); } return D.fechas[D.ver]; };
+
+  // ---------- orígenes ----------
+  function parseOrigs(txt) {
+    return String(txt || '').split('+').map(s => s.trim()).filter(Boolean).map(s => { const m = /^(.*?)\s*(?:\(([^)]*)\))?\s*$/.exec(s); return { code: (m[1] || s).trim(), m: (m[2] || '').trim() }; });
+  }
+  const origTxt = c => (c.origs || []).map(o => o.code + (o.m ? `(${o.m})` : '')).join(' + ');
+  function proyDeCodigo(code) {
+    try {
+      const m = /^(\d{1,2}A?)(\d{3})_(\d{1,3})$/i.exec(code) || /^(\d{1,2}A?)(\d{2})_(\d{1,3})$/i.exec(code); if (!m || typeof lib === 'undefined') return null;
+      const mina = m[1].toUpperCase(), banco = m[2], nro = String(parseInt(m[3], 10));
+      return (lib.projects || []).find(p => { const c = parseProjectCode(p.name); return c && c.mina === mina && String(parseInt(c.nro, 10)) === nro && String(c.nivel).endsWith(banco); }) || null;
+    } catch (e) { return null; }
+  }
+  function leyDeProy(p) {
+    try {
+      const L = leyesForProject(p); if (!L.leyes || !L.leyes.length) return null;
+      const f = k => { const v = L.leyes.filter(l => l.hasData !== false && l[k] != null && !isNaN(l[k])).map(l => +l[k]); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+      return { sfe: f('sfe'), fe: f('fe'), n: L.leyes.length };
+    } catch (e) { return null; }
+  }
+  function leyAuto(c) {
+    const r = (c.origs || []).map(o => { const p = proyDeCodigo(o.code); return { o, p, l: p ? leyDeProy(p) : null }; });
+    const ok = r.filter(x => x.l && x.l.sfe != null), okFe = r.filter(x => x.l && x.l.fe != null);
+    return { sfe: ok.length ? ok.reduce((a, x) => a + x.l.sfe, 0) / ok.length : null, fe: okFe.length ? okFe.reduce((a, x) => a + x.l.fe, 0) / okFe.length : null, n: ok.length, de: r.length, enc: r.filter(x => x.p).length };
+  }
+  const sfesCapa = c => (c.sfes != null ? c.sfes : leyAuto(c).sfe);
+  const etiqueta = c => `${c.ruta || ''} ${dmy(c.fecha)}${c.turno ? ' (' + c.turno + ')' : ''}`.trim();
+
+  // ---------- geometría ----------
+  // fila 0: 600 → 300 (arriba); fila 1: 300 → 0 (abajo). La distancia crece hacia la izquierda.
+  const FILA = [[300, 600], [0, 300]];
+  function geo(box) { // box {x,y,w,h} = zona de las dos filas
+    const gap = box.h * 0.12, fh = (box.h - gap) / 2;
+    return { box, fh, filas: [0, 1].map(i => ({ i, x: box.x, y: box.y + i * (fh + gap), w: box.w, h: fh })) };
+  }
+  const mx = (F, m, i) => F.x + (FILA[i][1] - m) / 300 * F.w;
+  const my = (F, a) => F.y + (CFG.angMax + 0.5 - a) / (CFG.angMax - CFG.angMin + 1.5) * F.h;
+  const invM = (F, px, i) => FILA[i][1] - (px - F.x) / F.w * 300;
+  const invA = (F, py) => CFG.angMax + 0.5 - (py - F.y) / F.h * (CFG.angMax - CFG.angMin + 1.5);
+
+  function dentro(pts, m, a) { let r = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > a) !== (yj > a) && m < (xj - xi) * (a - yi) / (yj - yi) + xi) r = !r; } return r; }
+
+  function dibujarFilas(ctx, G, S, o) {
+    o = o || {}; const px = o.k || 1;
+    G.filas.forEach(F => {
+      ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip();
+      ctx.fillStyle = o.bg || '#fff'; ctx.fillRect(F.x, F.y, F.w, F.h);
+      // líneas de nivel
+      ctx.lineWidth = 1 * px; ctx.strokeStyle = o.grid || '#b9c0c7'; ctx.setLineDash([6 * px, 5 * px]);
+      for (let a = CFG.angMin; a <= CFG.angMax; a += 1) { const y = my(F, a); ctx.beginPath(); ctx.moveTo(F.x, y); ctx.lineTo(F.x + F.w, y); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.strokeStyle = o.grid2 || '#8b949c'; ctx.lineWidth = 1.2 * px;
+      for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) { const x = mx(F, m, F.i); ctx.beginPath(); ctx.moveTo(x, F.y); ctx.lineTo(x, F.y + F.h); ctx.globalAlpha = m % 50 === 0 ? .5 : .16; ctx.stroke(); ctx.globalAlpha = 1; }
+      // base de material Rlump
+      ctx.fillStyle = '#ffee00'; ctx.fillRect(F.x, my(F, CFG.angMin - 0.6), F.w, F.y + F.h - my(F, CFG.angMin - 0.6));
+      // capas
+      (S.capas || []).forEach(c => {
+        if (!c.pts || c.pts.length < 3) return;
+        const k = claseDe(sfesCapa(c)), col = k == null ? '#d6d9dc' : CLASES[k].c, sel = o.sel === c.id;
+        ctx.beginPath(); c.pts.forEach(([m, a], j) => (j ? ctx.lineTo(mx(F, m, F.i), my(F, a)) : ctx.moveTo(mx(F, m, F.i), my(F, a)))); ctx.closePath();
+        ctx.fillStyle = col; ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.save(); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1 * px; for (let x = F.x - F.h; x < F.x + F.w; x += 7 * px) { ctx.beginPath(); ctx.moveTo(x, F.y + F.h); ctx.lineTo(x + F.h * .6, F.y); ctx.stroke(); } ctx.restore();
+        ctx.strokeStyle = sel ? '#000' : '#111'; ctx.lineWidth = (sel ? 3.2 : 1.4) * px; ctx.stroke();
+        // rótulo
+        const xs = c.pts.map(p => mx(F, p[0], F.i)), ys = c.pts.map(p => my(F, p[1])), vx0 = Math.max(F.x, Math.min(...xs)), vx1 = Math.min(F.x + F.w, Math.max(...xs)), cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        if (vx1 - vx0 > 70 * px) {
+          const fs = Math.max(7, Math.min(11 * px, (Math.max(...ys) - Math.min(...ys)) / 3.2)), tx = (vx0 + vx1) / 2; ctx.font = `700 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000';
+          const L1 = etiqueta(c), L2 = origTxt(c), wmax = vx1 - vx0 - 6 * px, cut = (t) => { while (ctx.measureText(t).width > wmax && t.length > 4) t = t.slice(0, -2); return t; };
+          ctx.fillText(cut(L1), tx, cy - fs * .6); ctx.font = `600 ${fs * .9}px system-ui,sans-serif`; ctx.fillText(cut(L2), tx, cy + fs * .55);
+          if (c.ton) { ctx.font = `700 ${fs * .85}px system-ui,sans-serif`; ctx.fillText(Math.round(c.ton).toLocaleString('es-PE') + ' t', tx, cy + fs * 1.6); }
+        }
+      });
+      // stacker / rotopala
+      [[S.stacker, 'STACKER', '#19c24a'], [S.rotopala, 'ROTOPALA', '#19c24a']].forEach(([m, t, col]) => {
+        if (m == null || m < FILA[F.i][0] || m > FILA[F.i][1]) return; const x = mx(F, m, F.i), y = my(F, CFG.angMax + .1);
+        ctx.fillStyle = col; ctx.strokeStyle = '#063'; ctx.lineWidth = 1.5 * px; ctx.beginPath(); ctx.moveTo(x, y - 9 * px); ctx.lineTo(x + 6 * px, y); ctx.lineTo(x, y + 9 * px); ctx.lineTo(x - 6 * px, y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.font = `700 ${10 * px}px system-ui`; ctx.fillStyle = '#000'; ctx.textBaseline = 'middle'; if (x > F.x + F.w - 80 * px) { ctx.textAlign = 'right'; ctx.fillText(t, x - 9 * px, y); } else { ctx.textAlign = 'left'; ctx.fillText(t, x + 9 * px, y); }
+      });
+      // asas de edición
+      if (o.sel) { const c = (S.capas || []).find(q => q.id === o.sel); if (c) c.pts.forEach(([m, a]) => { if (m < FILA[F.i][0] - 2 || m > FILA[F.i][1] + 2) return; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(mx(F, m, F.i), my(F, a), 7, 0, 7); ctx.fill(); ctx.stroke(); }); }
+      if (o.draft && o.draft.length) { ctx.strokeStyle = '#e8590c'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 4]); ctx.beginPath(); o.draft.forEach(([m, a], j) => (j ? ctx.lineTo(mx(F, m, F.i), my(F, a)) : ctx.moveTo(mx(F, m, F.i), my(F, a)))); ctx.stroke(); ctx.setLineDash([]); o.draft.forEach(([m, a]) => { ctx.fillStyle = '#e8590c'; ctx.beginPath(); ctx.arc(mx(F, m, F.i), my(F, a), 5, 0, 7); ctx.fill(); }); }
+      ctx.restore();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.6 * px; ctx.strokeRect(F.x, F.y, F.w, F.h);
+      // reglas: ángulos a la izquierda y derecha; metros debajo
+      ctx.fillStyle = '#000'; ctx.font = `${10 * px}px system-ui,sans-serif`; ctx.textBaseline = 'middle';
+      [-5, 0, 3, 8, 12, 14, 16].forEach(a => { ctx.textAlign = 'right'; ctx.fillText(a + '°', F.x - 4 * px, my(F, a)); ctx.textAlign = 'left'; ctx.fillText(a + '°', F.x + F.w + 4 * px, my(F, a)); });
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) ctx.fillText(String(m), mx(F, m, F.i), F.y + F.h + 4 * px);
+      ctx.textBaseline = 'bottom'; for (let m = FILA[F.i][0]; m <= FILA[F.i][1]; m += 10) { if (m === 0 && F.i === 1) continue; ctx.fillText(String(Math.round(m / 10)), mx(F, m, F.i), F.y - 4 * px); }
+    });
+  }
+
+  // ---------- resumen ----------
+  function resumen(S) {
+    const caps = S.capas || []; let t = 0, ts = 0, tfe = 0, nfe = 0, sinT = 0, sinL = 0; const cl = CLASES.map(() => 0), rutas = {};
+    caps.forEach(c => { const tn = c.ton || 0; t += tn; if (!c.ton) sinT++; const s = sfesCapa(c); if (s == null) sinL++; else { ts += tn * s; const k = claseDe(s); cl[k] += tn; }
+      const fe = c.fe != null ? c.fe : leyAuto(c).fe; if (fe != null && tn) { tfe += tn * fe; nfe += tn; } rutas[c.ruta || '—'] = (rutas[c.ruta || '—'] || 0) + tn; });
+    const tsC = caps.reduce((a, c) => a + (sfesCapa(c) != null ? (c.ton || 0) : 0), 0);
+    return { t, total: t + CFG.muerto, pct: (t + CFG.muerto) / CFG.cap * 100, libre: Math.max(0, CFG.cap - CFG.muerto - t), sfes: tsC ? ts / tsC : null, fe: nfe ? tfe / nfe : null, cl, rutas, sinT, sinL, n: caps.length };
+  }
+
+  // ---------- hoja completa (pantalla y PDF) ----------
+  function dibujarHoja(ctx, W, H, S) {
+    const k = W / 1180; ctx.save(); ctx.scale(k, k); const w = 1180, h = H / k;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(6, 6, w - 12, h - 12);
+    ctx.fillStyle = '#000'; ctx.textBaseline = 'middle';
+    ctx.font = '400 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText('SHOUGANG HIERRO PERÚ', 60, 52); ctx.font = '600 25px system-ui'; ctx.fillText('CANCHA DE APILAMIENTO DE PQ 4 - PILA #1', 270, 52);
+    ctx.strokeRect(1020, 34, 130, 52); ctx.beginPath(); ctx.moveTo(1020, 60); ctx.lineTo(1150, 60); ctx.stroke(); ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText('01', 1085, 47); ctx.fillText('FR - SHP - 01', 1085, 73);
+    ctx.font = '15px system-ui'; ctx.fillText('CONTROL DE CALIDAD MINA', w / 2 - 70, 112); ctx.beginPath(); ctx.moveTo(w / 2 - 175, 121); ctx.lineTo(w / 2 + 35, 121); ctx.stroke();
+    ctx.font = '12px system-ui'; ctx.textAlign = 'left'; ctx.fillText('FECHA:  ' + dmyLargo(S.fecha), 40, 150); ctx.fillText('TURNO:  ' + (S.turno || ''), 215, 150); ctx.fillText('FICHA:  ' + (S.ficha || ''), 410, 150); ctx.fillText('REALIZA PERFIL:  ' + (S.realiza || ''), 640, 150); ctx.fillText('FIRMA: ______________', 900, 150);
+    const G = geo({ x: 120, y: 185, w: 990, h: 335 }); dibujarFilas(ctx, G, S, { k: 1 });
+    ctx.font = '700 9px system-ui'; ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.fillText('Material Rlump', 800, G.filas[1].y + G.filas[1].h - 6);
+    ctx.font = '12px system-ui'; ctx.textAlign = 'right'; ctx.fillText('Punto de inicio', 1150, G.filas[1].y + G.filas[1].h + 24); ctx.fillText('distancia en metros', 1150, G.filas[1].y + G.filas[1].h + 42); ctx.textAlign = 'left';
+    const y2 = G.filas[1].y + G.filas[1].h + 56, R = resumen(S);
+    ctx.font = '700 11px system-ui'; ctx.fillText('ACTUALIZACIÓN', 40, y2 + 6); ctx.fillText('HORA: ' + (S.hora || ''), 40, y2 + 22);
+    ctx.font = '13px system-ui'; ctx.fillText(S.chancado || '', 200, y2 + 14);
+    ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(`CAPACIDAD TOTAL : ${CFG.cap.toLocaleString('es-PE')} TM`, 1150, y2 + 6); ctx.fillText(`TONELAJE MUERTO : ${CFG.muerto.toLocaleString('es-PE')} TM`, 1150, y2 + 22);
+    // leyenda
+    const lx = 1000, ly = y2 + 36; ctx.strokeRect(lx, ly, 150, 20 + CLASES.length * 26 + 14); ctx.textAlign = 'center'; ctx.font = '700 10px system-ui'; ctx.fillText('LEYENDA', lx + 75, ly + 12); ctx.fillText('SFES (%)', lx + 75, ly + 24);
+    CLASES.forEach((c, i) => { const y = ly + 48 + i * 26; ctx.textAlign = 'left'; ctx.font = '11px system-ui'; ctx.fillStyle = '#000'; ctx.fillText(c.t, lx + 14, y); ctx.fillStyle = c.c; ctx.fillRect(lx + 100, y - 8, 36, 16); ctx.strokeRect(lx + 100, y - 8, 36, 16); });
+    // resumen al pie izquierdo
+    ctx.fillStyle = '#000'; ctx.textAlign = 'left'; ctx.font = '700 12px system-ui'; ctx.fillText('RESUMEN DE LA PILA', 40, ly + 10);
+    ctx.font = '12px system-ui'; const ln = [`Tonelaje apilado: ${Math.round(R.t).toLocaleString('es-PE')} TM  ·  con tonelaje muerto: ${Math.round(R.total).toLocaleString('es-PE')} TM (${R.pct.toFixed(1)} % de la capacidad)`, `Espacio libre: ${Math.round(R.libre).toLocaleString('es-PE')} TM`, `S/FeS promedio ponderado: ${R.sfes == null ? '—' : R.sfes.toFixed(2)}${R.fe != null ? '   ·   Fe promedio: ' + R.fe.toFixed(1) : ''}`, 'Por ruta: ' + (Object.entries(R.rutas).map(([a, b]) => `${a} ${Math.round(b).toLocaleString('es-PE')} t`).join('  ·  ') || '—')];
+    ln.forEach((t, i) => ctx.fillText(t, 40, ly + 34 + i * 20));
+    ctx.restore();
+  }
+
+  // ---------- interfaz ----------
+  const css = document.createElement('style');
+  css.textContent = `#pilaDlg{position:fixed;inset:0;z-index:300;background:var(--bg,#f4f1ec);color:var(--ink,#222);display:flex;flex-direction:column}
+#pilaDlg[hidden]{display:none}
+.pl-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line,#ccc);background:var(--panel,#fff)}
+.pl-top h2{margin:0;font-size:1.05rem;margin-right:auto}
+.pl-top button,.pl-top select,.pl-top input{min-height:40px;font:600 .88rem system-ui;border-radius:9px;border:1px solid var(--line,#bbb);background:var(--panel,#fff);color:inherit;padding:0 11px}
+.pl-top .pri{background:#c2410c;color:#fff;border-color:#c2410c}
+.pl-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 330px;gap:10px;padding:10px}
+@media (max-width:900px){.pl-body{grid-template-columns:1fr;grid-template-rows:minmax(240px,45%) 1fr}}
+.pl-cv{position:relative;background:#fff;border:1px solid var(--line,#ccc);border-radius:10px;overflow:hidden;touch-action:none}
+.pl-cv canvas{width:100%;height:100%;display:block}
+.pl-side{overflow:auto;background:var(--panel,#fff);border:1px solid var(--line,#ccc);border-radius:10px;padding:10px;font-size:.88rem}
+.pl-side label{display:block;margin:6px 0 2px;font-weight:600;font-size:.78rem;opacity:.8}
+.pl-side input,.pl-side select,.pl-side textarea{width:100%;box-sizing:border-box;min-height:40px;border:1px solid var(--line,#bbb);border-radius:8px;padding:6px 8px;font:inherit;background:var(--bg,#fff);color:inherit}
+.pl-row{display:flex;gap:6px}.pl-row>*{flex:1}
+.pl-side button{min-height:40px;border-radius:9px;border:1px solid var(--line,#bbb);background:var(--bg,#fff);color:inherit;font:600 .85rem system-ui;padding:0 10px}
+.pl-side .pri{background:#c2410c;color:#fff;border-color:#c2410c}
+.pl-tools{position:absolute;left:8px;top:8px;display:flex;gap:6px;z-index:2}
+.pl-tools button{min-height:40px;padding:0 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .85rem system-ui}
+.pl-tools button[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}
+.pl-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #0006;vertical-align:-2px;margin-right:5px}
+.pl-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}.pl-kpi div{background:var(--bg,#f2f2f2);border-radius:8px;padding:6px 8px}.pl-kpi b{display:block;font-size:1.05rem}
+.pl-bar{height:12px;background:#e3e3e3;border-radius:6px;overflow:hidden;margin:4px 0}.pl-bar i{display:block;height:100%;background:#c2410c}
+.pl-msg{font-size:.8rem;opacity:.85;margin:6px 0}`;
+  document.head.appendChild(css);
+  const dlg = document.createElement('div'); dlg.id = 'pilaDlg'; dlg.hidden = true; dlg.setAttribute('role', 'dialog');
+  dlg.innerHTML = `<div class="pl-top"><h2>🏔 Pila PQ4 · perfil</h2><label style="display:flex;gap:6px;align-items:center">Fecha <input type="date" id="plFecha"></label><select id="plHist" title="Perfiles guardados"></select><button id="plNuevoDia" type="button">📅 Nuevo día (copia el último)</button><button id="plImp" type="button">🖨 PDF / Imprimir</button><button id="plResp" type="button">⬇ Respaldo</button><button id="plRest" type="button">⬆ Cargar respaldo</button><button id="plCerrar" type="button" class="pri">✕ Cerrar</button></div>
+<div class="pl-body"><div class="pl-cv" id="plCv"><div class="pl-tools"><button id="plToolSel" type="button" aria-pressed="true">☝ Seleccionar</button><button id="plToolDib" type="button" aria-pressed="false">✏ Dibujar capa</button><button id="plToolCerrar" type="button" hidden>✔ Cerrar capa</button><button id="plToolDesh" type="button" hidden>↶</button></div><canvas id="plCanvas"></canvas></div><div class="pl-side" id="plSide"></div></div><input type="file" id="plFile" accept=".json" hidden>`;
+  document.body.appendChild(dlg);
+  const $$ = id => document.getElementById(id);
+  const cv = $$('plCanvas'), cx = cv.getContext('2d');
+  const E = { tool: 'sel', sel: null, draft: [], drag: null, G: null };
+
+  function pintar() {
+    const S = snap(), r = $$('plCv').getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = r.width, H = r.height, padL = 38, padR = 38, padT = 26, padB = 20;
+    cx.fillStyle = getComputedStyle(document.body).color === '' ? '#000' : '#000'; cx.clearRect(0, 0, W, H); cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+    E.G = geo({ x: padL, y: padT + 58, w: W - padL - padR, h: H - padT - padB - 58 - 18 });
+    dibujarFilas(cx, E.G, S, { k: 1, sel: E.sel, draft: E.draft });
+    cx.fillStyle = '#000'; cx.font = '600 12px system-ui'; cx.textAlign = 'left'; cx.fillText('Distancia en metros · 0 = punto de inicio (derecha, fila de abajo)', padL + 250, 26);
+  }
+  const punto = ev => {
+    const r = cv.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top; if (!E.G) return null;
+    const F = E.G.filas.find(f => py >= f.y - 6 && py <= f.y + f.h + 6 && px >= f.x - 6 && px <= f.x + f.w + 6); if (!F) return null;
+    let m = invM(F, px, F.i), a = invA(F, py); m = Math.max(FILA[F.i][0], Math.min(FILA[F.i][1], Math.round(m / CFG.paso) * CFG.paso)); a = Math.max(CFG.angMin - 1, Math.min(CFG.angMax + .5, Math.round(a / CFG.pasoAng) * CFG.pasoAng));
+    return { F, m, a, px, py };
+  };
+  const capaSel = () => (snap().capas || []).find(c => c.id === E.sel);
+
+  cv.addEventListener('pointerdown', ev => {
+    const p = punto(ev); if (!p) return; const S = snap();
+    if (E.tool === 'dib') { E.draft.push([p.m, p.a]); pintarTodo(); return; }
+    const c = capaSel();
+    if (c) { for (let i = 0; i < c.pts.length; i++) { const [m, a] = c.pts[i]; for (const F of E.G.filas) { const dx = mx(F, m, F.i) - p.px, dy = my(F, a) - p.py; if (Math.hypot(dx, dy) < 18) { E.drag = { c, i }; try { cv.setPointerCapture(ev.pointerId); } catch (e) {} return; } } } }
+    const hit = [...(S.capas || [])].reverse().find(q => dentro(q.pts, p.m, p.a)); E.sel = hit ? hit.id : null; pintarTodo();
+  });
+  cv.addEventListener('pointermove', ev => { if (!E.drag) return; const p = punto(ev); if (!p) return; E.drag.c.pts[E.drag.i] = [p.m, p.a]; pintar(); });
+  const fin = () => { if (E.drag) { E.drag = null; guardar(); pintarTodo(); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+
+  function setTool(t) { E.tool = t; E.draft = []; $$('plToolSel').setAttribute('aria-pressed', String(t === 'sel')); $$('plToolDib').setAttribute('aria-pressed', String(t === 'dib')); $$('plToolCerrar').hidden = $$('plToolDesh').hidden = t !== 'dib'; pintarTodo(); }
+  $$('plToolSel').onclick = () => setTool('sel'); $$('plToolDib').onclick = () => setTool('dib');
+  $$('plToolDesh').onclick = () => { E.draft.pop(); pintarTodo(); };
+  $$('plToolCerrar').onclick = () => {
+    if (E.draft.length < 3) return; const S = snap(), c = { id: uid(), pts: E.draft.slice(), ruta: 'Directo', fecha: S.fecha, turno: '', origs: [], ton: null, sfes: null };
+    S.capas.push(c); E.sel = c.id; E.draft = []; guardar(); setTool('sel');
+  };
+
+  function nuevaCapaForm(S) {
+    const g = id => num($$(id).value), d = g('nfDesde'), h = g('nfHasta'), b = g('nfBase'), t = g('nfTecho'), tal = g('nfTalud') || 0;
+    if (d == null || h == null || b == null || t == null || h <= d) { $$('plMsg').textContent = 'Completa desde, hasta (m), base y techo (°).'; return; }
+    const pts = [[d, b], [h, b], [h - tal, t], [d + tal, t]];
+    const c = { id: uid(), pts, ruta: 'Directo', fecha: S.fecha, turno: '', origs: [], ton: null, sfes: null }; S.capas.push(c); E.sel = c.id; guardar(); pintarTodo();
+  }
+
+  function pintarPanel() {
+    const S = snap(), R = resumen(S), c = capaSel(), side = $$('plSide');
+    const kp = `<div class="pl-kpi"><div>Apilado<b>${Math.round(R.t).toLocaleString('es-PE')} t</b></div><div>S/FeS prom.<b>${R.sfes == null ? '—' : R.sfes.toFixed(2)}</b></div><div>Con tonelaje muerto<b>${Math.round(R.total).toLocaleString('es-PE')} t</b></div><div>Libre<b>${Math.round(R.libre).toLocaleString('es-PE')} t</b></div></div><div class="pl-bar"><i style="width:${Math.min(100, R.pct)}%"></i></div><div class="pl-msg">${R.pct.toFixed(1)} % de la capacidad (${CFG.cap.toLocaleString('es-PE')} t)${R.sinT ? ` · ⚠ ${R.sinT} capa(s) sin tonelaje` : ''}${R.sinL ? ` · ⚠ ${R.sinL} sin S/FeS (gris)` : ''}</div>` + CLASES.map((k, i) => R.cl[i] ? `<div><span class="pl-sw" style="background:${k.c}"></span>${k.t}: <b>${Math.round(R.cl[i]).toLocaleString('es-PE')} t</b> (${R.t ? (R.cl[i] / R.t * 100).toFixed(0) : 0} %)</div>` : '').join('');
+    let ed;
+    if (c) {
+      const A = leyAuto(c), k = claseDe(sfesCapa(c));
+      ed = `<hr><b>Capa seleccionada</b> ${k != null ? `<span class="pl-sw" style="background:${CLASES[k].c}"></span>${CLASES[k].t}` : ''}
+<label>Ruta</label><select id="cRuta">${RUTAS.map(r => `<option${c.ruta === r ? ' selected' : ''}>${r}</option>`).join('')}</select>
+<div class="pl-row"><div><label>Fecha</label><input type="date" id="cFecha" value="${esc(c.fecha)}"></div><div><label>Turno / ángulo</label><input id="cTurno" value="${esc(c.turno)}" placeholder="ej. 12°"></div></div>
+<label>Orígenes (ej. 14455_12(M3) + 14A26_11(M1))</label><textarea id="cOrig" rows="2">${esc(origTxt(c))}</textarea>
+<div class="pl-msg">${A.de ? `Encontré ${A.enc} de ${A.de} en tus proyectos${A.sfe != null ? ` · S/FeS auto <b>${A.sfe.toFixed(2)}</b>` : ''}${A.fe != null ? ` · Fe ${A.fe.toFixed(1)}` : ''}.` : 'Escribe los códigos para traer sus leyes.'}</div>
+<div class="pl-row"><div><label>Tonelaje (t)</label><input id="cTon" inputmode="decimal" value="${c.ton == null ? '' : c.ton}"></div><div><label>S/FeS (vacío = auto)</label><input id="cSfes" inputmode="decimal" value="${c.sfes == null ? '' : c.sfes}" placeholder="${A.sfe != null ? A.sfe.toFixed(2) : ''}"></div></div>
+<div class="pl-row" style="margin-top:8px"><button id="cDup" type="button">⧉ Duplicar</button><button id="cDel" type="button">🗑 Borrar capa</button></div><button id="cNueva" type="button" class="pri" style="width:100%;margin-top:8px">＋ Nueva capa</button>`;
+    } else {
+      ed = `<hr><b>Nueva capa por medidas</b>
+<div class="pl-row"><div><label>Desde (m)</label><input id="nfDesde" inputmode="decimal"></div><div><label>Hasta (m)</label><input id="nfHasta" inputmode="decimal"></div></div>
+<div class="pl-row"><div><label>Base (°)</label><input id="nfBase" inputmode="decimal"></div><div><label>Techo (°)</label><input id="nfTecho" inputmode="decimal"></div><div><label>Talud (m)</label><input id="nfTalud" inputmode="decimal" placeholder="10"></div></div>
+<button id="nfCrear" type="button" class="pri" style="width:100%;margin-top:8px">＋ Crear capa</button><div class="pl-msg" id="plMsg">O usa «✏ Dibujar capa» y toca los vértices sobre el perfil. Toca una capa para editarla; sus puntos blancos se arrastran.</div>`;
+    }
+    const ca = `<hr><b>Datos de la hoja</b><div class="pl-row"><div><label>Turno</label><input id="hTurno" value="${esc(S.turno)}"></div><div><label>Ficha</label><input id="hFicha" value="${esc(S.ficha)}"></div></div><label>Realiza perfil</label><input id="hReal" value="${esc(S.realiza)}"><div class="pl-row"><div><label>Hora actualización</label><input id="hHora" value="${esc(S.hora)}" placeholder="6:20 a.m."></div><div><label>Stacker (m)</label><input id="hSt" inputmode="decimal" value="${S.stacker == null ? '' : S.stacker}"></div><div><label>Rotopala (m)</label><input id="hRot" inputmode="decimal" value="${S.rotopala == null ? '' : S.rotopala}"></div></div><label>Chancado / envío</label><input id="hChan" value="${esc(S.chancado)}" placeholder="CHANCADO / ENVÍO, 3° TURNO, 09-11-2026">`;
+    side.innerHTML = kp + ed + ca;
+    const on = (id, fn) => { const e = $$(id); if (e) e.onchange = fn; };
+    on('cRuta', e => { c.ruta = e.target.value; cambio(); }); on('cFecha', e => { c.fecha = e.target.value; cambio(); }); on('cTurno', e => { c.turno = e.target.value; cambio(); });
+    on('cOrig', e => { c.origs = parseOrigs(e.target.value); cambio(); }); on('cTon', e => { c.ton = num(e.target.value); cambio(); }); on('cSfes', e => { c.sfes = num(e.target.value); cambio(); });
+    if ($$('cDel')) $$('cDel').onclick = () => { S.capas = S.capas.filter(q => q.id !== c.id); E.sel = null; cambio(); };
+    if ($$('cDup')) $$('cDup').onclick = () => { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.pts = n.pts.map(([m, a]) => [m, a + 1]); S.capas.push(n); E.sel = n.id; cambio(); };
+    if ($$('cNueva')) $$('cNueva').onclick = () => { E.sel = null; pintarTodo(); };
+    if ($$('nfCrear')) $$('nfCrear').onclick = () => nuevaCapaForm(S);
+    on('hTurno', e => { S.turno = e.target.value; cambio(true); }); on('hFicha', e => { S.ficha = e.target.value; cambio(true); }); on('hReal', e => { S.realiza = e.target.value; cambio(true); }); on('hHora', e => { S.hora = e.target.value; cambio(true); }); on('hChan', e => { S.chancado = e.target.value; cambio(true); });
+    on('hSt', e => { S.stacker = num(e.target.value); cambio(); }); on('hRot', e => { S.rotopala = num(e.target.value); cambio(); });
+  }
+  const cambio = suave => { guardar(); if (suave) return; pintarTodo(); };
+  function pintarCab() {
+    const S = snap(); $$('plFecha').value = S.fecha;
+    $$('plHist').innerHTML = fechas().map(f => `<option value="${f}"${f === D.ver ? ' selected' : ''}>${dmy(f)}</option>`).join('');
+  }
+  function pintarTodo() { pintarCab(); pintar(); pintarPanel(); }
+  $$('plHist').onchange = e => { D.ver = e.target.value; E.sel = null; guardar(); pintarTodo(); };
+  $$('plFecha').onchange = e => {
+    const f = e.target.value; if (!f) return; const S = snap();
+    if (D.fechas[f]) { D.ver = f; } else { delete D.fechas[S.fecha]; S.fecha = f; D.fechas[f] = S; D.ver = f; }
+    guardar(); pintarTodo();
+  };
+  $$('plNuevoDia').onclick = () => {
+    const S = snap(), f = hoyISO(); let dest = f;
+    if (D.fechas[f] && f !== S.fecha) { if (!confirm('Ya existe un perfil de hoy. ¿Reemplazarlo con una copia del que estás viendo?')) return; }
+    const n = JSON.parse(JSON.stringify(S)); n.fecha = dest; n.turno = ''; n.hora = ''; n.chancado = ''; D.fechas[dest] = n; D.ver = dest; E.sel = null; guardar(); pintarTodo();
+  };
+  $$('plImp').onclick = () => {
+    const S = snap(), W = 3508, H = 2480, c = document.createElement('canvas'); c.width = W; c.height = H; dibujarHoja(c.getContext('2d'), W, H, S);
+    const url = c.toDataURL('image/png');
+    printPlotSVG({ W: 842, H: 595, svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 842 595" width="842" height="595"><image href="${url}" x="0" y="0" width="842" height="595"/></svg>` });
+  };
+  $$('plResp').onclick = () => {
+    const b = new Blob([JSON.stringify({ tipo: 'bhl-pila-pq4', fechas: D.fechas }, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `PQ4_respaldo_${hoyISO()}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  };
+  $$('plRest').onclick = () => $$('plFile').click();
+  $$('plFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const j = JSON.parse(await f.text()); if (j.tipo !== 'bhl-pila-pq4' || !j.fechas) throw 0; Object.assign(D.fechas, j.fechas); D.ver = fechas().pop(); guardar(); pintarTodo(); } catch (er) { alert('Ese archivo no es un respaldo de la pila PQ4.'); } };
+  $$('plCerrar').onclick = () => { dlg.hidden = true; document.body.style.overflow = ''; };
+  window.addEventListener('resize', () => { if (!dlg.hidden) pintar(); });
+  window.abrirPilaPQ4 = () => { snap(); dlg.hidden = false; document.body.style.overflow = 'hidden'; E.sel = null; setTool('sel'); pintarTodo(); };
+  window.PILA_TEST = { dibujarHoja, resumen, proyDeCodigo, parseOrigs, D: () => D };
+  // botón de entrada junto al Tablero
+  const bt = document.getElementById('btnTablero');
+  if (bt) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
+})();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
