@@ -436,6 +436,32 @@ body.app .cadwrap:not(.full) > .cadbar #z2in, body.app .cadwrap:not(.full) > .ca
 body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius: 10px; padding: 6px 12px; }
 .avgtiles:empty { display: none; }
 @media (max-width: 600px) { body.app .cadwrap:not(.full) > .cadbar #z2fit { display: none; } body.app #z2full { font-size: 0; padding: 6px 10px; } body.app #z2full::before { content: "⤢"; font-size: 18px; } }
+/* ===== V118 · iPad: pantalla dividida en horizontal, sin botones encimados, tacto cómodo ===== */
+.t2dock { display: none; }
+body.app .cadbar { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 16px); row-gap: 6px; }
+body.app .cadwrap:not(.full) > .cadbar button { min-height: 44px; }
+body.app .regla-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
+body.app .regla-box button { min-height: 44px; font-size: .88rem; }
+body.app .cadwrap .regla-btn.rg2 { top: auto !important; right: auto; left: 10px; bottom: 12px; }
+body.app .cadwrap .regla-box.rg2 { bottom: 66px; }
+body.app .cadwrap.full .regla-btn.rg2 { left: 96px; bottom: calc(12px + var(--sb, 0px)); }
+body.app .cadwrap.full .regla-box.rg2 { left: 96px; bottom: calc(66px + var(--sb, 0px)); }
+body.app .cadwrap.full:not(.nopanel) .foto-btn, body.app .cadwrap.full:not(.nopanel) .gps-btn { right: calc(var(--pw, 0px) + 24px); }
+.t2dock .t2ah { font: 700 .78rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 2px 4px; }
+body.app .cadwrap:not(.full) .anl { right: 8px; flex-wrap: wrap; row-gap: 6px; width: auto; }
+body.app .cadwrap:not(.full) .anl select { max-width: 190px; }
+@media (min-width: 761px) { body.app .t2mini { top: auto; bottom: 12px; right: 12px; } }
+@media (min-width: 700px) and (orientation: portrait) { body.app .t2plano .cadwrap:not(.full) { height: calc(100dvh - 300px - env(safe-area-inset-bottom, 0px)); min-height: 460px; } }
+@media (min-width: 1000px) and (orientation: landscape) {
+  body.app .t2plano .cadwrap:not(.full) { height: calc(100dvh - 196px - env(safe-area-inset-bottom, 0px)); min-height: 420px; }
+  body.app.t2app .t2dock { display: flex; flex-direction: column; gap: 10px; flex: 0 0 350px; min-width: 0; max-height: calc(100dvh - 196px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  body.app.t2app .t2mini { display: none; }
+  body.app.t2app .t2dock > * { flex: none; }
+  body.app.t2app .t2dock .avgtiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  body.app.t2app .t2dock .avgtiles .v { font-size: 1.22rem; overflow-wrap: anywhere; }
+  body.app.t2app .t2dock .avgtiles .n { overflow-wrap: anywhere; }
+  body.app.t2app .t2dock .btnrow { display: grid; grid-template-columns: 1fr; gap: 8px; position: sticky; bottom: 0; background: var(--bg, #fff); padding: 8px 0 2px; z-index: 2; }
+}
 /* filtro de mina / nivel / proyectos dentro del plano (iPad y iPhone) */
 .fs-filbtn { display: none; }
 body.app .cadwrap.full .fs-fil { display: none; }
@@ -910,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v117</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v118</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3921,6 +3947,9 @@ class PlanView {
       if (ptrs.has(e.pointerId) && moved < 5 && ptrs.size === 1 && this.onTap) { const r = canvas.getBoundingClientRect(); this.onTap(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)); }
       ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) canvas.classList.remove('drag');
     };
+    // V118: toque rápido con dos dedos = deshacer (último vértice; si no hay, el último polígono)
+    canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && ptrs.size === 1) { this._two = { t: performance.now(), m0: moved }; } }, true);
+    canvas.addEventListener('pointerup', e => { const t = this._two; if (t && e.pointerType === 'touch' && ptrs.size === 2 && performance.now() - t.t < 320 && moved - t.m0 < 24 && this.onTwoTap) { this._two = null; pinch0 = null; this.onTwoTap(); } }, true);
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', e => { clearTimeout(this._aimT); this.aim = null; if (this.drawId === e.pointerId) { this.drawId = null; this.onDraw('end'); } ptrs.delete(e.pointerId); canvas.classList.remove('drag'); });
     new ResizeObserver(() => this.resize()).observe(wrap);
@@ -4303,6 +4332,11 @@ pv.onDraw = (fase, x, y) => {
   if (fase === 'start') { t2.draft = [{ x, y }]; t2.viewing = null; pv.draw(); paintHint(); return; }
   if (fase === 'move') { const q = t2.draft[t2.draft.length - 1]; if (q && Math.hypot(q.x - x, q.y - y) * pv.v.s >= 3) { t2.draft.push({ x, y }); pv.draw(); } return; }
   if (t2.draft.length >= 3) closeDraft(); else { t2.draft = []; pv.draw(); paintHint(); }
+};
+pv.onTwoTap = () => {
+  if (window.regla2 && window.regla2.on && window.regla2.pts.length) { window.regla2.pts.pop(); window.regla2.paint(); return; }
+  if (t2.draft.length) { t2.draft.pop(); pv.draw(); paintHint(); return; }
+  if (t2.shapes.length) { t2.shapes.pop(); t2.viewing = null; selectFromShapes(); computeT2(); pv.draw(); paintTools(); flashHint('Se quitó el último polígono (toque con 2 dedos).', true); }
 };
 pv.onTap = (x, y) => {
   if (t2.tool === 'pick') {
@@ -5963,6 +5997,17 @@ function t2Layout() {
     panel('proy', [bProy]); panel('lim', [bLim]); panel('av', [tiles, msg, saveRow, bAv]);
     const plano = document.createElement('div'); plano.className = 't2plano';
     viewer.prepend(row); row.append(rail, dw, plano); plano.appendChild(wrap);
+    // V118: iPad en horizontal: el resultado del avance queda fijo a la derecha del plano
+    const dock = document.createElement('aside'); dock.className = 't2dock'; dock.setAttribute('aria-label', 'Resultado del avance');
+    const dh = document.createElement('div'); dh.className = 't2ah'; dh.textContent = 'Resultado del avance'; dock.appendChild(dh);
+    row.append(dock);
+    const mq = matchMedia('(min-width: 1000px) and (orientation: landscape)'), pAv = dw.querySelector('[data-p=av]');
+    const acomodar = () => {
+      if (mq.matches) { dock.append(tiles, msg, saveRow); }
+      else { pAv.prepend(saveRow); pAv.prepend(msg); pAv.prepend(tiles); }
+      requestAnimationFrame(() => { pv.resize(); pv.draw(); });
+    };
+    mq.addEventListener('change', acomodar); acomodar();
     const mini = document.createElement('div'); mini.id = 't2mini'; mini.className = 't2mini'; mini.hidden = true;
     mini.innerHTML = `<div><b class="mt"></b> <span class="mm"></span></div><div class="ml"></div><button type="button" class="btn small" id="t2miniSave">Guardar</button>`;
     wrap.appendChild(mini);
@@ -7300,6 +7345,7 @@ function v3Salir() {
   function crear(wrap, topPx, R, vista, boxTop) {
     const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'regla-btn'; btn.style.top = topPx + 'px'; btn.textContent = '📏 Regla'; btn.setAttribute('aria-pressed', 'false');
     const box = document.createElement('div'); box.className = 'regla-box'; box.hidden = true;
+    if (wrap.id === 'cad2wrap') { btn.classList.add('rg2'); box.classList.add('rg2'); }
     if (boxTop != null) { box.style.top = boxTop + 'px'; box.style.bottom = 'auto'; }
     wrap.appendChild(btn); wrap.appendChild(box);
     const paint = () => {
