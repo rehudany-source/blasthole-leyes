@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v119</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v120</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7391,12 +7391,12 @@ function v3Salir() {
     R.paint = paint; return paint;
   }
   const rotulo = (ctx, txt, x, y) => { ctx.font = '700 12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.fillStyle = '#ffd60a'; ctx.strokeText(txt, x, y); ctx.fillText(txt, x, y); };
-  function dibujar(ctx, S, pts) {
+  function dibujar(ctx, S, pts, sinDist) {
     if (!pts.length) return;
     ctx.save(); ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4.5; ctx.beginPath(); S.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.stroke();
     ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.5; ctx.setLineDash([8, 5]); ctx.beginPath(); S.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.stroke(); ctx.setLineDash([]);
     S.forEach(s => { ctx.fillStyle = '#ffd60a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s[0], s[1], 5, 0, 7); ctx.fill(); ctx.stroke(); });
-    for (let i = 1; i < S.length; i++) rotulo(ctx, fm(tramo(pts[i - 1], pts[i]).h), (S[i - 1][0] + S[i][0]) / 2, (S[i - 1][1] + S[i][1]) / 2 - 12);
+    if (!sinDist) for (let i = 1; i < S.length; i++) rotulo(ctx, fm(tramo(pts[i - 1], pts[i]).h), (S[i - 1][0] + S[i][0]) / 2, (S[i - 1][1] + S[i][1]) / 2 - 12);
     ctx.restore();
   }
   // ---------- 2D ----------
@@ -7546,11 +7546,22 @@ function v3Salir() {
       const tx1 = v3Textos;
       v3Textos = (M, W, H) => {
         tx1(M, W, H);
-        if (!P3.on || !P3.pts.length) return;
+        if (!P3.on) return;
         const cv = document.getElementById('v3dTxt'), ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // polígonos ya cerrados: contorno pegado al terreno y relleno suave
+        const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : o[2];
+        const zT = (x, y) => { try { const d = topo.act && topo.dems.get(topo.act); if (d) { const z = demZ(d, x, y); if (z != null && !isNaN(z)) return z; } } catch (e) {} return zc; };
+        (t2.shapes || []).forEach(sh => {
+          const q = sh.pts || sh; if (!q || q.length < 3) return; const L = [];
+          for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], n = Math.max(1, Math.min(60, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4))); for (let k = 0; k < n; k++) { const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n; L.push(v3Proy(M, W, H, x - o[0], y - o[1], (zT(x, y) + 0.4 - o[2]) * ex)); } }
+          if (L.some(s => !s)) return;
+          ctx.save(); ctx.lineJoin = 'round'; ctx.beginPath(); L.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.closePath();
+          ctx.fillStyle = 'rgba(255,214,10,.18)'; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.stroke(); ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.8; ctx.stroke(); ctx.restore();
+        });
+        if (!P3.pts.length) return;
         const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? o[2] : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
-        dibujar(ctx, S, P3.pts);
+        dibujar(ctx, S, P3.pts, true);
       };
     }
   } catch (e) { console.warn('prom3', e); }
