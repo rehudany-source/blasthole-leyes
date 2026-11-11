@@ -372,7 +372,7 @@ body.app .apptop h1 { flex-shrink: 0; }
 body.app .apptop-r .syncb { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html:has(body.app), body.app { overflow-x: hidden; overflow-x: clip; max-width: 100vw; }
 body.app .apptop-r .syncb { min-height: 36px; border-radius: 999px; padding: 6px 14px; font-size: .85rem; }
-body.app .appbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+body.app .appbar { display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 10px calc(4px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--panel) 86%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .appbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; background: none; border: 0; color: var(--muted); font: 600 .72rem var(--f-body); cursor: pointer; border-radius: 12px; }
 .appbar button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .appbar button[aria-current="page"] { color: var(--accent); }
@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v124</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v125</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1376,6 +1376,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <button type="button" data-at="hist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg><span>Historial</span></button>
   <button type="button" data-at="3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>3D</span></button>
   <button type="button" data-at="proy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg><span>Proyectos</span></button>
+  <button type="button" data-at="pila"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19.5h19M4 19.5 9 9l3.5 5 2.5-3.5 5 9"/></svg><span>Pila PQ4</span></button>
   <button type="button" data-at="ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Ajustes</span></button>
 </nav>
 
@@ -5286,7 +5287,7 @@ const ES_APP = (() => {
     return ios || (tactil && (matchMedia('(display-mode: standalone)').matches || innerWidth < 1100));
   } catch (e) { return false; }
 })();
-const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', ajustes: 'Ajustes' };
+const APP_TIT = { avance: 'Avance', hist: 'Historial', proy: 'Proyectos', '3d': 'Vista 3D', pila: 'Pila PQ4', ajustes: 'Ajustes' };
 function appTab(at) {
   if (!APP_TIT[at]) at = 'avance';
   document.body.dataset.apptab = at;
@@ -5294,6 +5295,7 @@ function appTab(at) {
   document.querySelectorAll('#appBar button').forEach(b => b.setAttribute('aria-current', b.dataset.at === at ? 'page' : 'false'));
   const aj = at === 'ajustes';
   $('appAjustes').hidden = !aj;
+  try { if (at === 'pila' && window.abrirPilaPQ4) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; $('appAjustes').hidden = true; window.abrirPilaPQ4(); try { localStorage.setItem('bhl-apptab', at); } catch (e) {} return; } else if (window.cerrarPilaPQ4) window.cerrarPilaPQ4(); } catch (e) {}
   if (aj) { $('tab1').hidden = true; $('tab2').hidden = true; $('tab3').hidden = true; pintarAjustes(); }
   else showTab(at === 'proy' ? 1 : at === '3d' ? 3 : 2);
   try { localStorage.setItem('bhl-apptab', at); } catch (e) {}
@@ -9122,9 +9124,12 @@ async function exportarModelos(files) {
   const css = document.createElement('style');
   css.textContent = `#pilaDlg{position:fixed;inset:0;z-index:300;background:var(--bg,#f4f1ec);color:var(--ink,#222);display:flex;flex-direction:column}
 #pilaDlg[hidden]{display:none}
+body.app #pilaDlg{z-index:40;bottom:calc(64px + env(safe-area-inset-bottom,0px));top:calc(env(safe-area-inset-top,0px) + 0px)}
+body.app #plCerrar,body.app #btnPila{display:none}
 .pl-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line,#ccc);background:var(--panel,#fff)}
 .pl-top h2{margin:0;font-size:1.05rem;margin-right:auto}
 .pl-top button,.pl-top select,.pl-top input{min-height:40px;font:600 .88rem system-ui;border-radius:9px;border:1px solid var(--line,#bbb);background:var(--panel,#fff);color:inherit;padding:0 11px}
+.pl-top select,.pl-top input{width:auto!important;margin:0}.pl-top label{margin:0}
 .pl-top .pri{background:#c2410c;color:#fff;border-color:#c2410c}
 .pl-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 330px;gap:10px;padding:10px}
 @media (max-width:900px){.pl-body{grid-template-columns:1fr;grid-template-rows:minmax(240px,45%) 1fr}}
@@ -9256,6 +9261,7 @@ async function exportarModelos(files) {
   $$('plFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const j = JSON.parse(await f.text()); if (j.tipo !== 'bhl-pila-pq4' || !j.fechas) throw 0; Object.assign(D.fechas, j.fechas); D.ver = fechas().pop(); guardar(); pintarTodo(); } catch (er) { alert('Ese archivo no es un respaldo de la pila PQ4.'); } };
   $$('plCerrar').onclick = () => { dlg.hidden = true; document.body.style.overflow = ''; };
   window.addEventListener('resize', () => { if (!dlg.hidden) pintar(); });
+  window.cerrarPilaPQ4 = () => { dlg.hidden = true; document.body.style.overflow = ''; };
   window.abrirPilaPQ4 = () => { snap(); dlg.hidden = false; document.body.style.overflow = 'hidden'; E.sel = null; setTool('sel'); pintarTodo(); };
   window.PILA_TEST = { dibujarHoja, resumen, proyDeCodigo, parseOrigs, D: () => D };
   // botón de entrada junto al Tablero
