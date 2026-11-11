@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v121</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v122</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7551,16 +7551,16 @@ function v3Salir() {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         // polígonos ya cerrados: contorno pegado al terreno y relleno suave
         const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : o[2];
-        const zT = (x, y) => { try { const d = topo.act && topo.dems.get(topo.act); if (d) { const z = demZ(d, x, y); if (z != null && !isNaN(z)) return z; } } catch (e) {} return zc; };
+        const zT = (x, y) => { try { const z = v3Z(x, y); if (z != null) return z; } catch (e) {} return zc; };
         (t2.shapes || []).forEach(sh => {
           const q = sh.pts || sh; if (!q || q.length < 3) return; const L = [];
-          for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], n = Math.max(1, Math.min(60, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4))); for (let k = 0; k < n; k++) { const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n; L.push(v3Proy(M, W, H, x - o[0], y - o[1], (zT(x, y) + 0.4 - o[2]) * ex)); } }
+          for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], n = Math.max(1, Math.min(60, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4))); for (let k = 0; k < n; k++) { const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n; L.push(v3Proy(M, W, H, x - o[0], y - o[1], (zT(x, y) + 0.15 - o[2]) * ex)); } }
           if (L.some(s => !s)) return;
           ctx.save(); ctx.lineJoin = 'round'; ctx.beginPath(); L.forEach((s, i) => i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1])); ctx.closePath();
           ctx.fillStyle = 'rgba(255,214,10,.18)'; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.stroke(); ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2.8; ctx.stroke(); ctx.restore();
         });
         if (!P3.pts.length) return;
-        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? o[2] : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
+        const S = P3.pts.map(p => v3Proy(M, W, H, p.x - o[0], p.y - o[1], ((p.z == null ? zT(p.x, p.y) : p.z) - o[2]) * ex)); if (S.some(s => !s)) return;
         dibujar(ctx, S, P3.pts, true);
       };
     }
