@@ -7221,7 +7221,8 @@ function v3Eventos(cv) {
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // ratón y lápiz (el dedo va por los eventos táctiles de abajo: en iPhone los pointer events del canvas no respondían)
   // V119: con el Apple Pencil y «📊 Promedio» activo, el trazo a mano alzada dibuja el polígono (se cierra al levantar el lápiz)
-  const penH = e => e.pointerType === 'pen' && window.prom3 && window.prom3.on && window.prom3.pen;
+  const penObj = () => (window.TINTA && window.TINTA.on && window.TINTA.pen3) || (window.prom3 && window.prom3.on && window.prom3.pen);
+  const penH = e => e.pointerType === 'pen' && penObj();
   const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   // el Apple Pencil también genera eventos táctiles: se ignoran (ya van por pointer events) para no duplicar giro ni toques
   const stylus = e => [...e.changedTouches, ...e.touches].some(t => t.touchType === 'stylus');
@@ -7232,8 +7233,8 @@ function v3Eventos(cv) {
     if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
     q.x = e.clientX; q.y = e.clientY; v3Dibujar();
   });
-  const fin = e => { { const H = e.pointerType === 'pen' && window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
-  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) H.cancel(); P.delete(e.pointerId); });
+  const fin = e => { { const H = e.pointerType === 'pen' && [window.TINTA && window.TINTA.pen3, window.prom3 && window.prom3.pen].find(h => h && h.id === e.pointerId); if (H) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = [window.TINTA && window.TINTA.pen3, window.prom3 && window.prom3.pen].find(h => h && h.id === e.pointerId); if (H) H.cancel(); P.delete(e.pointerId); });
   // ---- dedo: 1 dedo gira, 2 dedos acercan/alejan y mueven, toque corto elige taladro ----
   let tp = null, tmov = 0, tmulti = false;
   const pos = ts => [...ts].map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
@@ -7551,6 +7552,7 @@ body.app .split-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
         }
         return p;
       };
+      window.pickAny3 = pickAny;
       v3Tocar = (px, py) => {
         if (!P3.on) return t1(px, py);
         const p = pickAny(px, py);
@@ -9273,16 +9275,19 @@ body.app #plCerrar,body.app #btnPila{display:none}
   if (bt && PILA_VISIBLE) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
 })();
 
-// V127: Tinta — dibujar y escribir a mano libre sobre el plano (Apple Pencil), sin sacar promedios
+// V127: Tinta — dibujar y escribir a mano libre sobre el plano y sobre el 3D (Apple Pencil), sin sacar promedios
 (() => {
   const LS = 'bhl-tinta';
   const COLS = ['#ff3b30', '#ffd60a', '#34c759', '#0a84ff', '#ffffff', '#111111'];
   const ANCH = [2, 4, 8];
-  const wrap = $('cad2wrap'), bar = wrap && wrap.querySelector('.cadbar');
-  if (!wrap || !bar || typeof pv === 'undefined') return;
+  const wrap = $('cad2wrap'), w3 = $('v3dWrap');
+  if (!wrap || typeof pv === 'undefined') return;
   let strokes = []; try { strokes = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) { strokes = []; }
+  // trazo = { c: color, w: grosor en px, p: [[x, y], ...] } en coordenadas del mundo: el mismo trazo se ve en el plano y en el 3D (pegado al terreno)
   const S = { on: false, show: true, col: COLS[0], w: 4, borra: false, dedo: false, cur: null, pend: false, hist: [] };
   const guardar = () => { try { localStorage.setItem(LS, JSON.stringify(strokes)); } catch (e) {} };
+  const en3d = () => { try { return typeof v3Vis === 'function' && v3Vis() && !!w3 && w3.offsetParent !== null; } catch (e) { return false; } };
+  const redib = () => { try { pv.draw(); } catch (e) {} if (w3) { try { v3Dibujar(); } catch (e) {} } };
 
   const st = document.createElement('style');
   st.textContent = `.tinta-pan{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;bottom:14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;max-width:calc(100% - 16px);padding:6px 8px;border-radius:12px;background:rgba(20,24,28,.94);border:1px solid #3a424a;box-shadow:0 4px 16px rgba(0,0,0,.4)}
@@ -9294,56 +9299,61 @@ body.app #plCerrar,body.app #btnPila{display:none}
 .cadwrap.tinta-on .inplan{display:none!important}
 .tinta-pan .tw i{display:block;background:#fff;border-radius:50%}
 .tinta-pan .sep{width:1px;height:28px;background:#4a535b}
-#btnTinta{position:absolute;z-index:7;left:10px;top:46%;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
-.cadwrap.full #btnTinta{top:46%}
-#btnTinta[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}`;
+.tinta-btn{position:absolute;z-index:7;right:12px;top:calc(46% - 58px);min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+.tinta-btn[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}
+#btnTinta3{top:154px;right:auto;left:10px}`;
   document.head.appendChild(st);
 
-  const b = document.createElement('button'); b.type = 'button'; b.id = 'btnTinta'; b.textContent = '🖍 Tinta'; b.setAttribute('aria-pressed', 'false'); b.title = 'Dibujar encima del plano (no calcula nada)';
-  wrap.appendChild(b);
-  const pan = document.createElement('div'); pan.className = 'tinta-pan'; pan.hidden = true;
-  pan.innerHTML = COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
+  const HTML = COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
     + ANCH.map(w => `<button type="button" class="tw" data-w="${w}" aria-label="grosor"><i style="width:${w + 4}px;height:${w + 4}px"></i></button>`).join('') + '<span class="sep"></span>'
     + '<button type="button" data-a="e" title="Borrar trazo">🧽</button><button type="button" data-a="u" title="Deshacer">↩</button><button type="button" data-a="v" title="Ocultar o mostrar">👁</button><button type="button" data-a="f" title="Dibujar también con el dedo">☝</button><button type="button" data-a="x" title="Borrar todo">🗑</button><button type="button" data-a="ok" title="Listo" style="background:#ffd60a;color:#1a1500">✓</button>';
-  wrap.appendChild(pan);
-
-  const pintaPan = () => {
+  const hechos = [];
+  const montar = (host, idBtn) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tinta-btn'; if (idBtn) b.id = idBtn; b.textContent = '🖍 Tinta'; b.setAttribute('aria-pressed', 'false'); b.title = 'Dibujar encima (no calcula nada)';
+    const pan = document.createElement('div'); pan.className = 'tinta-pan'; pan.hidden = true; pan.innerHTML = HTML;
+    host.appendChild(b); host.appendChild(pan); hechos.push({ b, pan, host });
+    b.addEventListener('click', () => setOn(!S.on));
+    pan.addEventListener('click', e => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.dataset.c) { S.col = x.dataset.c; S.borra = false; }
+      else if (x.dataset.w) S.w = +x.dataset.w;
+      else if (x.dataset.a === 'e') S.borra = !S.borra;
+      else if (x.dataset.a === 'u') { const h = S.hist.pop(); if (h) { if (h.add) strokes = strokes.filter(s => s !== h.add); else if (h.del) strokes.push(...h.del); guardar(); } }
+      else if (x.dataset.a === 'v') S.show = !S.show;
+      else if (x.dataset.a === 'f') S.dedo = !S.dedo;
+      else if (x.dataset.a === 'x') { if (strokes.length && confirm('¿Borrar todos los trazos de tinta?')) { S.hist.push({ del: strokes.slice() }); strokes = []; guardar(); } }
+      else if (x.dataset.a === 'ok') { setOn(false); return; }
+      pinta(); redib();
+    });
+  };
+  const pinta = () => hechos.forEach(({ b, pan }) => {
     pan.querySelectorAll('.tc').forEach(x => x.setAttribute('aria-pressed', String(!S.borra && x.dataset.c === S.col)));
     pan.querySelectorAll('.tw').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.w === S.w)));
     pan.querySelector('[data-a=e]').setAttribute('aria-pressed', String(S.borra));
-    pan.querySelector('[data-a=v]').setAttribute('aria-pressed', String(!S.show)); pan.querySelector('[data-a=f]').setAttribute('aria-pressed', String(S.dedo));
+    pan.querySelector('[data-a=v]').setAttribute('aria-pressed', String(!S.show));
+    pan.querySelector('[data-a=f]').setAttribute('aria-pressed', String(S.dedo));
     b.setAttribute('aria-pressed', String(S.on));
-  };
-  const setOn = on => { S.on = on; pan.hidden = !on; wrap.classList.toggle('tinta-on', on); if (on) S.show = true; pintaPan(); pv.draw(); };
-  b.addEventListener('click', () => setOn(!S.on));
-  pan.addEventListener('click', e => {
-    const x = e.target.closest('button'); if (!x) return;
-    if (x.dataset.c) { S.col = x.dataset.c; S.borra = false; }
-    else if (x.dataset.w) S.w = +x.dataset.w;
-    else if (x.dataset.a === 'e') S.borra = !S.borra;
-    else if (x.dataset.a === 'u') { const h = S.hist.pop(); if (h) { if (h.add) strokes = strokes.filter(s => s !== h.add); else if (h.del) strokes.push(...h.del); guardar(); } }
-    else if (x.dataset.a === 'v') S.show = !S.show;
-    else if (x.dataset.a === 'f') S.dedo = !S.dedo;
-    else if (x.dataset.a === 'x') { if (strokes.length && confirm('¿Borrar todos los trazos de tinta?')) { S.hist.push({ del: strokes.slice() }); strokes = []; guardar(); } }
-    else if (x.dataset.a === 'ok') { setOn(false); return; }
-    pintaPan(); pv.draw();
   });
+  const setOn = on => { S.on = on; if (on) S.show = true; hechos.forEach(({ pan, host }) => { pan.hidden = !on; host.classList.toggle('tinta-on', on); }); pinta(); redib(); };
+  montar(wrap, 'btnTinta');
+  if (w3) montar(w3, 'btnTinta3');
 
+  // ---------- plano ----------
   // el lápiz (o el ratón) dibuja; el dedo sigue moviendo y haciendo zoom, salvo que se active «Dedo»
   const w0 = pv.wantsDraw, d0 = pv.onDraw;
   pv.wantsDraw = e => { if (S.on && (e.pointerType !== 'touch' || S.dedo)) { S.pend = true; return true; } S.pend = false; return w0 ? w0(e) : false; };
-  const borrarEn = (x, y) => {
-    const r = 14 / pv.v.s, r2 = r * r; const caen = strokes.filter(s => s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }));
-    if (caen.length) { strokes = strokes.filter(s => !caen.includes(s)); S.hist.push({ del: caen }); guardar(); pv.draw(); }
-  };
+  const cerca = (s, x, y, r) => { const r2 = r * r; return s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }); };
+  const quitar = caen => { if (caen.length) { strokes = strokes.filter(s => !caen.includes(s)); S.hist.push({ del: caen }); guardar(); redib(); } };
+  const borrarEn = (x, y) => quitar(strokes.filter(s => cerca(s, x, y, 14 / pv.v.s)));
+  const nuevo = (x, y) => ({ c: S.col, w: S.w, p: [[x, y]] });
+  const cierra = c => { if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } };
   pv.onDraw = (fase, x, y) => {
     if (!S.pend && !S.cur) return d0 && d0(fase, x, y);
-    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else { S.cur = { c: S.col, w: S.w, p: [[x, y]] }; } }
+    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else S.cur = nuevo(x, y); }
     else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) S.cur.p.push([x, y]); } }
-    else if (fase === 'end') { const c = S.cur; S.cur = null; if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01 / pv.v.s, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } }
-    pv.draw();
+    else if (fase === 'end') { const c = S.cur; S.cur = null; cierra(c); redib(); return; }
+    pv.draw(); if (w3 && en3d()) { try { v3Dibujar(); } catch (e) {} }
   };
-
   const trazo = (ctx, v, s) => {
     const P = s.p; if (!P.length) return; ctx.beginPath(); ctx.moveTo(v.sx(P[0][0]), v.sy(P[0][1]));
     for (let i = 1; i < P.length - 1; i++) { const mx = (v.sx(P[i][0]) + v.sx(P[i + 1][0])) / 2, my = (v.sy(P[i][1]) + v.sy(P[i + 1][1])) / 2; ctx.quadraticCurveTo(v.sx(P[i][0]), v.sy(P[i][1]), mx, my); }
@@ -9358,7 +9368,40 @@ body.app #plCerrar,body.app #btnPila{display:none}
     strokes.forEach(s => trazo(ctx, v, s)); if (S.cur && S.cur.p) trazo(ctx, v, S.cur);
     ctx.restore();
   };
-  window.TINTA = S; pintaPan();
+
+  // ---------- 3D ----------
+  if (w3 && typeof v3Textos === 'function' && typeof v3Proy === 'function') {
+    const zT = (x, y) => { try { const z = v3Z(x, y); if (z != null) return z; } catch (e) {} return null; };
+    const proy = (M, W, H, x, y) => { const o = v3.org, ex = v3.ex || 1; const z = zT(x, y); return v3Proy(M, W, H, x - o[0], y - o[1], ((z == null ? o[2] : z) + 0.3 - o[2]) * ex); };
+    const t0 = v3Textos;
+    v3Textos = (M, W, H) => {
+      t0(M, W, H);
+      if (!S.show || (!strokes.length && !S.cur) || !v3.org) return;
+      const cv = document.getElementById('v3dTxt'); if (!cv) return; const ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1);
+      ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const dib = s => {
+        // se intercalan puntos para que el trazo siga el relieve del terreno
+        const q = []; for (let i = 0; i < s.p.length; i++) { const b = s.p[i]; if (i) { const a = s.p[i - 1], n = Math.min(12, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3)); for (let k = 1; k < n; k++) q.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); } q.push(b); }
+        ctx.beginPath(); let on = false; q.forEach(p => { const sc = proy(M, W, H, p[0], p[1]); if (!sc) { on = false; return; } if (on) ctx.lineTo(sc[0], sc[1]); else { ctx.moveTo(sc[0], sc[1]); on = true; } });
+        ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.stroke();
+      };
+      strokes.forEach(dib); if (S.cur && S.cur.p) dib(S.cur);
+      ctx.restore();
+    };
+    const hit = (px, py) => { const g = window.v3MVP ? null : null; return g; };
+    S.pen3 = { id: null, mov: 0, p0: null, last: null,
+      down(px, py, id) { this.id = id; this.mov = 0; this.p0 = [px, py]; this.last = [px, py]; this.add(px, py, true); },
+      add(px, py, ini) {
+        const p = window.pickAny3 && window.pickAny3(px, py); if (!p) return;
+        if (S.borra) { S.cur = S.cur || { borra: true }; const { M, W, H } = v3MVP(); quitar(strokes.filter(s => s.p.some(q => { const sc = proy(M, W, H, q[0], q[1]); return sc && Math.hypot(sc[0] - px, sc[1] - py) < 16; }))); return; }
+        if (ini || !S.cur) S.cur = nuevo(p.x, p.y); else S.cur.p.push([p.x, p.y]);
+        try { v3Dibujar(); } catch (e) {}
+      },
+      move(px, py) { if (this.id == null) return; if (Math.hypot(px - this.last[0], py - this.last[1]) < 4) return; this.last = [px, py]; this.mov = Math.max(this.mov, Math.hypot(px - this.p0[0], py - this.p0[1])); this.add(px, py, false); },
+      up() { const c = S.cur; this.id = null; S.cur = null; cierra(c); redib(); },
+      cancel() { this.id = null; S.cur = null; redib(); } };
+  }
+  window.TINTA = S; pinta();
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
