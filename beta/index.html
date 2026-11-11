@@ -936,7 +936,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v118</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v119</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3928,7 +3928,11 @@ class PlanView {
         this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 260);
       }
     });
+    // V119: el Apple Pencil flotando sobre la pantalla (hover) muestra dónde caería el punto
+    canvas.addEventListener('pointerleave', () => { if (this.hov) { this.hov = null; this.draw(); } });
     canvas.addEventListener('pointermove', e => {
+      if (e.pointerType === 'pen' && !e.buttons && !ptrs.size && this.drawId == null) { const r0 = canvas.getBoundingClientRect(); this.hov = { px: e.clientX - r0.left, py: e.clientY - r0.top }; this.draw(); }
+      else if (e.pointerType === 'pen' && this.hov && e.buttons) { this.hov = null; }
       if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
       if (this.drawId != null) return;
       const r = canvas.getBoundingClientRect();
@@ -6922,6 +6926,28 @@ function drawBloqueModelo(ctx, v, L) {
   s.onchange = () => { try { localStorage.setItem('bhl-blq', s.value); } catch (e) {} pv.draw(); };
 })();
 
+// ===== V119: vista previa del Apple Pencil flotando (hover): anillo, imán y línea hasta el último vértice =====
+{
+  const a1 = pv.after;
+  pv.after = (ctx, v) => {
+    if (a1) a1(ctx, v);
+    const h = pv.hov; if (!h || (t2.tool !== 'pen' && t2.tool !== 'erase' && !(window.regla2 && window.regla2.on))) return;
+    let px = h.px, py = h.py, snap = false;
+    if (t2.tool === 'pen' && typeof snapActivo === 'function' && snapActivo()) { const q = snapPt(pv.wx(px), pv.wy(py)); if (q) { px = v.sx(q.x); py = v.sy(q.y); snap = true; } }
+    ctx.save();
+    const D = t2.draft, last = D[D.length - 1];
+    if (t2.tool === 'pen' && last) {
+      ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = '#ffd60a'; ctx.beginPath(); ctx.moveTo(v.sx(last.x), v.sy(last.y)); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
+      if (D.length >= 3 && Math.hypot(px - v.sx(D[0].x), py - v.sy(D[0].y)) < 18) { ctx.strokeStyle = '#30d158'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(v.sx(D[0].x), v.sy(D[0].y), 13, 0, 7); ctx.stroke(); }
+    }
+    const col = t2.tool === 'erase' ? '#ff6b6b' : snap ? '#00b4d8' : '#ffd60a', r = t2.tool === 'erase' ? 18 : 10;
+    ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px - r - 5, py); ctx.lineTo(px - 3, py); ctx.moveTo(px + 3, py); ctx.lineTo(px + r + 5, py); ctx.moveTo(px, py - r - 5); ctx.lineTo(px, py - 3); ctx.moveTo(px, py + 3); ctx.lineTo(px, py + r + 5); ctx.stroke();
+    ctx.restore();
+  };
+}
+
 
 /* ===== V50: pestaña 3 · Vista 3D (topografía + taladros + avances + límites + GPS), WebGL sin librerías ===== */
 const v3 = { gl: null, prog: null, built: '', cam: { yaw: -0.6, pitch: 0.75, dist: 600, tx: 0, ty: 0, tz: 0 }, ex: 1, org: [0, 0, 0], buf: {}, full: false,
@@ -7188,20 +7214,26 @@ function v3Eventos(cv) {
   cv.style.touchAction = 'none'; cv.style.webkitUserSelect = 'none'; cv.style.userSelect = 'none'; cv.style.webkitTouchCallout = 'none';
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // ratón y lápiz (el dedo va por los eventos táctiles de abajo: en iPhone los pointer events del canvas no respondían)
-  cv.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; try { cv.setPointerCapture(e.pointerId); } catch (err) {} P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
+  // V119: con el Apple Pencil y «📊 Promedio» activo, el trazo a mano alzada dibuja el polígono (se cierra al levantar el lápiz)
+  const penH = e => e.pointerType === 'pen' && window.prom3 && window.prom3.on && window.prom3.pen;
+  const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  // el Apple Pencil también genera eventos táctiles: se ignoran (ya van por pointer events) para no duplicar giro ni toques
+  const stylus = e => [...e.changedTouches, ...e.touches].some(t => t.touchType === 'stylus');
+  cv.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; { const H = penH(e); if (H) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} H.down(...rel(e), e.pointerId); return; } } try { cv.setPointerCapture(e.pointerId); } catch (err) {} P.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey }); mov = 0; last = null; });
   cv.addEventListener('pointermove', e => {
+    { const H = penH(e); if (H && H.id === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => H.move(...rel(ev))); return; } }
     if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; const q = P.get(e.pointerId), dx = e.clientX - q.x, dy = e.clientY - q.y; mov += Math.abs(dx) + Math.abs(dy);
     if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
     q.x = e.clientX; q.y = e.clientY; v3Dibujar();
   });
-  const fin = e => { if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
-  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => P.delete(e.pointerId));
+  const fin = e => { { const H = e.pointerType === 'pen' && window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) H.cancel(); P.delete(e.pointerId); });
   // ---- dedo: 1 dedo gira, 2 dedos acercan/alejan y mueven, toque corto elige taladro ----
   let tp = null, tmov = 0, tmulti = false;
   const pos = ts => [...ts].map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
-  cv.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches); }, { passive: false });
+  cv.addEventListener('touchstart', e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches); }, { passive: false });
   cv.addEventListener('touchmove', e => {
-    e.preventDefault(); const now = pos(e.touches); if (!tp || !now.length) return;
+    if (stylus(e)) return; e.preventDefault(); const now = pos(e.touches); if (!tp || !now.length) return;
     if (now.length === 1 && tp.length === 1) {
       const dx = now[0].x - tp[0].x, dy = now[0].y - tp[0].y; tmov += Math.abs(dx) + Math.abs(dy);
       c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006));
@@ -7213,7 +7245,7 @@ function v3Eventos(cv) {
     }
     tp = now; v3Dibujar();
   }, { passive: false });
-  const tfin = e => { e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
+  const tfin = e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
   cv.addEventListener('touchend', tfin, { passive: false }); cv.addEventListener('touchcancel', tfin, { passive: false });
   cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
   window.addEventListener('resize', () => { if (!$('tab3').hidden) v3Dibujar(); });
@@ -7452,7 +7484,7 @@ function v3Salir() {
       };
       const paint = () => {
         btn.setAttribute('aria-pressed', String(P3.on)); box.hidden = !P3.on;
-        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono del avance.') + '</div>' + resumenAv()
+        if (P3.on) box.innerHTML = '<b>📊 Promedio del avance</b><div>' + (P3.pts.length ? `${P3.pts.length} vértice(s). Toca el terreno para seguir y luego «Cerrar polígono».` : 'Toca sobre el terreno los vértices del polígono, o traza el contorno con el Apple Pencil (se cierra al levantarlo).') + '</div>' + resumenAv()
           + '<div class="rg-b"><button type="button" data-a="u">↶ Deshacer</button><button type="button" data-a="k">✔ Cerrar polígono</button><button type="button" data-a="c">🗑 Borrar polígonos</button><button type="button" data-a="x">Salir</button></div>';
         try { v3Dibujar(); } catch (e) {}
       };
@@ -7470,8 +7502,7 @@ function v3Salir() {
       // si enciende la regla, se apaga este modo
       if (window.regla3) { const rb = w3.querySelector('.regla-btn'); if (rb) rb.addEventListener('click', () => { if (window.regla3.on && P3.on) { P3.on = false; P3.pts = []; paint(); } }); }
       const t1 = v3Tocar;
-      v3Tocar = (px, py) => {
-        if (!P3.on) return t1(px, py);
+      const pickAny = (px, py) => {
         let p = pick3(px, py);
         if (!p) { // sin topografía: se toca sobre el plano de la elevación media de los taladros
           const zs = t2.holes.map(h => +h.z).filter(z => z), zc = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : (v3.org ? v3.org[2] : 0);
@@ -7479,9 +7510,39 @@ function v3Salir() {
           if (I) { const nx = px / W * 2 - 1, ny = 1 - py / H * 2, un = z => { const w = I[3] * nx + I[7] * ny + I[11] * z + I[15]; return [(I[0] * nx + I[4] * ny + I[8] * z + I[12]) / w, (I[1] * nx + I[5] * ny + I[9] * z + I[13]) / w, (I[2] * nx + I[6] * ny + I[10] * z + I[14]) / w]; };
             const A = un(-1), B = un(1), zt = (zc - o[2]) * ex; if (Math.abs(B[2] - A[2]) > 1e-9) { const t = (zt - A[2]) / (B[2] - A[2]); if (t > 0) p = { x: A[0] + (B[0] - A[0]) * t + o[0], y: A[1] + (B[1] - A[1]) * t + o[1], z: zc }; } }
         }
+        return p;
+      };
+      v3Tocar = (px, py) => {
+        if (!P3.on) return t1(px, py);
+        const p = pickAny(px, py);
         if (!p) { const m = document.getElementById('v3dMsg'); if (m) m.textContent = 'Toca sobre el terreno para poner el vértice.'; return; }
         P3.pts.push(p); paint();
       };
+      // Apple Pencil: trazo a mano alzada sobre el terreno → polígono simplificado que se cierra al levantar el lápiz
+      const dp = (pts, tol) => {
+        if (pts.length < 3) return pts;
+        const a = pts[0], b = pts[pts.length - 1], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+        let im = -1, dm = 0; for (let i = 1; i < pts.length - 1; i++) { const d = L ? Math.abs(dy * (pts[i].x - a.x) - dx * (pts[i].y - a.y)) / L : Math.hypot(pts[i].x - a.x, pts[i].y - a.y); if (d > dm) { dm = d; im = i; } }
+        if (dm <= tol) return [a, b];
+        return dp(pts.slice(0, im + 1), tol).slice(0, -1).concat(dp(pts.slice(im), tol));
+      };
+      P3.pen = { id: null, stroke: [], last: null, mov: 0,
+        down(px, py, id) { this.id = id; this.stroke = []; this.last = [px, py]; this.mov = 0; this.p0 = [px, py]; },
+        move(px, py) {
+          if (this.id == null) return; const d = Math.hypot(px - this.last[0], py - this.last[1]); this.mov = Math.max(this.mov, Math.hypot(px - this.p0[0], py - this.p0[1]));
+          if (d < 7) return; this.last = [px, py]; const p = pickAny(px, py); if (!p) return;
+          this.stroke.push(p); P3.pts = this.stroke.slice(); try { v3Dibujar(); } catch (e) {}
+        },
+        up(px, py) {
+          const st = this.stroke, tap = this.mov < 8; this.id = null; this.stroke = [];
+          if (tap || st.length < 4) { P3.pts = []; return v3Tocar(px, py); }
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; st.forEach(q => { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+          const poly = dp(st.concat([st[0]]), Math.max(0.6, Math.hypot(x1 - x0, y1 - y0) * 0.012)); poly.pop();
+          P3.pts = [];
+          if (poly.length < 3) { paint(); return; }
+          t2.draft = poly.map(q => ({ x: q.x, y: q.y })); closeDraft(); paint();
+        },
+        cancel() { this.id = null; this.stroke = []; P3.pts = []; try { v3Dibujar(); } catch (e) {} } };
       const tx1 = v3Textos;
       v3Textos = (M, W, H) => {
         tx1(M, W, H);
