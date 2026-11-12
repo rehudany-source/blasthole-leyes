@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v127</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v128</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -10067,6 +10067,64 @@ async function reportarDispositivo() {
     await rest.rpc('bhl_dispositivo', { p_id: id, p_version: ver, p_plataforma: plat, p_info: { topos: ts.slice(0, 12), nTopos: ts.length, ua: ua.slice(0, 100), sync: new Date().toISOString() } }, 20000);
   } catch (e) {}
 }
+
+// V128: «Sin internet» — al abrir la app se asegura que proyectos, avances, límites, topografías y fotos queden guardados en el equipo
+(() => {
+  if (typeof sync === 'undefined' || typeof ES_APP === 'undefined') return;
+  const KEY = 'bhl-offline';
+  const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const cuenta = v => Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0;
+  let busy = false;
+  async function preparar() {
+    if (busy) return leer(); busy = true;
+    try {
+      const R = { t: Date.now(), p: 0, a: 0, l: 0, tp: 0, tt: 0, f: 0, shell: false, persist: false, mb: null };
+      try { R.p = (await dbAll('projects')).length; R.a = (await dbAll('avances')).length; } catch (e) {}
+      try { R.l = cuenta(await idbGet('limites')); } catch (e) {}
+      try { R.f = cuenta(await idbGet('fotos')); } catch (e) {}
+      try { const L = (typeof topo !== 'undefined' && topo.lista) || []; R.tt = L.length; for (const m of L) if (await idbGet('topo:' + m.id)) R.tp++; } catch (e) {}
+      try { if (navigator.storage && navigator.storage.persist) R.persist = (await navigator.storage.persisted()) || (await navigator.storage.persist()); } catch (e) {}
+      try { if (navigator.storage && navigator.storage.estimate) { const q = await navigator.storage.estimate(); R.mb = Math.round((q.usage || 0) / 1048576); } } catch (e) {}
+      try { R.shell = !!navigator.serviceWorker && !!navigator.serviceWorker.controller && (await caches.keys()).some(k => /^bhl-(beta-)?v-/.test(k)); } catch (e) {}
+      try { localStorage.setItem(KEY, JSON.stringify(R)); } catch (e) {}
+      pintar(); return R;
+    } finally { busy = false; }
+  }
+  const hora = t => new Date(t).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const instalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  function pintar() {
+    const tx = document.getElementById('offTxt'), de = document.getElementById('offDet'); if (!tx) return;
+    const R = leer(); if (!R) { tx.textContent = 'Preparando…'; return; }
+    const ok = R.shell && R.p + R.l + R.tp > 0;
+    tx.textContent = !navigator.onLine ? (ok ? '✓ Funcionando sin internet' : 'Sin internet') : ok ? '✓ Listo' : 'Falta descargar';
+    tx.style.color = ok ? '' : 'var(--bad, #c0392b)';
+    de.textContent = `${R.p} proy. · ${R.a} avances · ${R.l} límites · ${R.tp} topos · ${R.f} fotos`;
+    const e = document.getElementById('offEst'); if (e) e.textContent = (R.shell ? 'App guardada' : 'App aún sin guardar (ábrela una vez con internet)') + (R.persist ? ' · datos protegidos' : instalada() ? '' : ' · agrégala a la pantalla de inicio para que iOS no borre los datos') + ' · ' + hora(R.t) + (R.mb != null ? ` · ${R.mb} MB` : '');
+  }
+  function montar() {
+    const ancla = document.getElementById('appSyncBtn'); if (!ancla || document.getElementById('offCard')) return;
+    const c = document.createElement('div'); c.className = 'acard'; c.id = 'offCard';
+    c.innerHTML = '<div class="arow"><span>Sin internet</span><b id="offTxt">—</b></div><div class="arow"><span>Guardado aquí</span><b id="offDet" style="font-size:.82rem;text-align:right"></b></div><div class="arow" style="min-height:0;padding:8px 16px"><small id="offEst" style="color:var(--muted)"></small></div><button class="arow abtn" type="button" id="offBtn">Descargar todo ahora<span>›</span></button>';
+    ancla.closest('.acard').after(c);
+    document.getElementById('offBtn').addEventListener('click', async () => {
+      const b = document.getElementById('offBtn'), tx = document.getElementById('offTxt');
+      if (!navigator.onLine) { tx.textContent = 'Necesitas internet para descargar'; return; }
+      if (!sync.session) { tx.textContent = 'Inicia sesión primero'; return; }
+      b.disabled = true; tx.textContent = 'Descargando…';
+      try { sync.forzarPull = true; await sincronizar(); if (typeof topoNube === 'function') await topoNube(); } catch (e) {}
+      b.disabled = false; await preparar();
+    });
+    pintar();
+  }
+  // tras cada sincronización correcta y al conectar/desconectar se vuelve a comprobar lo guardado
+  const ps = pintarSync; let t = null;
+  pintarSync = function (estado) { ps.apply(this, arguments); if (estado === 'ok') { clearTimeout(t); t = setTimeout(preparar, 2500); } };
+  addEventListener('online', () => { pintar(); });
+  addEventListener('offline', () => { pintar(); });
+  const ini = () => { montar(); setTimeout(() => { montar(); preparar(); }, 4000); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ini); else ini();
+  window.OFFLINE = { preparar, leer };
+})();
 
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
