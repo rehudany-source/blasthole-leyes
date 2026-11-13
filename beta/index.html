@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v129</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v130</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3918,18 +3918,18 @@ class PlanView {
   constructor(canvas, wrap, render) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.wrap = wrap; this.render = render;
     this.v = { s: 10, ox: 0, oy: 0 }; this.W = 0; this.H = 0; this.dpr = 1; this.onTap = null; this.onMove = null; this.wantsDraw = null; this.onDraw = null; this.drawId = null;
-    const ptrs = new Map(); let pinch0 = null, moved = 0;
+    const ptrs = new Map(); let pinch0 = null, mid0 = null, moved = 0;
     canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); this.zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
     const pt = e => { const r = canvas.getBoundingClientRect(); return [this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)]; };
     canvas.addEventListener('pointerdown', e => {
       if (this.drawId != null) return; // mientras se dibuja con el lápiz se ignora la palma/dedo
       if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e)); return; }
-      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); mid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; clearTimeout(this._aimT); this.aim = null; }
       // V73: al dibujar con el dedo, mantener presionado muestra una lupa; se arrastra para afinar y al soltar se pone el vértice
       clearTimeout(this._aimT); this.aim = null;
       if (e.pointerType === 'touch' && ptrs.size === 1 && this.wantsAim && this.wantsAim()) {
         const id = e.pointerId;
-        this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 260);
+        this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 520); /* V130: la lupa solo sale si el dedo se queda quieto medio segundo */
       }
     });
     // V119: el Apple Pencil flotando sobre la pantalla (hover) muestra dónde caería el punto
@@ -3944,7 +3944,7 @@ class PlanView {
       if (!ptrs.has(e.pointerId)) return;
       if (this.aim) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.aim = { px: e.clientX - r.left, py: e.clientY - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); return; }
       const prev = ptrs.get(e.pointerId), cur = { x: e.clientX, y: e.clientY }; ptrs.set(e.pointerId, cur);
-      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.zoomAt(d / pinch0, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); pinch0 = d; moved += 10; return; }
+      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2; this.zoomAt(d / pinch0, mx - r.left, my - r.top); if (mid0) { this.v.ox -= (mx - mid0.x) / this.v.s; this.v.oy += (my - mid0.y) / this.v.s; } mid0 = { x: mx, y: my }; this.draw(); pinch0 = d; moved += 10; return; /* V130: con dos dedos se hace zoom y también se mueve */ }
       const dx = cur.x - prev.x, dy = cur.y - prev.y; moved += Math.abs(dx) + Math.abs(dy);
       this.v.ox -= dx / this.v.s; this.v.oy += dy / this.v.s; this.draw();
     });
@@ -3953,7 +3953,7 @@ class PlanView {
       clearTimeout(this._aimT);
       if (this.aim && ptrs.has(e.pointerId)) { const A = this.aim; this.aim = null; ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('drag'); if (this.onTap) this.onTap(this.wx(A.px), this.wy(A.py)); this.draw(); return; }
       if (ptrs.has(e.pointerId) && moved < 5 && ptrs.size === 1 && this.onTap) { const r = canvas.getBoundingClientRect(); this.onTap(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)); }
-      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) canvas.classList.remove('drag');
+      ptrs.delete(e.pointerId); if (ptrs.size < 2) { pinch0 = null; mid0 = null; } if (!ptrs.size) canvas.classList.remove('drag');
     };
     // V118: toque rápido con dos dedos = deshacer (último vértice; si no hay, el último polígono)
     canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && ptrs.size === 1) { this._two = { t: performance.now(), m0: moved }; } }, true);
