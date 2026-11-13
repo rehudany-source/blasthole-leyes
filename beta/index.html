@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v128</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v129</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -9460,22 +9460,43 @@ const rest = {
   async auth(path, body) {
     const r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
+    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), { status: r.status, raw: String(j.error_description || j.msg || j.message || j.error || '') });
     return j;
   },
   guardar(j) {
     const prev = sync.session || {};
     sync.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || prev.email || '', uid: (j.user && j.user.id) || jwtSub(j.access_token) || prev.uid || '' };
     try { localStorage.setItem('bhl-sess', JSON.stringify(sync.session)); } catch (e) {}
+    try { idbSet('bhl-sess-copia', sync.session); } catch (e) {} // V129: copia en IndexedDB por si el sistema limpia localStorage
   },
   async login(email, pw) { rest.guardar(await rest.auth('token?grant_type=password', { email, password: pw })); },
   async signup(email, pw) { await rest.auth('signup', { email, password: pw }); await rest.login(email, pw); },
   async token() {
     if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     if (sync.session.expires_at - 60 < Date.now() / 1000) {
-      try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: sync.session.refresh_token })); }
-      catch (e) { if (!navigator.onLine) throw e; sync.session = null; try { localStorage.removeItem('bhl-sess'); } catch (e2) {} throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' }); }
+      // V129: una sola renovación a la vez (si dos llamadas renuevan juntas, la segunda usa un token ya gastado y la nube lo rechaza)
+      if (!rest._ren) rest._ren = (async () => {
+        const usado = sync.session.refresh_token;
+        try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: usado })); }
+        catch (e) {
+          // solo se pierde la sesión si la nube dice claramente que el token ya no sirve; un corte de internet, un fallo del servidor o un tiempo agotado NO cierran la sesión
+          const rechazado = e && (e.status === 400 || e.status === 401 || e.status === 403) && /refresh|token|session|jwt|grant/i.test(e.raw || e.message || '');
+          if (!rechazado) throw e;
+          // quizá otra pestaña o ventana ya la renovó: se usa esa sesión antes de rendirse
+          let otra = null; try { otra = JSON.parse(localStorage.getItem('bhl-sess') || 'null'); } catch (e2) {}
+          if (!otra) { try { otra = await idbGet('bhl-sess-copia'); } catch (e2) {} }
+          if (otra && otra.refresh_token && otra.refresh_token !== usado) {
+            sync.session = otra;
+            if (otra.expires_at - 60 >= Date.now() / 1000) return;
+            try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: otra.refresh_token })); return; } catch (e3) { if (!(e3 && (e3.status === 400 || e3.status === 401 || e3.status === 403))) throw e3; }
+          }
+          sync.session = null; try { localStorage.removeItem('bhl-sess'); idbSet('bhl-sess-copia', null); } catch (e2) {}
+          throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' });
+        }
+      })().finally(() => { rest._ren = null; });
+      await rest._ren;
     }
+    if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     return sync.session.access_token;
   },
   async rpc(fn, body, ms) {
@@ -9896,6 +9917,7 @@ async function iniciarSync() {
   } else {
     sync.mode = 'rest';
     try { sync.session = JSON.parse(localStorage.getItem('bhl-sess') || 'null'); } catch (e) {}
+    if (!sync.session) { try { const c = await idbGet('bhl-sess-copia'); if (c && c.refresh_token) { sync.session = c; try { localStorage.setItem('bhl-sess', JSON.stringify(c)); } catch (e) {} } } catch (e) {} }
     if (sync.session && !sync.session.uid) sync.session.uid = jwtSub(sync.session.access_token);
     if (sync.session && sync.session.uid) { const o = await idbGet('bhl-owner'); if (!o) await idbSet('bhl-owner', sync.session.uid); }
     pintarSync(sync.session ? 'busy' : 'login');
@@ -9904,6 +9926,7 @@ async function iniciarSync() {
   }
   setInterval(() => pedirSync(0), 60000);
   window.addEventListener('online', () => pedirSync(0));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && sync.session && navigator.onLine) pedirSync(0); }); // V129: al volver a la app se renueva la sesión sin pedir nada
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pedirSync(0); });
 }
 $('btnSync').addEventListener('click', abrirPanelSync);
@@ -9926,7 +9949,7 @@ $('syncSalir').addEventListener('click', async () => {
     }
   }
   sync.on = false; sync.session = null;
-  try { localStorage.removeItem('bhl-sess'); localStorage.removeItem('bhl-mcp-on'); } catch (e) {}
+  try { localStorage.removeItem('bhl-sess'); localStorage.removeItem('bhl-mcp-on'); } catch (e) {} try { await idbSet('bhl-sess-copia', null); } catch (e) {}
   if (wipe) { await borrarLocal(); await idbSet('bhl-owner', ''); }
   pintarSync(sync.mode === 'mcp' ? 'off' : 'login'); $('dlgSync').hidden = true;
 });
