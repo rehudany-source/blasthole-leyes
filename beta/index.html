@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v131</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v132</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -9430,6 +9430,153 @@ body.app #plCerrar,body.app #btnPila{display:none}
       cancel() { this.id = null; S.cur = null; redib(); } };
   }
   window.TINTA = S; pinta();
+})();
+
+// V132: Perfiles — corte transversal sobre el plano: topografías de varias fechas + proyectos, y cuánto material se montó (diferencia entre dos topografías)
+(() => {
+  const wrap = $('cad2wrap');
+  if (!wrap || typeof pv === 'undefined') return;
+  const P = { on: false, a: null, b: null, cur: null, pend: false, antes: '', desp: '', ancho: 25, dens: 3.0, sel: null };
+  const fx = (n, d) => n == null || isNaN(n) ? '–' : Number(n).toLocaleString('es-PE', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: d == null ? 0 : d });
+  const COLP = ['#e07a4c', '#4aa3df', '#8bc34a', '#c678dd', '#e6c229', '#2ec4b6', '#ef5b8b', '#9aa5b1'];
+
+  const st = document.createElement('style');
+  st.textContent = `.perf-btn{position:absolute;z-index:7;right:12px;top:calc(46% - 116px);min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+.perf-btn[aria-pressed=true]{background:#4aa3df;color:#001018;border-color:#4aa3df}
+.perf-hint{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);bottom:14px;padding:8px 12px;border-radius:10px;background:rgba(20,24,28,.92);color:#fff;font:600 .85rem system-ui,sans-serif;pointer-events:none}
+.perf-hint[hidden]{display:none}
+.perf-dlg{position:fixed;inset:0;z-index:95;background:#1b2024;color:#e8ecef;display:flex;flex-direction:column;font:14px system-ui,sans-serif}
+.perf-dlg[hidden]{display:none}
+.perf-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid #394149}
+.perf-top h2{margin:0;font-size:1.05rem;flex:1 1 auto}
+.perf-top button,.perf-top select,.perf-top input{min-height:40px;border-radius:8px;border:1px solid #4a535b;background:#2a3138;color:#fff;padding:0 8px;font:inherit}
+.perf-top input{width:70px}
+.perf-top label{display:flex;flex-direction:column;font-size:.72rem;color:#a9b4bd;gap:2px}
+.perf-cv{flex:1 1 55%;min-height:200px;position:relative}
+.perf-cv canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.perf-res{flex:0 0 auto;max-height:38%;overflow:auto;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #394149;font-size:.85rem}
+.perf-res table{border-collapse:collapse;width:100%}
+.perf-res th,.perf-res td{padding:4px 6px;border-bottom:1px solid #343b42;text-align:right;white-space:nowrap}
+.perf-res th:first-child,.perf-res td:first-child{text-align:left}
+.perf-res .mut{color:#a9b4bd;font-size:.78rem;margin-top:4px}`;
+  document.head.appendChild(st);
+
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'perf-btn'; btn.id = 'btnPerfil'; btn.textContent = '📐 Perfil'; btn.setAttribute('aria-pressed', 'false'); btn.title = 'Corte transversal: traza una línea y mira el perfil';
+  const hint = document.createElement('div'); hint.className = 'perf-hint'; hint.hidden = true; hint.textContent = 'Arrastra de un punto a otro para trazar la línea del perfil';
+  wrap.appendChild(btn); wrap.appendChild(hint);
+  const dlg = document.createElement('div'); dlg.className = 'perf-dlg'; dlg.hidden = true; dlg.id = 'perfDlg';
+  dlg.innerHTML = `<div class="perf-top"><h2>📐 Perfil <span id="pfLong" style="font-weight:400;color:#a9b4bd"></span></h2>
+<label>Topo antes<select id="pfAntes"></select></label><label>Topo después<select id="pfDesp"></select></label>
+<label>Ancho (m)<input id="pfAncho" inputmode="decimal"></label><label>Densidad (t/m³)<input id="pfDens" inputmode="decimal"></label>
+<button type="button" id="pfNueva">↺ Otra línea</button><button type="button" id="pfCerrar">✕ Cerrar</button></div>
+<div class="perf-cv" id="pfCv"><canvas id="pfCanvas"></canvas></div><div class="perf-res" id="pfRes"></div>`;
+  document.body.appendChild(dlg);
+  const $$ = id => document.getElementById(id);
+
+  const setOn = on => { P.on = on; btn.setAttribute('aria-pressed', String(on)); hint.hidden = !on; if (!on) { P.cur = null; } try { pv.draw(); } catch (e) {} };
+  btn.addEventListener('click', () => { if (P.on) { setOn(false); return; } if (window.TINTA && TINTA.on) { try { document.getElementById('btnTinta').click(); } catch (e) {} } setOn(true); });
+
+  // ---- trazar la línea en el plano ----
+  const w0 = pv.wantsDraw, d0 = pv.onDraw;
+  pv.wantsDraw = e => { if (P.on) { P.pend = true; return true; } P.pend = false; return w0 ? w0(e) : false; };
+  pv.onDraw = (fase, x, y) => {
+    if (!P.pend && !P.cur) return d0 && d0(fase, x, y);
+    if (fase === 'start') { P.pend = false; P.cur = { a: [x, y], b: [x, y] }; }
+    else if (fase === 'move' && P.cur) P.cur.b = [x, y];
+    else if (fase === 'end' && P.cur) {
+      const c = P.cur; P.cur = null; if (x != null && y != null && !isNaN(x)) c.b = [x, y];
+      if (Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) * pv.v.s < 25) { pv.draw(); return; }
+      P.a = c.a; P.b = c.b; setOn(false); abrir(); return;
+    }
+    pv.draw();
+  };
+  const a0 = pv.after;
+  pv.after = (ctx, v) => {
+    if (a0) a0(ctx, v);
+    const L = P.cur || (P.a && { a: P.a, b: P.b }); if (!L) return;
+    ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = '#4aa3df'; ctx.setLineDash([9, 5]); ctx.beginPath(); ctx.moveTo(v.sx(L.a[0]), v.sy(L.a[1])); ctx.lineTo(v.sx(L.b[0]), v.sy(L.b[1])); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#4aa3df'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    [[L.a, 'A'], [L.b, 'B']].forEach(([p, t]) => { ctx.beginPath(); ctx.arc(v.sx(p[0]), v.sy(p[1]), 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(t, v.sx(p[0]), v.sy(p[1]) - 12); ctx.fillStyle = '#4aa3df'; });
+    ctx.restore();
+  };
+
+  // ---- datos ----
+  const hull = pts => {
+    const p = pts.slice().sort((m, n) => m.x - n.x || m.y - n.y); if (p.length < 3) return p;
+    const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), lo = [], up = [];
+    p.forEach(q => { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); });
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    lo.pop(); up.pop(); return lo.concat(up);
+  };
+  const zonas = () => (t2.projs || []).map((p, i) => {
+    const hs = t2.holes.filter(h => h.pid === p.id); const c = projCode(p);
+    const nombre = c.mina !== '?' ? `${c.mina}-${c.nivel}-${c.nro}` : (p.name || 'Proyecto');
+    return { id: p.id, nombre, col: COLP[i % COLP.length], poly: hs.length >= 3 ? hull(hs.map(h => ({ x: h.x, y: h.y }))) : null, hs: hs.length };
+  }).filter(z => z.poly && z.poly.length >= 3);
+  const nomTopo = t => `${fmtDate(t.fecha)} · ${t.nombre}`;
+  const pinta = async () => {
+    const A = P.a, B = P.b; if (!A || !B) return;
+    const Ls = Math.hypot(B[0] - A[0], B[1] - A[1]); $$('pfLong').textContent = `· ${fx(Ls, 0)} m`;
+    const dA = await topoDem(P.antes), dD = await topoDem(P.desp);
+    const n = Math.max(2, Math.min(1500, Math.round(Ls / 1))), ds = Ls / n, Zs = zonas();
+    const xs = [], zA = [], zD = [];
+    for (let i = 0; i <= n; i++) { const t = i / n, x = A[0] + (B[0] - A[0]) * t, y = A[1] + (B[1] - A[1]) * t; xs.push([x, y]); const a = dA ? demZ(dA, x, y) : null, d = dD ? demZ(dD, x, y) : null; zA.push(a == null || isNaN(a) ? null : a); zD.push(d == null || isNaN(d) ? null : d); }
+    // tramos de cada proyecto sobre la línea
+    const tramos = Zs.map(z => { const r = []; let ini = null; xs.forEach(([x, y], i) => { const dentro = pointInPoly(x, y, z.poly); if (dentro && ini == null) ini = i; if ((!dentro || i === n) && ini != null) { r.push([ini, dentro ? i : i - 1]); ini = null; } }); return Object.assign({}, z, { r }); });
+    // montado = relleno (después más alto que antes) dentro del proyecto
+    const calc = z => { let rel = 0, cor = 0, len = 0; z.r.forEach(([i0, i1]) => { len += (i1 - i0) * ds; for (let i = i0; i <= i1; i++) { if (zA[i] == null || zD[i] == null) continue; const d = zD[i] - zA[i]; if (d > 0) rel += d * ds; else cor += -d * ds; } }); return { rel, cor, len }; };
+    let tot = { rel: 0, cor: 0 }; for (let i = 0; i <= n; i++) if (zA[i] != null && zD[i] != null) { const d = zD[i] - zA[i]; if (d > 0) tot.rel += d * ds; else tot.cor += -d * ds; }
+    const filas = tramos.filter(z => z.r.length).map(z => Object.assign(z, calc(z)));
+    P.sel = { xs, zA, zD, n, ds, Ls, tramos: tramos.filter(z => z.r.length), tot };
+    dibujar();
+    const w = P.ancho || 0, de = P.dens || 0, t = (a) => a * w * de;
+    $$('pfRes').innerHTML = `<table><tr><th>Proyecto en la línea</th><th>Largo (m)</th><th>Montado (m²)</th><th>Montado (t)</th><th>Cortado (m²)</th></tr>`
+      + (filas.length ? filas.map(z => `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${z.col};margin-right:6px"></span>${z.nombre}</td><td>${fx(z.len, 0)}</td><td>${fx(z.rel, 1)}</td><td><b>${fx(t(z.rel), 0)}</b></td><td>${fx(z.cor, 1)}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:left;color:#a9b4bd">La línea no cruza ningún proyecto marcado.</td></tr>')
+      + `<tr><td><b>Toda la línea</b></td><td>${fx(Ls, 0)}</td><td>${fx(tot.rel, 1)}</td><td><b>${fx(t(tot.rel), 0)}</b></td><td>${fx(tot.cor, 1)}</td></tr></table>`
+      + `<div class="mut">Montado = donde la topografía «después» está más alta que «antes», dentro del proyecto. Toneladas = área (m²) × ancho (${fx(w, 0)} m) × densidad (${fx(de, 2)} t/m³): es una estimación del corte, no un volumen 3D.${!dA || !dD ? ' <b style="color:#ffb74d">Falta una de las topografías en esta zona.</b>' : ''}</div>`;
+  };
+  const dibujar = () => {
+    const cv = $$('pfCanvas'), box = $$('pfCv'); if (!cv || !P.sel) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
+    cv.width = W * dpr; cv.height = H * dpr; const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const { zA, zD, n, ds, Ls, tramos } = P.sel;
+    const vals = zA.concat(zD).filter(v => v != null); c.fillStyle = '#1b2024'; c.fillRect(0, 0, W, H);
+    if (!vals.length) { c.fillStyle = '#a9b4bd'; c.font = '14px system-ui'; c.fillText('Sin topografía que cubra esta línea.', 16, 30); return; }
+    let z0 = Math.min(...vals), z1 = Math.max(...vals); const pad = Math.max(2, (z1 - z0) * 0.08); z0 -= pad + (z1 - z0) * 0.12; z1 += pad;
+    const ml = 48, mr = 12, mt = 14, mb = 26, pw = W - ml - mr, ph = H - mt - mb;
+    /* misma escala en horizontal y vertical no cabe en pantallas angostas: se usa exageración vertical libre y se avisa */
+    const X = i => ml + (i / n) * pw, Y = z => mt + (1 - (z - z0) / (z1 - z0)) * ph, ex = (ph / (z1 - z0)) / (pw / Ls);
+    c.strokeStyle = '#2f373e'; c.fillStyle = '#a9b4bd'; c.font = '11px system-ui'; c.lineWidth = 1;
+    const paso = [1, 2, 5, 10, 20, 25, 50].find(s => (z1 - z0) / s <= 8) || 100;
+    for (let z = Math.ceil(z0 / paso) * paso; z <= z1; z += paso) { c.beginPath(); c.moveTo(ml, Y(z)); c.lineTo(W - mr, Y(z)); c.stroke(); c.textAlign = 'right'; c.fillText(String(z), ml - 4, Y(z) + 4); }
+    const pd = [10, 20, 25, 50, 100, 200, 250, 500].find(s => Ls / s <= 8) || 1000; c.textAlign = 'center';
+    for (let d = 0; d <= Ls; d += pd) { c.beginPath(); c.moveTo(X(d / ds), mt); c.lineTo(X(d / ds), H - mb); c.stroke(); c.fillText(d + ' m', X(d / ds), H - 8); }
+    // proyectos: bandas bajo el terreno
+    tramos.forEach(z => z.r.forEach(([i0, i1]) => { c.fillStyle = z.col + '33'; c.fillRect(X(i0), mt, X(i1) - X(i0), ph); c.fillStyle = z.col; c.fillRect(X(i0), H - mb - 6, X(i1) - X(i0), 6); c.font = 'bold 11px system-ui'; c.textAlign = 'center'; if (X(i1) - X(i0) > 46) c.fillText(z.nombre, (X(i0) + X(i1)) / 2, H - mb - 10); }));
+    // relleno entre las dos topografías
+    for (let i = 0; i < n; i++) { const a0 = zA[i], a1 = zA[i + 1], d0 = zD[i], d1 = zD[i + 1]; if (a0 == null || a1 == null || d0 == null || d1 == null) continue; const sube = (d0 + d1) / 2 >= (a0 + a1) / 2; c.fillStyle = sube ? 'rgba(255,82,82,.55)' : 'rgba(80,200,120,.45)'; c.beginPath(); c.moveTo(X(i), Y(a0)); c.lineTo(X(i + 1), Y(a1)); c.lineTo(X(i + 1), Y(d1)); c.lineTo(X(i), Y(d0)); c.closePath(); c.fill(); }
+    const linea = (Z, col, w) => { c.beginPath(); let on = false; Z.forEach((z, i) => { if (z == null) { on = false; return; } if (on) c.lineTo(X(i), Y(z)); else { c.moveTo(X(i), Y(z)); on = true; } }); c.strokeStyle = col; c.lineWidth = w; c.stroke(); };
+    linea(zA, '#9fb3c8', 2); linea(zD, '#ffd60a', 2.5);
+    c.textAlign = 'left'; c.font = 'bold 12px system-ui'; c.fillStyle = '#9fb3c8'; c.fillText('— antes', ml + 6, mt + 12); c.fillStyle = '#ffd60a'; c.fillText('— después', ml + 70, mt + 12); c.fillStyle = '#ff5252'; c.fillText('■ montado', ml + 150, mt + 12); c.fillStyle = '#50c878'; c.fillText('■ cortado', ml + 232, mt + 12);
+    c.fillStyle = '#a9b4bd'; c.font = '11px system-ui'; c.textAlign = 'right'; c.fillText(`A → B · exag. vertical ×${ex.toFixed(1)}`, W - mr, mt + 12);
+  };
+  const recalcula = () => pinta().catch(e => { $$('pfRes').textContent = 'No pude calcular el perfil: ' + e.message; });
+  const abrir = () => {
+    const l = topo.lista.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)); const opts = l.map(t => `<option value="${t.id}">${nomTopo(t)}</option>`).join('');
+    $$('pfAntes').innerHTML = '<option value="">(ninguna)</option>' + opts; $$('pfDesp').innerHTML = '<option value="">(ninguna)</option>' + opts;
+    if (!P.desp || !l.some(t => t.id === P.desp)) P.desp = topo.act || (l[0] && l[0].id) || '';
+    if (!P.antes || !l.some(t => t.id === P.antes) || P.antes === P.desp) P.antes = topo.ant && topo.ant !== P.desp ? topo.ant : ((l.find(t => t.id !== P.desp) || {}).id || '');
+    $$('pfAntes').value = P.antes; $$('pfDesp').value = P.desp; $$('pfAncho').value = P.ancho; $$('pfDens').value = P.dens;
+    dlg.hidden = false; recalcula();
+  };
+  $$('pfAntes').addEventListener('change', e => { P.antes = e.target.value; recalcula(); });
+  $$('pfDesp').addEventListener('change', e => { P.desp = e.target.value; recalcula(); });
+  $$('pfAncho').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.ancho = v; recalcula(); } });
+  $$('pfDens').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.dens = v; recalcula(); } });
+  $$('pfCerrar').addEventListener('click', () => { dlg.hidden = true; try { pv.draw(); } catch (e) {} });
+  $$('pfNueva').addEventListener('click', () => { dlg.hidden = true; P.a = P.b = null; setOn(true); });
+  window.addEventListener('resize', () => { if (!dlg.hidden) dibujar(); });
+  window.PERFIL = P; window.perfilAbrir = (a, b) => { P.a = a; P.b = b; abrir(); };
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
