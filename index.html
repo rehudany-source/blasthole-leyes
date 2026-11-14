@@ -441,12 +441,14 @@ body.app .cadwrap:not(.full) > .cadbar button { min-height: 36px; border-radius:
 .t2dock { display: none; }
 body.app .cadbar { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 16px); row-gap: 6px; }
 body.app .cadwrap:not(.full) > .cadbar button { min-height: 44px; }
+@media (min-width: 700px) {
 body.app .regla-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
-body.app .regla-box button { min-height: 44px; font-size: .88rem; }
 body.app .cadwrap .regla-btn.rg2 { top: 46% !important; right: 12px; left: auto; bottom: auto; }
 body.app .cadwrap .regla-box.rg2 { bottom: 66px; }
 body.app .cadwrap.full .regla-btn.rg2 { top: 46% !important; left: auto; right: 12px; bottom: auto; }
 body.app .cadwrap.full .regla-box.rg2 { left: 96px; bottom: calc(66px + var(--sb, 0px)); }
+}
+body.app .regla-box button { min-height: 44px; font-size: .88rem; }
 body.app .cadwrap.full:not(.nopanel) .foto-btn, body.app .cadwrap.full:not(.nopanel) .gps-btn { right: calc(var(--pw, 0px) + 24px); }
 .t2dock .t2ah { font: 700 .78rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 2px 4px; }
 body.app .cadwrap:not(.full) .anl { right: 8px; flex-wrap: wrap; row-gap: 6px; width: auto; }
@@ -937,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v126</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v131</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3916,18 +3918,18 @@ class PlanView {
   constructor(canvas, wrap, render) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.wrap = wrap; this.render = render;
     this.v = { s: 10, ox: 0, oy: 0 }; this.W = 0; this.H = 0; this.dpr = 1; this.onTap = null; this.onMove = null; this.wantsDraw = null; this.onDraw = null; this.drawId = null;
-    const ptrs = new Map(); let pinch0 = null, moved = 0;
+    const ptrs = new Map(); let pinch0 = null, mid0 = null, moved = 0;
     canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); this.zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
     const pt = e => { const r = canvas.getBoundingClientRect(); return [this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)]; };
     canvas.addEventListener('pointerdown', e => {
       if (this.drawId != null) return; // mientras se dibuja con el lápiz se ignora la palma/dedo
       if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e)); return; }
-      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); mid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; clearTimeout(this._aimT); this.aim = null; }
       // V73: al dibujar con el dedo, mantener presionado muestra una lupa; se arrastra para afinar y al soltar se pone el vértice
       clearTimeout(this._aimT); this.aim = null;
       if (e.pointerType === 'touch' && ptrs.size === 1 && this.wantsAim && this.wantsAim()) {
         const id = e.pointerId;
-        this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 260);
+        this._aimT = setTimeout(() => { if (moved < 8 && ptrs.size === 1 && ptrs.has(id)) { const q = ptrs.get(id), r = canvas.getBoundingClientRect(); this.aim = { px: q.x - r.left, py: q.y - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); } }, 520); /* V130: la lupa solo sale si el dedo se queda quieto medio segundo */
       }
     });
     // V119: el Apple Pencil flotando sobre la pantalla (hover) muestra dónde caería el punto
@@ -3942,7 +3944,7 @@ class PlanView {
       if (!ptrs.has(e.pointerId)) return;
       if (this.aim) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.aim = { px: e.clientX - r.left, py: e.clientY - r.top }; if (this.onMove) this.onMove(this.wx(this.aim.px), this.wy(this.aim.py)); this.draw(); return; }
       const prev = ptrs.get(e.pointerId), cur = { x: e.clientX, y: e.clientY }; ptrs.set(e.pointerId, cur);
-      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.zoomAt(d / pinch0, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); pinch0 = d; moved += 10; return; }
+      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2; this.zoomAt(d / pinch0, mx - r.left, my - r.top); if (mid0) { this.v.ox -= (mx - mid0.x) / this.v.s; this.v.oy += (my - mid0.y) / this.v.s; } mid0 = { x: mx, y: my }; this.draw(); pinch0 = d; moved += 10; return; /* V130: con dos dedos se hace zoom y también se mueve */ }
       const dx = cur.x - prev.x, dy = cur.y - prev.y; moved += Math.abs(dx) + Math.abs(dy);
       this.v.ox -= dx / this.v.s; this.v.oy += dy / this.v.s; this.draw();
     });
@@ -3951,7 +3953,7 @@ class PlanView {
       clearTimeout(this._aimT);
       if (this.aim && ptrs.has(e.pointerId)) { const A = this.aim; this.aim = null; ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('drag'); if (this.onTap) this.onTap(this.wx(A.px), this.wy(A.py)); this.draw(); return; }
       if (ptrs.has(e.pointerId) && moved < 5 && ptrs.size === 1 && this.onTap) { const r = canvas.getBoundingClientRect(); this.onTap(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)); }
-      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) canvas.classList.remove('drag');
+      ptrs.delete(e.pointerId); if (ptrs.size < 2) { pinch0 = null; mid0 = null; } if (!ptrs.size) canvas.classList.remove('drag');
     };
     // V118: toque rápido con dos dedos = deshacer (último vértice; si no hay, el último polígono)
     canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && ptrs.size === 1) { this._two = { t: performance.now(), m0: moved }; } }, true);
@@ -7219,7 +7221,8 @@ function v3Eventos(cv) {
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // ratón y lápiz (el dedo va por los eventos táctiles de abajo: en iPhone los pointer events del canvas no respondían)
   // V119: con el Apple Pencil y «📊 Promedio» activo, el trazo a mano alzada dibuja el polígono (se cierra al levantar el lápiz)
-  const penH = e => e.pointerType === 'pen' && window.prom3 && window.prom3.on && window.prom3.pen;
+  const penObj = () => (window.TINTA && window.TINTA.on && window.TINTA.pen3) || (window.prom3 && window.prom3.on && window.prom3.pen);
+  const penH = e => e.pointerType === 'pen' && penObj();
   const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   // el Apple Pencil también genera eventos táctiles: se ignoran (ya van por pointer events) para no duplicar giro ni toques
   const stylus = e => [...e.changedTouches, ...e.touches].some(t => t.touchType === 'stylus');
@@ -7230,8 +7233,8 @@ function v3Eventos(cv) {
     if (q.b === 2 || q.sh) v3Mover(dx, dy); else { c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006)); }
     q.x = e.clientX; q.y = e.clientY; v3Dibujar();
   });
-  const fin = e => { { const H = e.pointerType === 'pen' && window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
-  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = window.prom3 && window.prom3.pen; if (H && H.id === e.pointerId) H.cancel(); P.delete(e.pointerId); });
+  const fin = e => { { const H = e.pointerType === 'pen' && [window.TINTA && window.TINTA.pen3, window.prom3 && window.prom3.pen].find(h => h && h.id === e.pointerId); if (H) { H.up(...rel(e)); return; } } if (e.pointerType === 'touch' || !P.has(e.pointerId)) return; P.delete(e.pointerId); if (mov < 6) { const r = cv.getBoundingClientRect(); v3Tocar(e.clientX - r.left, e.clientY - r.top); } };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { const H = [window.TINTA && window.TINTA.pen3, window.prom3 && window.prom3.pen].find(h => h && h.id === e.pointerId); if (H) H.cancel(); P.delete(e.pointerId); });
   // ---- dedo: 1 dedo gira, 2 dedos acercan/alejan y mueven, toque corto elige taladro ----
   let tp = null, tmov = 0, tmulti = false;
   const pos = ts => [...ts].map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
@@ -7263,7 +7266,7 @@ function v3LeyendaMinado() {
  const box=$('v3dPmLegend');if(!box)return;
  if(!v3.ver.pm || typeof pm==='undefined' || !PM_ESQ[pm.esq]){box.hidden=true;return;}
  const esquema=PM_ESQ[pm.esq];box.hidden=false;
- box.innerHTML='<b>'+esc(pm.esq==='m'?'Material M1–M5 · S/FeS':pm.esq==='cu'?'Ley de Cu (%)':'Ley de Fe')+'</b>'+esquema.clases.map(c=>'<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><i style="display:inline-block;flex:none;width:11px;height:11px;border-radius:2px;background:'+esc(c.col)+'"></i><span>'+esc(c.nom)+(c.sub?' · '+esc(c.sub):'')+'</span></div>').join('');
+ box.innerHTML='<b>'+esc(pm.esq==='m'?'Material M1–M5 · S/FeS':pm.esq==='cu'?'Ley de Cu (%)':pm.esq==='s100'?'S_100 (%)':'Ley de Fe')+'</b>'+esquema.clases.map(c=>'<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><i style="display:inline-block;flex:none;width:11px;height:11px;border-radius:2px;background:'+esc(c.col)+'"></i><span>'+esc(c.nom)+(c.sub?' · '+esc(c.sub):'')+'</span></div>').join('');
 }
 async function v3Mostrar() {
   v3LeyendaMinado();
@@ -7549,6 +7552,7 @@ body.app .split-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
         }
         return p;
       };
+      window.pickAny3 = pickAny;
       v3Tocar = (px, py) => {
         if (!P3.on) return t1(px, py);
         const p = pickAny(px, py);
@@ -7651,6 +7655,15 @@ PM_ESQ.cu = { nom: 'Ley de Cu', clases: [
     { k: 'C5', nom: 'Cu ≥ 1.00', sub: '1.00 o más', col: '#ff1744', colL: '#b00030', aci: 1 }],
   mineral: new Set(),
   clase: (cu) => { const r = Math.round(cu * 100) / 100; return r < 0.15 ? 0 : r < 0.30 ? 1 : r < 0.60 ? 2 : r < 1.00 ? 3 : 4; } };
+// V131: clasificación por S_100 (%): 0–0.5 · 0.5–1 · 1–2 · 2–3 · > 3 (colores fuertes, sin corte mineral/desmonte)
+PM_ESQ.s100 = { nom: 'S_100', clases: [
+    { k: 'S1', nom: 'S_100 0–0.5', sub: '0 – 0.5', col: '#00e676', colL: '#00a152', aci: 3 },
+    { k: 'S2', nom: 'S_100 0.5–1', sub: '0.5 – 1', col: '#ffee00', colL: '#c7b400', aci: 2 },
+    { k: 'S3', nom: 'S_100 1–2', sub: '1 – 2', col: '#ff9100', colL: '#d46a00', aci: 30 },
+    { k: 'S4', nom: 'S_100 2–3', sub: '2 – 3', col: '#ff1744', colL: '#c4001d', aci: 1 },
+    { k: 'S5', nom: 'S_100 > 3', sub: 'más de 3', col: '#d500f9', colL: '#9c00b8', aci: 6 }],
+  mineral: new Set(),
+  clase: (v) => { const r = Math.round(v * 100) / 100; return r < 0.5 ? 0 : r < 1 ? 1 : r < 2 ? 2 : r < 3 ? 3 : 4; } };
 const pm = { on: false, res: null, firma: '', celda: 1, esq: 'fe' };
 // V64: opciones del método (excavadora para mineral, óxidos, marginal y contactos; pala para desmonte)
 const PM_OPC0 = { metodo: 'suav', minMin: 36, minDes: 100, movD: 0, movAz: 0, eqDes: 'cont' };
@@ -7658,9 +7671,9 @@ function pmOpc() { let o = {}; try { o = JSON.parse(localStorage.getItem('bhl-pm
 function pmOpcGuardar(o) { try { localStorage.setItem('bhl-pm-opc', JSON.stringify(o)); } catch (e) {} pm.res = null; }
 try { pm.on = localStorage.getItem('bhl-pm') === '1'; pm.esq = PM_ESQ[localStorage.getItem('bhl-pm-esq')] ? localStorage.getItem('bhl-pm-esq') : 'fe'; } catch (e) {}
 const pmE = () => PM_ESQ[pm.esq];
-function pmClase(fe, sfe, cu) { if (pm.esq === 'cu') return cu == null || isNaN(cu) ? -1 : pmE().clase(cu); if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
+function pmClase(fe, sfe, cu, s100) { if (pm.esq === 'cu') return cu == null || isNaN(cu) ? -1 : pmE().clase(cu); if (pm.esq === 's100') return s100 == null || isNaN(s100) ? -1 : pmE().clase(s100); if (fe == null || isNaN(fe)) return -1; return pmE().clase(fe, sfe); }
 const pmEsCu = R => R && R.esq === 'cu';
-const pmValTxt = (R, p) => pmEsCu(R) ? (p.cu != null ? `Cu ${p.cu.toFixed(2)}` : '') : (p.fe != null ? `Fe ${p.fe.toFixed(1)}` : '');
+const pmValTxt = (R, p) => R && R.esq === 's100' ? (p.s100 != null ? `S ${p.s100.toFixed(2)}` : '') : pmEsCu(R) ? (p.cu != null ? `Cu ${p.cu.toFixed(2)}` : '') : (p.fe != null ? `Fe ${p.fe.toFixed(1)}` : '');
 function pmColor(c) { return (typeof planClaro === 'function' && planClaro()) ? c.colL : c.col; }
 // Cada celda de 1 m toma la clase del taladro con ley más cercano (como en los polígonos de ore control), hasta ~0.75 del espaciamiento
 function pmCalcularHoles(lista) {
@@ -7668,9 +7681,9 @@ function pmCalcularHoles(lista) {
   const doms = [];
   lista.forEach(h => {
     if (h.dup) return; const l = t2.leyBy.get(h.ck), has = l && l.hasData !== false;
-    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null, cu = has ? l.cu : null;
-    const c = pmClase(fe, sfe, cu); if (c < 0) return;
-    src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, cu, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
+    const le = !has && t2.estBy ? t2.estBy.get(h.ck) : null, fe = has ? l.fe : le ? le.fe : null, sfe = has ? l.sfe : le ? le.sfe : null, cu = has ? l.cu : null, s100 = has ? l.s100 : null;
+    const c = pmClase(fe, sfe, cu, s100); if (c < 0) return;
+    src.push({ x: h.x + mx, y: h.y + my, c, fe, sfe, cu, s100, h, est: !has, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' });
   });
   if (src.length < 3) return { err: src.length ? 'Hay muy pocos taladros con ley para trazar polígonos.' : 'Los proyectos marcados no tienen taladros con ley.' };
   // V80: el espaciamiento y la huella del proyecto salen de TODOS los taladros (con y sin ley).
@@ -7776,7 +7789,8 @@ function pmCalcularHoles(lista) {
       const area = z.cel.length * cel * cel, dens = ts.length ? sw / ts.length : densFe(25);
       const feP = ts.length ? ts.reduce((s, t) => s + t.fe * wD(t), 0) / sw : null, sf = ts.filter(t => t.sfe != null), swf = sf.reduce((s, t) => s + wD(t), 0), sfeP = sf.length ? sf.reduce((s, t) => s + t.sfe * wD(t), 0) / swf : null;
       const sc = ts.filter(t => t.cu != null), swc = sc.reduce((s, t) => s + wD(t), 0), cuP = sc.length ? sc.reduce((s, t) => s + t.cu * wD(t), 0) / swc : null;
-      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, cu: cuP, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
+      const s1 = ts.filter(t => t.s100 != null), sws = s1.reduce((s, t) => s + wD(t), 0), s100P = s1.length ? s1.reduce((s, t) => s + t.s100 * wD(t), 0) / sws : null;
+      return { clase: c.k, rings, area, t: area * banco * dens, fe: feP, sfe: sfeP, cu: cuP, s100: s100P, n: ts.length, nEst: ts.filter(t => t.est).length, ids: ts.map(t => t.h.id) };
     }).filter(p => p.rings.length);
     return { c, polys };
   }).filter(Boolean);
@@ -7806,6 +7820,21 @@ function pmCalcular() {
 }
 function pmFirma() { return [pm.esq, localStorage.getItem('bhl-pm-opc') || '', t2.holes.length, t2.leyBy && t2.leyBy.size, t2.estBy && t2.estBy.size, num('avBanco'), t2.holes.length ? t2.holes[0].ck + t2.holes[t2.holes.length - 1].ck : ''].join('|'); }
 function pmActual() { const f = pmFirma(); if (!pm.res || pm.firma !== f) { pm.res = t2.holes.length ? pmCalcular() : null; pm.firma = f; } return pm.res; }
+// V131: leyenda de la clasificación activa dibujada sobre el plano (abajo a la izquierda)
+function pmLeyendaPlano(ctx, v) {
+  if (!pm.on) return; const E = PM_ESQ[pm.esq]; if (!E) return;
+  const claro = typeof planClaro === 'function' && planClaro(), W = v.W || 0, H = v.H || 0; if (!W || !H) return;
+  const fs = W < 520 ? 11 : 13, rh = fs + 8, titulo = pm.esq === 'fe' ? 'Ley de Fe (%)' : pm.esq === 'm' ? 'Material M1–M5 (S/FeS)' : pm.esq === 'cu' ? 'Ley de Cu (%)' : 'S_100 (%)';
+  const filas = E.clases.map(c => [c, c.nom + (c.sub && (pm.esq === 'fe' || pm.esq === 'm') ? '  ' + c.sub : '')]);
+  ctx.save(); ctx.textAlign = 'left'; ctx.font = `600 ${fs}px system-ui, sans-serif`;
+  const ancho = Math.max(ctx.measureText(titulo).width, ...filas.map(f => ctx.measureText(f[1]).width + 24)) + 20, alto = 12 + (filas.length + 1) * rh;
+  const x = 12, y = H - alto - 12 - (W < 520 ? 70 : 0);
+  ctx.fillStyle = claro ? 'rgba(255,255,255,.92)' : 'rgba(14,18,22,.88)'; ctx.strokeStyle = claro ? '#9aa4ab' : '#4a535b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, ancho, alto, 8) : ctx.rect(x, y, ancho, alto); ctx.fill(); ctx.stroke();
+  ctx.textBaseline = 'middle'; ctx.fillStyle = claro ? '#10161a' : '#ffffff'; ctx.fillText(titulo, x + 10, y + 6 + rh / 2);
+  filas.forEach(([c, t], i) => { const yy = y + 6 + (i + 1) * rh + rh / 2; ctx.fillStyle = claro ? c.colL : c.col; ctx.fillRect(x + 10, yy - 6, 14, 12); ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.strokeRect(x + 10, yy - 6, 14, 12); ctx.fillStyle = claro ? '#10161a' : '#e8edf0'; ctx.fillText(t, x + 30, yy); });
+  ctx.restore();
+}
 function pmDibujar(ctx, v) {
   if (!pm.on) return; const R = pmActual(); if (!R || R.err) return;
   const path = rings => { ctx.beginPath(); rings.forEach(P => { P.forEach((q, i) => (i ? ctx.lineTo(v.sx(q.x), v.sy(q.y)) : ctx.moveTo(v.sx(q.x), v.sy(q.y)))); ctx.closePath(); }); };
@@ -7816,7 +7845,7 @@ function pmDibujar(ctx, v) {
     if (!G.img || G.imgClaro !== claro) {
       const cv = document.createElement('canvas'); cv.width = G.W; cv.height = G.H; const cx = cv.getContext('2d'), im = cx.createImageData(G.W, G.H), d = im.data;
       const rgb = PM_ESQ[R.esq].clases.map(c => v3Hex(claro ? c.colL : c.col).map(x => Math.round(x * 255)));
-      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = R.esq === 'cu' ? 140 : 90; }
+      for (let j = 0; j < G.H; j++) for (let i = 0; i < G.W; i++) { const c = G.C[j * G.W + i]; if (c < 0) continue; const o = ((G.H - 1 - j) * G.W + i) * 4; d[o] = rgb[c][0]; d[o + 1] = rgb[c][1]; d[o + 2] = rgb[c][2]; d[o + 3] = R.esq === 'cu' || R.esq === 's100' ? 150 : 90; }
       cx.putImageData(im, 0, 0); G.img = cv; G.imgClaro = claro;
     }
     ctx.imageSmoothingEnabled = false; ctx.drawImage(G.img, v.sx(G.x0), v.sy(G.y0 + G.H * G.cel), G.W * G.cel * v.v.s, G.H * G.cel * v.v.s); ctx.imageSmoothingEnabled = true;
@@ -7841,15 +7870,16 @@ function pmResumen() {
   const el = $('pmRes'); if (!el) return; const R = pmActual();
   if (!t2.holes.length) { el.innerHTML = '<p class="msg">Marca uno o varios proyectos con leyes.</p>'; return; }
   if (!R || R.err) { el.innerHTML = `<p class="msg err">${esc((R && R.err) || '')}</p>`; return; }
-  const conM = R.esq === 'm', conCu = R.esq === 'cu';
+  const conM = R.esq === 'm', conCu = R.esq === 'cu', conS = R.esq === 's100';
   const fila = (c, polys) => { const a = polys.reduce((s, p) => s + p.area, 0), t = polys.reduce((s, p) => s + p.t, 0), n = polys.reduce((s, p) => s + p.n, 0), fe = n ? polys.reduce((s, p) => s + (p.fe || 0) * p.n, 0) / n : null;
     const pc = polys.filter(p => p.cu != null), cu = pc.length ? pc.reduce((s, p) => s + p.cu * p.n, 0) / pc.reduce((s, p) => s + p.n, 0) : null;
+    const p1 = polys.filter(p => p.s100 != null), s100 = p1.length ? p1.reduce((s, p) => s + p.s100 * p.n, 0) / p1.reduce((s, p) => s + p.n, 0) : null;
     const ps = polys.filter(p => p.sfe != null), sf = ps.length ? ps.reduce((s, p) => s + p.sfe * p.n, 0) / ps.reduce((s, p) => s + p.n, 0) : null;
-    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td>${conCu ? `<td>${cu != null ? cu.toFixed(2) : '—'}</td>` : ''}${conM ? `<td>${sf != null ? sf.toFixed(2) : '—'}</td>` : ''}<td>${n}</td></tr>`; };
+    return `<tr><td><i class="pm-sw" style="background:${pmColor(c)}"></i>${c.nom}</td><td>${polys.length}</td><td>${Math.round(a).toLocaleString('es-PE')}</td><td>${Math.round(t).toLocaleString('es-PE')}</td><td>${fe != null ? fe.toFixed(1) : '—'}</td>${conCu ? `<td>${cu != null ? cu.toFixed(2) : '—'}</td>` : ''}${conS ? `<td>${s100 != null ? s100.toFixed(2) : '—'}</td>` : ''}${conM ? `<td>${sf != null ? sf.toFixed(2) : '—'}</td>` : ''}<td>${n}</td></tr>`; };
   const mineral = PM_ESQ[R.esq].mineral;
   const tot = R.clases.reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0), min = R.clases.filter(x => mineral.has(x.c.k)).reduce((s, x) => s + x.polys.reduce((q, p) => q + p.t, 0), 0);
-  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th>${conCu ? '<th>Cu</th>' : ''}${conM ? '<th>S/FeS</th>' : ''}<th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
-    <p class="msg">${conCu ? `Total: <b>${Math.round(tot).toLocaleString('es-PE')} t</b> en polígonos por ley de Cu. ` : `Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. `}Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}. ${R.opc.metodo === 'suav' ? `Método suavizado por equipo: mínimo ${R.opc.minMin} m² con excavadora y ${R.opc.minDes} m² con pala; desmonte con ${R.opc.eqDes === 'exc' ? 'excavadora' : R.opc.eqDes === 'pala' ? 'pala' : 'excavadora en los contactos con mineral y pala en lo demás'}` : 'Método por taladro (sin suavizar)'}${R.opc.movD ? ` · desplazado ${R.opc.movD} m al ${R.opc.movAz}°` : ''}.</p>`;
+  el.innerHTML = `<table class="pm-t"><thead><tr><th>Clase</th><th>Pol.</th><th>m²</th><th>t</th><th>Fe</th>${conCu ? '<th>Cu</th>' : ''}${conS ? '<th>S_100</th>' : ''}${conM ? '<th>S/FeS</th>' : ''}<th>Tal.</th></tr></thead><tbody>${R.clases.map(x => fila(x.c, x.polys)).join('')}</tbody></table>
+    <p class="msg">${conCu || conS ? `Total: <b>${Math.round(tot).toLocaleString('es-PE')} t</b> en polígonos por ley de ${conS ? 'S_100' : 'Cu'}. ` : `Mineral (Fe &gt; 30): <b>${Math.round(min).toLocaleString('es-PE')} t</b> de ${Math.round(tot).toLocaleString('es-PE')} t (${tot ? Math.round(100 * min / tot) : 0} %). Línea roja punteada = corte mineral / desmonte. `}Espaciamiento ${R.esp.toFixed(1)} m · banco ${R.banco} m${R.nEst ? ` · ${R.nEst} taladro(s) con ley estimada` : ''}. ${R.opc.metodo === 'suav' ? `Método suavizado por equipo: mínimo ${R.opc.minMin} m² con excavadora y ${R.opc.minDes} m² con pala; desmonte con ${R.opc.eqDes === 'exc' ? 'excavadora' : R.opc.eqDes === 'pala' ? 'pala' : 'excavadora en los contactos con mineral y pala en lo demás'}` : 'Método por taladro (sin suavizar)'}${R.opc.movD ? ` · desplazado ${R.opc.movD} m al ${R.opc.movAz}°` : ''}.</p>`;
 }
 function pmDXF() {
   const R = pmActual(); if (!R || R.err) return null;
@@ -7865,8 +7895,8 @@ function pmDXF() {
   L.push('0', 'ENDSEC', '0', 'EOF'); return L.join('\r\n');
 }
 function pmCSV() {
-  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,SFeS_prom,Cu_prom,Taladros'];
-  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.sfe != null ? p.sfe.toFixed(3) : '', p.cu != null ? p.cu.toFixed(3) : '', p.n].join(',')))); }));
+  const R = pmActual(); if (!R || R.err) return null; const out = ['Clase,Poligono,Anillo,Vertice,Este,Norte,Area_m2,Toneladas,Fe_prom,SFeS_prom,Cu_prom,S100_prom,Taladros'];
+  let n = 0; R.clases.forEach(({ c, polys }) => polys.forEach(p => { n++; p.rings.forEach((P, ri) => P.forEach((q, vi) => out.push([c.nom, n, ri + 1, vi + 1, q.x.toFixed(3), q.y.toFixed(3), Math.round(p.area), Math.round(p.t), p.fe != null ? p.fe.toFixed(2) : '', p.sfe != null ? p.sfe.toFixed(3) : '', p.cu != null ? p.cu.toFixed(3) : '', p.s100 != null ? p.s100.toFixed(3) : '', p.n].join(',')))); }));
   return out.join('\r\n');
 }
 (() => {
@@ -7876,7 +7906,7 @@ function pmCSV() {
   const pop = document.createElement('div'); pop.className = 'topo-pop pm-pop'; pop.id = 'pmPop'; pop.hidden = true;
   pop.innerHTML = `<div class="topo-h"><b>⛏ Polígonos de minado</b><button type="button" id="pmCerrar" aria-label="Cerrar">✕</button></div>
     <label class="chk"><input type="checkbox" id="pmVer"> Ver polígonos en el plano</label>
-    <div class="pm-esq"><span>Clasificar por</span><div class="seg"><button type="button" data-pmesq="fe">Ley de Fe</button><button type="button" data-pmesq="m">Material M1–M5</button><button type="button" data-pmesq="cu">Ley de Cu</button></div></div>
+    <div class="pm-esq"><span>Clasificar por</span><div class="seg"><button type="button" data-pmesq="fe">Ley de Fe</button><button type="button" data-pmesq="m">Material M1–M5</button><button type="button" data-pmesq="cu">Ley de Cu</button><button type="button" data-pmesq="s100">S_100</button></div></div>
     <div class="pm-ley" id="pmLey"></div>
     <details class="pm-opc"><summary>Método y unidad mínima</summary>
       <div class="pm-esq"><span>Método</span><div class="seg"><button type="button" data-pmmet="suav">Suavizado por equipo</button><button type="button" data-pmmet="tal">Por taladro</button></div></div>
@@ -7891,7 +7921,7 @@ function pmCSV() {
     <p class="msg" id="pmMsg"></p>`;
   $('topoPop').parentNode.insertBefore(pop, $('topoPop'));
   $('pmVer').checked = pm.on;
-  const pintarEsq = () => { pop.querySelectorAll('[data-pmesq]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmesq === pm.esq ? 'true' : 'false')); $('pmLey').innerHTML = pmE().clases.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${esc(c.sub)}</small></span>`).join('') + (pm.esq === 'm' ? '<small class="pm-nota">M1–M5 solo en el mineral (Fe &gt; 30), según S/FeS como en el historial.</small>' : pm.esq === 'cu' ? '<small class="pm-nota">Por ley de Cu (%) de cada taladro. Solo se usan taladros con resultado de Cu; sin corte mineral / desmonte.</small>' : ''); };
+  const pintarEsq = () => { pop.querySelectorAll('[data-pmesq]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmesq === pm.esq ? 'true' : 'false')); $('pmLey').innerHTML = pmE().clases.map(c => `<span><i class="pm-sw" style="background:${c.col}"></i>${c.nom} <small>${esc(c.sub)}</small></span>`).join('') + (pm.esq === 'm' ? '<small class="pm-nota">M1–M5 solo en el mineral (Fe &gt; 30), según S/FeS como en el historial.</small>' : pm.esq === 's100' ? '<small class="pm-nota">Por ley de S_100 (%) de cada taladro. Solo se usan taladros con resultado de S_100; sin corte mineral / desmonte.</small>' : pm.esq === 'cu' ? '<small class="pm-nota">Por ley de Cu (%) de cada taladro. Solo se usan taladros con resultado de Cu; sin corte mineral / desmonte.</small>' : ''); };
   pintarEsq();
   const pintarOpc = () => { const o = pmOpc(); pop.querySelectorAll('[data-pmmet]').forEach(x => x.setAttribute('aria-pressed', x.dataset.pmmet === o.metodo ? 'true' : 'false')); $('pmMinMin').value = o.minMin; $('pmMinDes').value = o.minDes; $('pmMovD').value = o.movD; $('pmMovAz').value = o.movAz; $('pmEqDes').value = o.eqDes; };
   pintarOpc();
@@ -7981,14 +8011,15 @@ const PMM_SL = { k: 'SL', nom: 'Sin ley', sub: 'taladros sin resultados', col: '
 // V68: clasificación calculada con las leyes de los taladros dentro del polígono (Fe y M por S/FeS)
 function pmmCalc(p, q) {
   const s = pmmSt(p, q).st;
-  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, cu: PMM_SL, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, cu: PMM_SL, grupo: 'Sin ley', nota: '' }; }
+  if (s.fe == null) { if (!s.n) return { s, fe: PM_DS, m: PM_DS, cu: PMM_SL, s100: PMM_SL, grupo: 'Desmonte', nota: 'sin taladros (zona no muestreada)' }; return { s, fe: PMM_SL, m: PMM_SL, cu: PMM_SL, s100: PMM_SL, grupo: 'Sin ley', nota: '' }; }
   const fe = PM_ESQ.fe.clases[PM_ESQ.fe.clase(s.fe, s.sfe)], m = PM_ESQ.m.clases[PM_ESQ.m.clase(s.fe, s.sfe)];
   const r = Math.round(s.fe * 10) / 10, grupo = r >= 30.1 ? 'Mineral' : r >= 20.1 ? 'Marginal' : 'Desmonte';
   const cuc = s.cu != null ? PM_ESQ.cu.clases[PM_ESQ.cu.clase(s.cu)] : PMM_SL;
-  return { s, fe, m, cu: cuc, grupo, nota: '' };
+  const s1c = s.s100 != null ? PM_ESQ.s100.clases[PM_ESQ.s100.clase(s.s100)] : PMM_SL;
+  return { s, fe, m, cu: cuc, s100: s1c, grupo, nota: '' };
 }
 function pmmClase(q, p) {
-  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : pm.esq === 'cu' ? c.cu : c.fe; } return PMM_SL; }
+  if (q.auto || q.clase === 'auto') { p = p || (t2.projs || []).find(x => (x.polMinado || []).includes(q)); if (p) { const c = pmmCalc(p, q); return pm.esq === 'm' ? c.m : pm.esq === 'cu' ? c.cu : pm.esq === 's100' ? c.s100 : c.fe; } return PMM_SL; }
   const E = PM_ESQ[q.esq] || PM_ESQ.fe; return E.clases.find(c => c.k === q.clase) || E.clases[E.clases.length - 1];
 }
 function pmmTexto(p, q) {
@@ -8001,7 +8032,8 @@ function pmmStats(p, q) {
   const ls = hs.map(h => { const l = t2.leyBy.get(h.ck); return l && l.hasData !== false ? l : (t2.estBy && t2.estBy.get(h.ck)) || null; }).filter(l => l && l.fe != null);
   const lc = ls.filter(l => l.cu != null && !l.est), wf = l => densFe(l.fe), swcu = lc.reduce((s, l) => s + wf(l), 0), cuM = lc.length ? lc.reduce((s, l) => s + l.cu * wf(l), 0) / swcu : null, sw = ls.reduce((s, l) => s + wf(l), 0), fe = ls.length ? ls.reduce((s, l) => s + l.fe * wf(l), 0) / sw : null, sf = ls.filter(l => l.sfe != null), swf = sf.reduce((s, l) => s + wf(l), 0), sfe = sf.length ? sf.reduce((s, l) => s + l.sfe * wf(l), 0) / swf : null;
   const area = polyArea(P), banco = num('avBanco') || 12, dens = ls.length ? ls.reduce((s, l) => s + densFe(l.fe), 0) / ls.length : densFe(25);
-  return { n: hs.length, nLey: ls.length, fe, sfe, cu: cuM, area, t: area * banco * dens };
+  const l1 = ls.filter(l => l.s100 != null && !l.est), sw1 = l1.reduce((s, l) => s + wf(l), 0), s100M = l1.length ? l1.reduce((s, l) => s + l.s100 * wf(l), 0) / sw1 : null;
+  return { n: hs.length, nLey: ls.length, fe, sfe, cu: cuM, s100: s100M, area, t: area * banco * dens };
 }
 function pmmDibujar(ctx, v) {
   if (!pm.on) return;
@@ -8104,7 +8136,7 @@ function pmmPintar() {
     return tap0 ? tap0(x, y) : undefined;
   };
   const v2px = d => d * pv.v.s;
-  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { pmmDibujar(ctx, v); } catch (e) {} };
+  const a0 = pv.after; pv.after = (ctx, v) => { if (a0) a0(ctx, v); try { pmmDibujar(ctx, v); } catch (e) {} try { pmLeyendaPlano(ctx, v); } catch (e) {} };
   const r0 = refreshT2; window.refreshT2 = refreshT2 = function () { const r = r0.apply(this, arguments); try { if (box.open) pmmPintar(); } catch (e) {} return r; };
 })();
 
@@ -9271,6 +9303,135 @@ body.app #plCerrar,body.app #btnPila{display:none}
   if (bt && PILA_VISIBLE) { const b = document.createElement('button'); b.type = 'button'; b.id = 'btnPila'; b.className = bt.className; b.textContent = '🏔 Pila PQ4'; b.onclick = window.abrirPilaPQ4; bt.parentNode.insertBefore(b, bt.nextSibling); }
 })();
 
+// V127: Tinta — dibujar y escribir a mano libre sobre el plano y sobre el 3D (Apple Pencil), sin sacar promedios
+(() => {
+  const LS = 'bhl-tinta';
+  const COLS = ['#ff3b30', '#ffd60a', '#34c759', '#0a84ff', '#ffffff', '#111111'];
+  const ANCH = [2, 4, 8];
+  const wrap = $('cad2wrap'), w3 = $('v3dWrap');
+  if (!wrap || typeof pv === 'undefined') return;
+  let strokes = []; try { strokes = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) { strokes = []; }
+  // trazo = { c: color, w: grosor en px, p: [[x, y], ...] } en coordenadas del mundo: el mismo trazo se ve en el plano y en el 3D (pegado al terreno)
+  const S = { on: false, show: true, col: COLS[0], w: 4, borra: false, dedo: false, cur: null, pend: false, hist: [] };
+  const guardar = () => { try { localStorage.setItem(LS, JSON.stringify(strokes)); } catch (e) {} };
+  const en3d = () => { try { return typeof v3Vis === 'function' && v3Vis() && !!w3 && w3.offsetParent !== null; } catch (e) { return false; } };
+  const redib = () => { try { pv.draw(); } catch (e) {} if (w3) { try { v3Dibujar(); } catch (e) {} } };
+
+  const st = document.createElement('style');
+  st.textContent = `.tinta-pan{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;bottom:14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;max-width:calc(100% - 16px);padding:6px 8px;border-radius:12px;background:rgba(20,24,28,.94);border:1px solid #3a424a;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.tinta-pan[hidden]{display:none}
+.tinta-pan button{min-width:42px;min-height:42px;border-radius:9px;border:1px solid #4a535b;background:#2a3138;color:#fff;font:600 1.05rem system-ui,sans-serif;touch-action:manipulation;padding:0 6px}
+.tinta-pan button[aria-pressed=true]{outline:2px solid #ffd60a}
+.tinta-pan .tc{width:32px;min-width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;border:2px solid #6a747c}
+.tinta-pan .tw{display:inline-flex;align-items:center;justify-content:center;width:42px}
+.cadwrap.tinta-on .inplan{display:none!important}
+.tinta-pan .tw i{display:block;background:#fff;border-radius:50%}
+.tinta-pan .sep{width:1px;height:28px;background:#4a535b}
+.tinta-btn{position:absolute;z-index:7;right:12px;top:calc(46% - 58px);min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+.tinta-btn[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}
+#btnTinta3{top:154px;right:auto;left:10px}`;
+  document.head.appendChild(st);
+
+  const HTML = COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
+    + ANCH.map(w => `<button type="button" class="tw" data-w="${w}" aria-label="grosor"><i style="width:${w + 4}px;height:${w + 4}px"></i></button>`).join('') + '<span class="sep"></span>'
+    + '<button type="button" data-a="e" title="Borrar trazo">🧽</button><button type="button" data-a="u" title="Deshacer">↩</button><button type="button" data-a="v" title="Ocultar o mostrar">👁</button><button type="button" data-a="f" title="Dibujar también con el dedo">☝</button><button type="button" data-a="x" title="Borrar todo">🗑</button><button type="button" data-a="ok" title="Listo" style="background:#ffd60a;color:#1a1500">✓</button>';
+  const hechos = [];
+  const montar = (host, idBtn) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tinta-btn'; if (idBtn) b.id = idBtn; b.textContent = '🖍 Tinta'; b.setAttribute('aria-pressed', 'false'); b.title = 'Dibujar encima (no calcula nada)';
+    const pan = document.createElement('div'); pan.className = 'tinta-pan'; pan.hidden = true; pan.innerHTML = HTML;
+    host.appendChild(b); host.appendChild(pan); hechos.push({ b, pan, host });
+    b.addEventListener('click', () => setOn(!S.on));
+    pan.addEventListener('click', e => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.dataset.c) { S.col = x.dataset.c; S.borra = false; }
+      else if (x.dataset.w) S.w = +x.dataset.w;
+      else if (x.dataset.a === 'e') S.borra = !S.borra;
+      else if (x.dataset.a === 'u') { const h = S.hist.pop(); if (h) { if (h.add) strokes = strokes.filter(s => s !== h.add); else if (h.del) strokes.push(...h.del); guardar(); } }
+      else if (x.dataset.a === 'v') S.show = !S.show;
+      else if (x.dataset.a === 'f') S.dedo = !S.dedo;
+      else if (x.dataset.a === 'x') { if (strokes.length && confirm('¿Borrar todos los trazos de tinta?')) { S.hist.push({ del: strokes.slice() }); strokes = []; guardar(); } }
+      else if (x.dataset.a === 'ok') { setOn(false); return; }
+      pinta(); redib();
+    });
+  };
+  const pinta = () => hechos.forEach(({ b, pan }) => {
+    pan.querySelectorAll('.tc').forEach(x => x.setAttribute('aria-pressed', String(!S.borra && x.dataset.c === S.col)));
+    pan.querySelectorAll('.tw').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.w === S.w)));
+    pan.querySelector('[data-a=e]').setAttribute('aria-pressed', String(S.borra));
+    pan.querySelector('[data-a=v]').setAttribute('aria-pressed', String(!S.show));
+    pan.querySelector('[data-a=f]').setAttribute('aria-pressed', String(S.dedo));
+    b.setAttribute('aria-pressed', String(S.on));
+  });
+  const setOn = on => { S.on = on; if (on) S.show = true; hechos.forEach(({ pan, host }) => { pan.hidden = !on; host.classList.toggle('tinta-on', on); }); pinta(); redib(); };
+  montar(wrap, 'btnTinta');
+  if (w3) montar(w3, 'btnTinta3');
+
+  // ---------- plano ----------
+  // el lápiz (o el ratón) dibuja; el dedo sigue moviendo y haciendo zoom, salvo que se active «Dedo»
+  const w0 = pv.wantsDraw, d0 = pv.onDraw;
+  pv.wantsDraw = e => { if (S.on && (e.pointerType !== 'touch' || S.dedo)) { S.pend = true; return true; } S.pend = false; return w0 ? w0(e) : false; };
+  const cerca = (s, x, y, r) => { const r2 = r * r; return s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }); };
+  const quitar = caen => { if (caen.length) { strokes = strokes.filter(s => !caen.includes(s)); S.hist.push({ del: caen }); guardar(); redib(); } };
+  const borrarEn = (x, y) => quitar(strokes.filter(s => cerca(s, x, y, 14 / pv.v.s)));
+  const nuevo = (x, y) => ({ c: S.col, w: S.w, p: [[x, y]] });
+  const cierra = c => { if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } };
+  pv.onDraw = (fase, x, y) => {
+    if (!S.pend && !S.cur) return d0 && d0(fase, x, y);
+    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else S.cur = nuevo(x, y); }
+    else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) S.cur.p.push([x, y]); } }
+    else if (fase === 'end') { const c = S.cur; S.cur = null; cierra(c); redib(); return; }
+    pv.draw(); if (w3 && en3d()) { try { v3Dibujar(); } catch (e) {} }
+  };
+  const trazo = (ctx, v, s) => {
+    const P = s.p; if (!P.length) return; ctx.beginPath(); ctx.moveTo(v.sx(P[0][0]), v.sy(P[0][1]));
+    for (let i = 1; i < P.length - 1; i++) { const mx = (v.sx(P[i][0]) + v.sx(P[i + 1][0])) / 2, my = (v.sy(P[i][1]) + v.sy(P[i + 1][1])) / 2; ctx.quadraticCurveTo(v.sx(P[i][0]), v.sy(P[i][1]), mx, my); }
+    const L = P[P.length - 1]; ctx.lineTo(v.sx(L[0]), v.sy(L[1]));
+    ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.stroke();
+  };
+  const a0 = pv.after;
+  pv.after = (ctx, v) => {
+    if (a0) a0(ctx, v);
+    if (!S.show || (!strokes.length && !S.cur)) return;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    strokes.forEach(s => trazo(ctx, v, s)); if (S.cur && S.cur.p) trazo(ctx, v, S.cur);
+    ctx.restore();
+  };
+
+  // ---------- 3D ----------
+  if (w3 && typeof v3Textos === 'function' && typeof v3Proy === 'function') {
+    const zT = (x, y) => { try { const z = v3Z(x, y); if (z != null) return z; } catch (e) {} return null; };
+    const proy = (M, W, H, x, y) => { const o = v3.org, ex = v3.ex || 1; const z = zT(x, y); return v3Proy(M, W, H, x - o[0], y - o[1], ((z == null ? o[2] : z) + 0.3 - o[2]) * ex); };
+    const t0 = v3Textos;
+    v3Textos = (M, W, H) => {
+      t0(M, W, H);
+      if (!S.show || (!strokes.length && !S.cur) || !v3.org) return;
+      const cv = document.getElementById('v3dTxt'); if (!cv) return; const ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1);
+      ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const dib = s => {
+        // se intercalan puntos para que el trazo siga el relieve del terreno
+        const q = []; for (let i = 0; i < s.p.length; i++) { const b = s.p[i]; if (i) { const a = s.p[i - 1], n = Math.min(12, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3)); for (let k = 1; k < n; k++) q.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); } q.push(b); }
+        ctx.beginPath(); let on = false; q.forEach(p => { const sc = proy(M, W, H, p[0], p[1]); if (!sc) { on = false; return; } if (on) ctx.lineTo(sc[0], sc[1]); else { ctx.moveTo(sc[0], sc[1]); on = true; } });
+        ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.stroke();
+      };
+      strokes.forEach(dib); if (S.cur && S.cur.p) dib(S.cur);
+      ctx.restore();
+    };
+    const hit = (px, py) => { const g = window.v3MVP ? null : null; return g; };
+    S.pen3 = { id: null, mov: 0, p0: null, last: null,
+      down(px, py, id) { this.id = id; this.mov = 0; this.p0 = [px, py]; this.last = [px, py]; this.add(px, py, true); },
+      add(px, py, ini) {
+        const p = window.pickAny3 && window.pickAny3(px, py); if (!p) return;
+        if (S.borra) { S.cur = S.cur || { borra: true }; const { M, W, H } = v3MVP(); quitar(strokes.filter(s => s.p.some(q => { const sc = proy(M, W, H, q[0], q[1]); return sc && Math.hypot(sc[0] - px, sc[1] - py) < 16; }))); return; }
+        if (ini || !S.cur) S.cur = nuevo(p.x, p.y); else S.cur.p.push([p.x, p.y]);
+        try { v3Dibujar(); } catch (e) {}
+      },
+      move(px, py) { if (this.id == null) return; if (Math.hypot(px - this.last[0], py - this.last[1]) < 4) return; this.last = [px, py]; this.mov = Math.max(this.mov, Math.hypot(px - this.p0[0], py - this.p0[1])); this.add(px, py, false); },
+      up() { const c = S.cur; this.id = null; S.cur = null; cierra(c); redib(); },
+      cancel() { this.id = null; S.cur = null; redib(); } };
+  }
+  window.TINTA = S; pinta();
+})();
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -9327,22 +9488,43 @@ const rest = {
   async auth(path, body) {
     const r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`));
+    if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), { status: r.status, raw: String(j.error_description || j.msg || j.message || j.error || '') });
     return j;
   },
   guardar(j) {
     const prev = sync.session || {};
     sync.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || prev.email || '', uid: (j.user && j.user.id) || jwtSub(j.access_token) || prev.uid || '' };
     try { localStorage.setItem('bhl-sess', JSON.stringify(sync.session)); } catch (e) {}
+    try { idbSet('bhl-sess-copia', sync.session); } catch (e) {} // V129: copia en IndexedDB por si el sistema limpia localStorage
   },
   async login(email, pw) { rest.guardar(await rest.auth('token?grant_type=password', { email, password: pw })); },
   async signup(email, pw) { await rest.auth('signup', { email, password: pw }); await rest.login(email, pw); },
   async token() {
     if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     if (sync.session.expires_at - 60 < Date.now() / 1000) {
-      try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: sync.session.refresh_token })); }
-      catch (e) { if (!navigator.onLine) throw e; sync.session = null; try { localStorage.removeItem('bhl-sess'); } catch (e2) {} throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' }); }
+      // V129: una sola renovación a la vez (si dos llamadas renuevan juntas, la segunda usa un token ya gastado y la nube lo rechaza)
+      if (!rest._ren) rest._ren = (async () => {
+        const usado = sync.session.refresh_token;
+        try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: usado })); }
+        catch (e) {
+          // solo se pierde la sesión si la nube dice claramente que el token ya no sirve; un corte de internet, un fallo del servidor o un tiempo agotado NO cierran la sesión
+          const rechazado = e && (e.status === 400 || e.status === 401 || e.status === 403) && /refresh|token|session|jwt|grant/i.test(e.raw || e.message || '');
+          if (!rechazado) throw e;
+          // quizá otra pestaña o ventana ya la renovó: se usa esa sesión antes de rendirse
+          let otra = null; try { otra = JSON.parse(localStorage.getItem('bhl-sess') || 'null'); } catch (e2) {}
+          if (!otra) { try { otra = await idbGet('bhl-sess-copia'); } catch (e2) {} }
+          if (otra && otra.refresh_token && otra.refresh_token !== usado) {
+            sync.session = otra;
+            if (otra.expires_at - 60 >= Date.now() / 1000) return;
+            try { rest.guardar(await rest.auth('token?grant_type=refresh_token', { refresh_token: otra.refresh_token })); return; } catch (e3) { if (!(e3 && (e3.status === 400 || e3.status === 401 || e3.status === 403))) throw e3; }
+          }
+          sync.session = null; try { localStorage.removeItem('bhl-sess'); idbSet('bhl-sess-copia', null); } catch (e2) {}
+          throw Object.assign(new Error('La sesión venció. Vuelve a iniciar sesión.'), { code: 'login' });
+        }
+      })().finally(() => { rest._ren = null; });
+      await rest._ren;
     }
+    if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     return sync.session.access_token;
   },
   async rpc(fn, body, ms) {
@@ -9763,6 +9945,7 @@ async function iniciarSync() {
   } else {
     sync.mode = 'rest';
     try { sync.session = JSON.parse(localStorage.getItem('bhl-sess') || 'null'); } catch (e) {}
+    if (!sync.session) { try { const c = await idbGet('bhl-sess-copia'); if (c && c.refresh_token) { sync.session = c; try { localStorage.setItem('bhl-sess', JSON.stringify(c)); } catch (e) {} } } catch (e) {} }
     if (sync.session && !sync.session.uid) sync.session.uid = jwtSub(sync.session.access_token);
     if (sync.session && sync.session.uid) { const o = await idbGet('bhl-owner'); if (!o) await idbSet('bhl-owner', sync.session.uid); }
     pintarSync(sync.session ? 'busy' : 'login');
@@ -9771,6 +9954,7 @@ async function iniciarSync() {
   }
   setInterval(() => pedirSync(0), 60000);
   window.addEventListener('online', () => pedirSync(0));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && sync.session && navigator.onLine) pedirSync(0); }); // V129: al volver a la app se renueva la sesión sin pedir nada
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pedirSync(0); });
 }
 $('btnSync').addEventListener('click', abrirPanelSync);
@@ -9793,7 +9977,7 @@ $('syncSalir').addEventListener('click', async () => {
     }
   }
   sync.on = false; sync.session = null;
-  try { localStorage.removeItem('bhl-sess'); localStorage.removeItem('bhl-mcp-on'); } catch (e) {}
+  try { localStorage.removeItem('bhl-sess'); localStorage.removeItem('bhl-mcp-on'); } catch (e) {} try { await idbSet('bhl-sess-copia', null); } catch (e) {}
   if (wipe) { await borrarLocal(); await idbSet('bhl-owner', ''); }
   pintarSync(sync.mode === 'mcp' ? 'off' : 'login'); $('dlgSync').hidden = true;
 });
@@ -9934,6 +10118,64 @@ async function reportarDispositivo() {
     await rest.rpc('bhl_dispositivo', { p_id: id, p_version: ver, p_plataforma: plat, p_info: { topos: ts.slice(0, 12), nTopos: ts.length, ua: ua.slice(0, 100), sync: new Date().toISOString() } }, 20000);
   } catch (e) {}
 }
+
+// V128: «Sin internet» — al abrir la app se asegura que proyectos, avances, límites, topografías y fotos queden guardados en el equipo
+(() => {
+  if (typeof sync === 'undefined' || typeof ES_APP === 'undefined') return;
+  const KEY = 'bhl-offline';
+  const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const cuenta = v => Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0;
+  let busy = false;
+  async function preparar() {
+    if (busy) return leer(); busy = true;
+    try {
+      const R = { t: Date.now(), p: 0, a: 0, l: 0, tp: 0, tt: 0, f: 0, shell: false, persist: false, mb: null };
+      try { R.p = (await dbAll('projects')).length; R.a = (await dbAll('avances')).length; } catch (e) {}
+      try { R.l = cuenta(await idbGet('limites')); } catch (e) {}
+      try { R.f = cuenta(await idbGet('fotos')); } catch (e) {}
+      try { const L = (typeof topo !== 'undefined' && topo.lista) || []; R.tt = L.length; for (const m of L) if (await idbGet('topo:' + m.id)) R.tp++; } catch (e) {}
+      try { if (navigator.storage && navigator.storage.persist) R.persist = (await navigator.storage.persisted()) || (await navigator.storage.persist()); } catch (e) {}
+      try { if (navigator.storage && navigator.storage.estimate) { const q = await navigator.storage.estimate(); R.mb = Math.round((q.usage || 0) / 1048576); } } catch (e) {}
+      try { R.shell = !!navigator.serviceWorker && !!navigator.serviceWorker.controller && (await caches.keys()).some(k => /^bhl-(beta-)?v-/.test(k)); } catch (e) {}
+      try { localStorage.setItem(KEY, JSON.stringify(R)); } catch (e) {}
+      pintar(); return R;
+    } finally { busy = false; }
+  }
+  const hora = t => new Date(t).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const instalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  function pintar() {
+    const tx = document.getElementById('offTxt'), de = document.getElementById('offDet'); if (!tx) return;
+    const R = leer(); if (!R) { tx.textContent = 'Preparando…'; return; }
+    const ok = R.shell && R.p + R.l + R.tp > 0;
+    tx.textContent = !navigator.onLine ? (ok ? '✓ Funcionando sin internet' : 'Sin internet') : ok ? '✓ Listo' : 'Falta descargar';
+    tx.style.color = ok ? '' : 'var(--bad, #c0392b)';
+    de.textContent = `${R.p} proy. · ${R.a} avances · ${R.l} límites · ${R.tp} topos · ${R.f} fotos`;
+    const e = document.getElementById('offEst'); if (e) e.textContent = (R.shell ? 'App guardada' : 'App aún sin guardar (ábrela una vez con internet)') + (R.persist ? ' · datos protegidos' : instalada() ? '' : ' · agrégala a la pantalla de inicio para que iOS no borre los datos') + ' · ' + hora(R.t) + (R.mb != null ? ` · ${R.mb} MB` : '');
+  }
+  function montar() {
+    const ancla = document.getElementById('appSyncBtn'); if (!ancla || document.getElementById('offCard')) return;
+    const c = document.createElement('div'); c.className = 'acard'; c.id = 'offCard';
+    c.innerHTML = '<div class="arow"><span>Sin internet</span><b id="offTxt">—</b></div><div class="arow"><span>Guardado aquí</span><b id="offDet" style="font-size:.82rem;text-align:right"></b></div><div class="arow" style="min-height:0;padding:8px 16px"><small id="offEst" style="color:var(--muted)"></small></div><button class="arow abtn" type="button" id="offBtn">Descargar todo ahora<span>›</span></button>';
+    ancla.closest('.acard').after(c);
+    document.getElementById('offBtn').addEventListener('click', async () => {
+      const b = document.getElementById('offBtn'), tx = document.getElementById('offTxt');
+      if (!navigator.onLine) { tx.textContent = 'Necesitas internet para descargar'; return; }
+      if (!sync.session) { tx.textContent = 'Inicia sesión primero'; return; }
+      b.disabled = true; tx.textContent = 'Descargando…';
+      try { sync.forzarPull = true; await sincronizar(); if (typeof topoNube === 'function') await topoNube(); } catch (e) {}
+      b.disabled = false; await preparar();
+    });
+    pintar();
+  }
+  // tras cada sincronización correcta y al conectar/desconectar se vuelve a comprobar lo guardado
+  const ps = pintarSync; let t = null;
+  pintarSync = function (estado) { ps.apply(this, arguments); if (estado === 'ok') { clearTimeout(t); t = setTimeout(preparar, 2500); } };
+  addEventListener('online', () => { pintar(); });
+  addEventListener('offline', () => { pintar(); });
+  const ini = () => { montar(); setTimeout(() => { montar(); preparar(); }, 4000); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ini); else ini();
+  window.OFFLINE = { preparar, leer };
+})();
 
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
