@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v132</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v133</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -9434,14 +9434,12 @@ body.app #plCerrar,body.app #btnPila{display:none}
 
 // V132: Perfiles — corte transversal sobre el plano: topografías de varias fechas + proyectos, y cuánto material se montó (diferencia entre dos topografías)
 (() => {
-  const wrap = $('cad2wrap');
-  if (!wrap || typeof pv === 'undefined') return;
-  const P = { on: false, a: null, b: null, cur: null, pend: false, antes: '', desp: '', ancho: 25, dens: 3.0, sel: null };
+    const P = { on: false, a: null, b: null, cur: null, pend: false, antes: '', desp: '', ancho: 25, dens: 3.0, sel: null };
   const fx = (n, d) => n == null || isNaN(n) ? '–' : Number(n).toLocaleString('es-PE', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: d == null ? 0 : d });
   const COLP = ['#e07a4c', '#4aa3df', '#8bc34a', '#c678dd', '#e6c229', '#2ec4b6', '#ef5b8b', '#9aa5b1'];
 
   const st = document.createElement('style');
-  st.textContent = `.perf-btn{position:absolute;z-index:7;right:12px;top:calc(46% - 116px);min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+  st.textContent = `.perf-btn{position:absolute;z-index:7;left:10px;top:206px;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
 .perf-btn[aria-pressed=true]{background:#4aa3df;color:#001018;border-color:#4aa3df}
 .perf-hint{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);bottom:14px;padding:8px 12px;border-radius:10px;background:rgba(20,24,28,.92);color:#fff;font:600 .85rem system-ui,sans-serif;pointer-events:none}
 .perf-hint[hidden]{display:none}
@@ -9461,9 +9459,11 @@ body.app #plCerrar,body.app #btnPila{display:none}
 .perf-res .mut{color:#a9b4bd;font-size:.78rem;margin-top:4px}`;
   document.head.appendChild(st);
 
-  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'perf-btn'; btn.id = 'btnPerfil'; btn.textContent = '📐 Perfil'; btn.setAttribute('aria-pressed', 'false'); btn.title = 'Corte transversal: traza una línea y mira el perfil';
-  const hint = document.createElement('div'); hint.className = 'perf-hint'; hint.hidden = true; hint.textContent = 'Arrastra de un punto a otro para trazar la línea del perfil';
-  wrap.appendChild(btn); wrap.appendChild(hint);
+  const w3 = $('v3dWrap');
+  if (!w3 || typeof v3Tocar !== 'function') return;
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'perf-btn'; btn.id = 'btnPerfil3'; btn.textContent = '📐 Perfil'; btn.setAttribute('aria-pressed', 'false'); btn.title = 'Corte transversal: toca dos puntos en el terreno';
+  const hint = document.createElement('div'); hint.className = 'perf-hint'; hint.hidden = true;
+  w3.appendChild(btn); w3.appendChild(hint);
   const dlg = document.createElement('div'); dlg.className = 'perf-dlg'; dlg.hidden = true; dlg.id = 'perfDlg';
   dlg.innerHTML = `<div class="perf-top"><h2>📐 Perfil <span id="pfLong" style="font-weight:400;color:#a9b4bd"></span></h2>
 <label>Topo antes<select id="pfAntes"></select></label><label>Topo después<select id="pfDesp"></select></label>
@@ -9473,30 +9473,28 @@ body.app #plCerrar,body.app #btnPila{display:none}
   document.body.appendChild(dlg);
   const $$ = id => document.getElementById(id);
 
-  const setOn = on => { P.on = on; btn.setAttribute('aria-pressed', String(on)); hint.hidden = !on; if (!on) { P.cur = null; } try { pv.draw(); } catch (e) {} };
-  btn.addEventListener('click', () => { if (P.on) { setOn(false); return; } if (window.TINTA && TINTA.on) { try { document.getElementById('btnTinta').click(); } catch (e) {} } setOn(true); });
-
-  // ---- trazar la línea en el plano ----
-  const w0 = pv.wantsDraw, d0 = pv.onDraw;
-  pv.wantsDraw = e => { if (P.on) { P.pend = true; return true; } P.pend = false; return w0 ? w0(e) : false; };
-  pv.onDraw = (fase, x, y) => {
-    if (!P.pend && !P.cur) return d0 && d0(fase, x, y);
-    if (fase === 'start') { P.pend = false; P.cur = { a: [x, y], b: [x, y] }; }
-    else if (fase === 'move' && P.cur) P.cur.b = [x, y];
-    else if (fase === 'end' && P.cur) {
-      const c = P.cur; P.cur = null; if (x != null && y != null && !isNaN(x)) c.b = [x, y];
-      if (Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) * pv.v.s < 25) { pv.draw(); return; }
-      P.a = c.a; P.b = c.b; setOn(false); abrir(); return;
-    }
-    pv.draw();
+  const msg = () => { hint.textContent = !P.a ? 'Perfil: toca el punto A sobre el terreno' : 'Perfil: toca el punto B'; };
+  const setOn = on => { P.on = on; btn.setAttribute('aria-pressed', String(on)); hint.hidden = !on; if (on) { P.a = P.b = null; msg(); } try { v3Dibujar(); } catch (e) {} };
+  btn.addEventListener('click', () => { if (P.on) { setOn(false); return; } if (window.TINTA && TINTA.on) { try { document.getElementById('btnTinta3').click(); } catch (e) {} } setOn(true); });
+  const t0 = v3Tocar;
+  v3Tocar = (px, py) => {
+    if (!P.on) return t0(px, py);
+    const p = window.pickAny3 && window.pickAny3(px, py); if (!p) { hint.textContent = 'Toca sobre el terreno'; return; }
+    if (!P.a) { P.a = [p.x, p.y]; P.b = null; msg(); }
+    else { P.b = [p.x, p.y]; if (Math.hypot(P.b[0] - P.a[0], P.b[1] - P.a[1]) < 5) { P.b = null; return; } const A = P.a, B = P.b; setOn(false); P.a = A; P.b = B; abrir(); }
+    try { v3Dibujar(); } catch (e) {}
   };
-  const a0 = pv.after;
-  pv.after = (ctx, v) => {
-    if (a0) a0(ctx, v);
-    const L = P.cur || (P.a && { a: P.a, b: P.b }); if (!L) return;
-    ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = '#4aa3df'; ctx.setLineDash([9, 5]); ctx.beginPath(); ctx.moveTo(v.sx(L.a[0]), v.sy(L.a[1])); ctx.lineTo(v.sx(L.b[0]), v.sy(L.b[1])); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = '#4aa3df'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
-    [[L.a, 'A'], [L.b, 'B']].forEach(([p, t]) => { ctx.beginPath(); ctx.arc(v.sx(p[0]), v.sy(p[1]), 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(t, v.sx(p[0]), v.sy(p[1]) - 12); ctx.fillStyle = '#4aa3df'; });
+  const tx0 = v3Textos;
+  v3Textos = (M, W, H) => {
+    tx0(M, W, H);
+    if (!P.a || !v3.org) return;
+    const cv = document.getElementById('v3dTxt'); if (!cv) return; const ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
+    const pr = (x, y) => { let z = null; try { z = v3Z(x, y); } catch (e) {} return v3Proy(M, W, H, x - o[0], y - o[1], ((z == null ? o[2] : z) + 0.4 - o[2]) * ex); };
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 3.5; ctx.strokeStyle = '#4aa3df'; ctx.setLineDash([10, 6]); ctx.lineCap = 'round';
+    const B = P.b || P.a; ctx.beginPath(); let on = false, last = null;
+    const n = 60; for (let i = 0; i <= n; i++) { const t = i / n, sc = pr(P.a[0] + (B[0] - P.a[0]) * t, P.a[1] + (B[1] - P.a[1]) * t); if (!sc) { on = false; continue; } if (on) ctx.lineTo(sc[0], sc[1]); else { ctx.moveTo(sc[0], sc[1]); on = true; } }
+    ctx.stroke(); ctx.setLineDash([]); ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    [[P.a, 'A'], P.b && [P.b, 'B']].filter(Boolean).forEach(([q, t]) => { const sc = pr(q[0], q[1]); if (!sc) return; ctx.fillStyle = '#4aa3df'; ctx.beginPath(); ctx.arc(sc[0], sc[1], 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(t, sc[0], sc[1] - 12); });
     ctx.restore();
   };
 
@@ -9573,8 +9571,8 @@ body.app #plCerrar,body.app #btnPila{display:none}
   $$('pfDesp').addEventListener('change', e => { P.desp = e.target.value; recalcula(); });
   $$('pfAncho').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.ancho = v; recalcula(); } });
   $$('pfDens').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.dens = v; recalcula(); } });
-  $$('pfCerrar').addEventListener('click', () => { dlg.hidden = true; try { pv.draw(); } catch (e) {} });
-  $$('pfNueva').addEventListener('click', () => { dlg.hidden = true; P.a = P.b = null; setOn(true); });
+  $$('pfCerrar').addEventListener('click', () => { dlg.hidden = true; });
+  $$('pfNueva').addEventListener('click', () => { dlg.hidden = true; setOn(true); });
   window.addEventListener('resize', () => { if (!dlg.hidden) dibujar(); });
   window.PERFIL = P; window.perfilAbrir = (a, b) => { P.a = a; P.b = b; abrir(); };
 })();
