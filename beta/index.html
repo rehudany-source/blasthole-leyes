@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v133</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v134</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -9441,22 +9441,30 @@ body.app #plCerrar,body.app #btnPila{display:none}
   const st = document.createElement('style');
   st.textContent = `.perf-btn{position:absolute;z-index:7;left:10px;top:206px;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
 .perf-btn[aria-pressed=true]{background:#4aa3df;color:#001018;border-color:#4aa3df}
-.perf-hint{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);bottom:14px;padding:8px 12px;border-radius:10px;background:rgba(20,24,28,.92);color:#fff;font:600 .85rem system-ui,sans-serif;pointer-events:none}
+.perf-hint{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(20,24,28,.94);color:#fff;font:700 .95rem system-ui,sans-serif;pointer-events:none}
 .perf-hint[hidden]{display:none}
-.perf-dlg{position:fixed;inset:0;z-index:95;background:#1b2024;color:#e8ecef;display:flex;flex-direction:column;font:14px system-ui,sans-serif}
+.perf-dlg{position:fixed;inset:0;z-index:400;background:#1b2024;color:#e8ecef;display:flex;flex-direction:column;font:15px system-ui,sans-serif}
 .perf-dlg[hidden]{display:none}
-.perf-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid #394149}
-.perf-top h2{margin:0;font-size:1.05rem;flex:1 1 auto}
-.perf-top button,.perf-top select,.perf-top input{min-height:40px;border-radius:8px;border:1px solid #4a535b;background:#2a3138;color:#fff;padding:0 8px;font:inherit}
-.perf-top input{width:70px}
-.perf-top label{display:flex;flex-direction:column;font-size:.72rem;color:#a9b4bd;gap:2px}
-.perf-cv{flex:1 1 55%;min-height:200px;position:relative}
-.perf-cv canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
-.perf-res{flex:0 0 auto;max-height:38%;overflow:auto;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #394149;font-size:.85rem}
-.perf-res table{border-collapse:collapse;width:100%}
-.perf-res th,.perf-res td{padding:4px 6px;border-bottom:1px solid #343b42;text-align:right;white-space:nowrap}
-.perf-res th:first-child,.perf-res td:first-child{text-align:left}
-.perf-res .mut{color:#a9b4bd;font-size:.78rem;margin-top:4px}`;
+.perf-top{display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 8px}
+.perf-top h2{margin:0;white-space:nowrap;font-size:1.1rem;flex:1 1 auto}
+.perf-top h2 small{font-weight:500;color:#a9b4bd;font-size:.85rem;margin-left:6px}
+.perf-dlg button,.perf-dlg select,.perf-dlg input{min-height:42px;border-radius:9px;border:1px solid #4a535b;background:#2a3138;color:#fff;padding:0 10px;font:inherit}
+.perf-ans{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 8px}
+.perf-card{flex:1 1 220px;border-radius:12px;padding:10px 14px;background:#262d33;border-left:6px solid #888}
+.perf-card .t{font-size:.8rem;color:#a9b4bd}
+.perf-card .n{font-size:1.9rem;font-weight:800;line-height:1.15}
+.perf-card .d{font-size:.78rem;color:#a9b4bd;margin-top:2px}
+.perf-cv{flex:1 1 auto;min-height:180px;position:relative;margin:0 6px}
+.perf-cv canvas{position:absolute;inset:0;width:100%;height:100%}
+.perf-bot{padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #394149;display:flex;flex-direction:column;gap:8px}
+.perf-sel{display:flex;gap:8px;flex-wrap:wrap}
+.perf-sel label{flex:1 1 200px;display:flex;flex-direction:column;font-size:.8rem;color:#a9b4bd;gap:3px}
+.perf-sel select{width:100%}
+.perf-bot details{font-size:.85rem;color:#a9b4bd}
+.perf-bot summary{min-height:34px;display:flex;align-items:center}
+.perf-aj{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.perf-aj label{display:flex;flex-direction:column;gap:3px;font-size:.8rem}
+.perf-aj input{width:110px}`;
   document.head.appendChild(st);
 
   const w3 = $('v3dWrap');
@@ -9465,11 +9473,11 @@ body.app #plCerrar,body.app #btnPila{display:none}
   const hint = document.createElement('div'); hint.className = 'perf-hint'; hint.hidden = true;
   w3.appendChild(btn); w3.appendChild(hint);
   const dlg = document.createElement('div'); dlg.className = 'perf-dlg'; dlg.hidden = true; dlg.id = 'perfDlg';
-  dlg.innerHTML = `<div class="perf-top"><h2>📐 Perfil <span id="pfLong" style="font-weight:400;color:#a9b4bd"></span></h2>
-<label>Topo antes<select id="pfAntes"></select></label><label>Topo después<select id="pfDesp"></select></label>
-<label>Ancho (m)<input id="pfAncho" inputmode="decimal"></label><label>Densidad (t/m³)<input id="pfDens" inputmode="decimal"></label>
-<button type="button" id="pfNueva">↺ Otra línea</button><button type="button" id="pfCerrar">✕ Cerrar</button></div>
-<div class="perf-cv" id="pfCv"><canvas id="pfCanvas"></canvas></div><div class="perf-res" id="pfRes"></div>`;
+  dlg.innerHTML = `<div class="perf-top"><h2>📐 Perfil <small id="pfLong"></small></h2><button type="button" id="pfNueva">↺ Otra</button><button type="button" id="pfCerrar">✕</button></div>
+<div class="perf-ans" id="pfRes"></div>
+<div class="perf-cv" id="pfCv"><canvas id="pfCanvas"></canvas></div>
+<div class="perf-bot"><div class="perf-sel"><label>Terreno de ANTES del disparo<select id="pfAntes"></select></label><label>Terreno de DESPUÉS del disparo<select id="pfDesp"></select></label></div>
+<details><summary>⚙ Ajustar el cálculo de toneladas</summary><div class="perf-aj"><label>Ancho del disparo (m)<input id="pfAncho" inputmode="decimal"></label><label>Densidad (t/m³)<input id="pfDens" inputmode="decimal"></label></div></details></div>`;
   document.body.appendChild(dlg);
   const $$ = id => document.getElementById(id);
 
@@ -9514,7 +9522,7 @@ body.app #plCerrar,body.app #btnPila{display:none}
   const nomTopo = t => `${fmtDate(t.fecha)} · ${t.nombre}`;
   const pinta = async () => {
     const A = P.a, B = P.b; if (!A || !B) return;
-    const Ls = Math.hypot(B[0] - A[0], B[1] - A[1]); $$('pfLong').textContent = `· ${fx(Ls, 0)} m`;
+    const Ls = Math.hypot(B[0] - A[0], B[1] - A[1]); $$('pfLong').textContent = `A → B · ${fx(Ls, 0)} m`;
     const dA = await topoDem(P.antes), dD = await topoDem(P.desp);
     const n = Math.max(2, Math.min(1500, Math.round(Ls / 1))), ds = Ls / n, Zs = zonas();
     const xs = [], zA = [], zD = [];
@@ -9527,36 +9535,41 @@ body.app #plCerrar,body.app #btnPila{display:none}
     const filas = tramos.filter(z => z.r.length).map(z => Object.assign(z, calc(z)));
     P.sel = { xs, zA, zD, n, ds, Ls, tramos: tramos.filter(z => z.r.length), tot };
     dibujar();
-    const w = P.ancho || 0, de = P.dens || 0, t = (a) => a * w * de;
-    $$('pfRes').innerHTML = `<table><tr><th>Proyecto en la línea</th><th>Largo (m)</th><th>Montado (m²)</th><th>Montado (t)</th><th>Cortado (m²)</th></tr>`
-      + (filas.length ? filas.map(z => `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${z.col};margin-right:6px"></span>${z.nombre}</td><td>${fx(z.len, 0)}</td><td>${fx(z.rel, 1)}</td><td><b>${fx(t(z.rel), 0)}</b></td><td>${fx(z.cor, 1)}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:left;color:#a9b4bd">La línea no cruza ningún proyecto marcado.</td></tr>')
-      + `<tr><td><b>Toda la línea</b></td><td>${fx(Ls, 0)}</td><td>${fx(tot.rel, 1)}</td><td><b>${fx(t(tot.rel), 0)}</b></td><td>${fx(tot.cor, 1)}</td></tr></table>`
-      + `<div class="mut">Montado = donde la topografía «después» está más alta que «antes», dentro del proyecto. Toneladas = área (m²) × ancho (${fx(w, 0)} m) × densidad (${fx(de, 2)} t/m³): es una estimación del corte, no un volumen 3D.${!dA || !dD ? ' <b style="color:#ffb74d">Falta una de las topografías en esta zona.</b>' : ''}</div>`;
+    const w = P.ancho || 0, de = P.dens || 0, t = a => a * w * de, r10 = v => fx(Math.round(v / 10) * 10, 0);
+    const con = filas.filter(z => z.rel > 0.5);
+    $$('pfRes').innerHTML = (con.length ? con.map(z => `<div class="perf-card" style="border-color:${z.col}"><div class="t">Sobre el proyecto <b style="color:${z.col}">${z.nombre}</b> se montó</div><div class="n">≈ ${r10(t(z.rel))} t</div><div class="d">${fx(z.rel, 0)} m² de material × ${fx(w, 0)} m de ancho × ${fx(de, 1)} t/m³</div></div>`).join('')
+      : `<div class="perf-card"><div class="t">${!dA || !dD ? 'Falta la topografía de esta zona.' : filas.length ? 'No se montó material nuevo sobre los proyectos de esta línea.' : 'La línea no pasa por ningún proyecto marcado. Marca los proyectos en la pestaña Avance o traza la línea sobre ellos.'}</div></div>`);
   };
   const dibujar = () => {
     const cv = $$('pfCanvas'), box = $$('pfCv'); if (!cv || !P.sel) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1), W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
     cv.width = W * dpr; cv.height = H * dpr; const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const { zA, zD, n, ds, Ls, tramos } = P.sel;
-    const vals = zA.concat(zD).filter(v => v != null); c.fillStyle = '#1b2024'; c.fillRect(0, 0, W, H);
-    if (!vals.length) { c.fillStyle = '#a9b4bd'; c.font = '14px system-ui'; c.fillText('Sin topografía que cubra esta línea.', 16, 30); return; }
-    let z0 = Math.min(...vals), z1 = Math.max(...vals); const pad = Math.max(2, (z1 - z0) * 0.08); z0 -= pad + (z1 - z0) * 0.12; z1 += pad;
-    const ml = 48, mr = 12, mt = 14, mb = 26, pw = W - ml - mr, ph = H - mt - mb;
-    /* misma escala en horizontal y vertical no cabe en pantallas angostas: se usa exageración vertical libre y se avisa */
-    const X = i => ml + (i / n) * pw, Y = z => mt + (1 - (z - z0) / (z1 - z0)) * ph, ex = (ph / (z1 - z0)) / (pw / Ls);
-    c.strokeStyle = '#2f373e'; c.fillStyle = '#a9b4bd'; c.font = '11px system-ui'; c.lineWidth = 1;
-    const paso = [1, 2, 5, 10, 20, 25, 50].find(s => (z1 - z0) / s <= 8) || 100;
-    for (let z = Math.ceil(z0 / paso) * paso; z <= z1; z += paso) { c.beginPath(); c.moveTo(ml, Y(z)); c.lineTo(W - mr, Y(z)); c.stroke(); c.textAlign = 'right'; c.fillText(String(z), ml - 4, Y(z) + 4); }
-    const pd = [10, 20, 25, 50, 100, 200, 250, 500].find(s => Ls / s <= 8) || 1000; c.textAlign = 'center';
-    for (let d = 0; d <= Ls; d += pd) { c.beginPath(); c.moveTo(X(d / ds), mt); c.lineTo(X(d / ds), H - mb); c.stroke(); c.fillText(d + ' m', X(d / ds), H - 8); }
-    // proyectos: bandas bajo el terreno
-    tramos.forEach(z => z.r.forEach(([i0, i1]) => { c.fillStyle = z.col + '33'; c.fillRect(X(i0), mt, X(i1) - X(i0), ph); c.fillStyle = z.col; c.fillRect(X(i0), H - mb - 6, X(i1) - X(i0), 6); c.font = 'bold 11px system-ui'; c.textAlign = 'center'; if (X(i1) - X(i0) > 46) c.fillText(z.nombre, (X(i0) + X(i1)) / 2, H - mb - 10); }));
-    // relleno entre las dos topografías
-    for (let i = 0; i < n; i++) { const a0 = zA[i], a1 = zA[i + 1], d0 = zD[i], d1 = zD[i + 1]; if (a0 == null || a1 == null || d0 == null || d1 == null) continue; const sube = (d0 + d1) / 2 >= (a0 + a1) / 2; c.fillStyle = sube ? 'rgba(255,82,82,.55)' : 'rgba(80,200,120,.45)'; c.beginPath(); c.moveTo(X(i), Y(a0)); c.lineTo(X(i + 1), Y(a1)); c.lineTo(X(i + 1), Y(d1)); c.lineTo(X(i), Y(d0)); c.closePath(); c.fill(); }
-    const linea = (Z, col, w) => { c.beginPath(); let on = false; Z.forEach((z, i) => { if (z == null) { on = false; return; } if (on) c.lineTo(X(i), Y(z)); else { c.moveTo(X(i), Y(z)); on = true; } }); c.strokeStyle = col; c.lineWidth = w; c.stroke(); };
-    linea(zA, '#9fb3c8', 2); linea(zD, '#ffd60a', 2.5);
-    c.textAlign = 'left'; c.font = 'bold 12px system-ui'; c.fillStyle = '#9fb3c8'; c.fillText('— antes', ml + 6, mt + 12); c.fillStyle = '#ffd60a'; c.fillText('— después', ml + 70, mt + 12); c.fillStyle = '#ff5252'; c.fillText('■ montado', ml + 150, mt + 12); c.fillStyle = '#50c878'; c.fillText('■ cortado', ml + 232, mt + 12);
-    c.fillStyle = '#a9b4bd'; c.font = '11px system-ui'; c.textAlign = 'right'; c.fillText(`A → B · exag. vertical ×${ex.toFixed(1)}`, W - mr, mt + 12);
+    const { n, Ls, tramos } = P.sel;
+    /* solo para dibujar: se suaviza el escalón de las celdas de la topografía */
+    const suav = Z => Z.map((v, i) => { if (v == null) return null; let s = 0, k = 0; for (let j = i - 3; j <= i + 3; j++) if (Z[j] != null) { s += Z[j]; k++; } return s / k; });
+    const zA = suav(P.sel.zA), zD = suav(P.sel.zD);
+    c.fillStyle = '#1b2024'; c.fillRect(0, 0, W, H);
+    const vals = zA.concat(zD).filter(v => v != null);
+    if (!vals.length) { c.fillStyle = '#a9b4bd'; c.font = '15px system-ui'; c.textAlign = 'left'; c.fillText('Sin topografía que cubra esta línea.', 12, 30); return; }
+    let z0 = Math.min(...vals), z1 = Math.max(...vals); const rg = Math.max(z1 - z0, 4); z0 -= rg * 0.25; z1 += rg * 0.12;
+    const ml = 56, mr = 8, mt = 34, mb = 26, pw = W - ml - mr, ph = H - mt - mb;
+    const X = i => ml + (i / n) * pw, Y = z => mt + (1 - (z - z0) / (z1 - z0)) * ph;
+    c.font = '12px system-ui'; c.fillStyle = '#8b97a1'; c.strokeStyle = '#2b3238'; c.lineWidth = 1; c.textAlign = 'right';
+    const paso = [1, 2, 5, 10, 20, 25, 50].find(s => (z1 - z0) / s <= 5) || 100;
+    for (let z = Math.ceil(z0 / paso) * paso; z <= z1; z += paso) { c.beginPath(); c.moveTo(ml, Y(z)); c.lineTo(W - mr, Y(z)); c.stroke(); c.fillText(z + ' m', ml - 5, Y(z) + 4); }
+    /* terreno de antes (relleno) */
+    c.beginPath(); let ini = false; zA.forEach((z, i) => { if (z == null) return; if (!ini) { c.moveTo(X(i), H - mb); ini = true; } c.lineTo(X(i), Y(z)); }); if (ini) { const ult = zA.map((z, i) => z == null ? -1 : i).reduce((m, v) => Math.max(m, v), -1); c.lineTo(X(ult), H - mb); c.closePath(); c.fillStyle = '#3b352e'; c.fill(); }
+    /* material montado (rojo) y cortado (verde) entre las dos líneas */
+    for (let i = 0; i < n; i++) { const a0 = zA[i], a1 = zA[i + 1], d0 = zD[i], d1 = zD[i + 1]; if (a0 == null || a1 == null || d0 == null || d1 == null) continue; c.fillStyle = (d0 + d1) >= (a0 + a1) ? 'rgba(255,82,82,.75)' : 'rgba(80,200,120,.55)'; c.beginPath(); c.moveTo(X(i), Y(a0)); c.lineTo(X(i + 1), Y(a1)); c.lineTo(X(i + 1) + .6, Y(d1)); c.lineTo(X(i) - .6, Y(d0)); c.closePath(); c.fill(); }
+    const linea = (Z, col, w) => { c.beginPath(); let on = false; Z.forEach((z, i) => { if (z == null) { on = false; return; } if (on) c.lineTo(X(i), Y(z)); else { c.moveTo(X(i), Y(z)); on = true; } }); c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.stroke(); };
+    linea(zA, '#b9aa95', 1.5); linea(zD, '#ffd60a', 3);
+    /* proyectos: franja de color con su nombre */
+    tramos.forEach(z => z.r.forEach(([i0, i1]) => { const x0 = X(i0), x1 = Math.max(X(i1), x0 + 3); c.fillStyle = z.col + '30'; c.fillRect(x0, mt, x1 - x0, ph); c.fillStyle = z.col; c.fillRect(x0, H - mb - 5, x1 - x0, 5); c.font = 'bold 13px system-ui'; const tw = c.measureText(z.nombre).width + 12, cx = Math.min(W - mr - tw, Math.max(ml, (x0 + x1) / 2 - tw / 2)); c.fillRect(cx, mt - 24, tw, 21); c.fillStyle = '#10151a'; c.textAlign = 'left'; c.fillText(z.nombre, cx + 6, mt - 9); }));
+    /* extremos A y B */
+    c.fillStyle = '#4aa3df'; c.font = 'bold 15px system-ui'; c.textAlign = 'left'; c.fillText('A', ml, H - 7); c.textAlign = 'right'; c.fillText('B', W - mr, H - 7); c.textAlign = 'center'; c.fillStyle = '#8b97a1'; c.font = '12px system-ui'; c.fillText(fx(Ls, 0) + ' m', ml + pw / 2, H - 7);
+    /* leyenda */
+    c.font = 'bold 12px system-ui'; c.textAlign = 'left'; let lx = ml + 4; const ly = H - mb - 14 - 0;
+    [['#b9aa95', 'Antes'], ['#ffd60a', 'Después'], ['#ff5252', 'Montado']].forEach(([col, tx]) => { c.fillStyle = col; c.fillRect(lx, mt + 4, 14, 5); c.fillStyle = '#e8ecef'; c.fillText(tx, lx + 18, mt + 11); lx += 22 + c.measureText(tx).width + 10; });
   };
   const recalcula = () => pinta().catch(e => { $$('pfRes').textContent = 'No pude calcular el perfil: ' + e.message; });
   const abrir = () => {
