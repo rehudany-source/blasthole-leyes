@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v131</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v135</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6741,16 +6741,25 @@ async function topoNube() {
     }
     // 3) bajar las más recientes que falten en este equipo
     const tengo = new Set(topo.lista.map(m => m.id));
-    const faltan = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    const faltan0 = rem.filter(r => !tengo.has(r.id) && !ocultas.has(r.id));
+    /* V135: primero la más nueva de cada mina (la que se usa a diario) y recién después las anteriores */
+    const minaR = r => (r.meta && r.meta.mina) || topoMina(r.nombre);
+    const rango = r => faltan0.filter(o => minaR(o) === minaR(r) && o.fecha > r.fecha).length + topo.lista.filter(m => minaDe(m) === minaR(r) && m.fecha > r.fecha).length;
+    const faltan = faltan0.map(r => ({ r, k: rango(r) })).sort((a, b) => (a.k - b.k) || (a.r.fecha < b.r.fecha ? 1 : -1)).map(x => x.r);
+    let hechas = 0; const total = faltan.length;
     for (const r of faltan) {
-      const mr = (r.meta && r.meta.mina) || topoMina(r.nombre);
-      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) continue;
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }, 240000); if (!data) continue;
+      const mr = minaR(r);
+      const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) { hechas++; continue; }
+      if (typeof window.bhlProgreso === 'function') window.bhlProgreso('Topografías', hechas, total);
+      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }, 240000); if (!data) { hechas++; continue; }
       const Z = await topoDesempacar(r.meta, data);
       await idbSet('topo:' + r.id, Z);
       topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
-      cambio = true;
+      cambio = true; hechas++;
+      /* cada topografía queda disponible apenas baja, sin esperar a las demás */
+      try { await idbSet('topos', topo.lista); topoDefaults(); if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act); topoPintar(); pv.draw(); } catch (e) {}
     }
+    if (typeof window.bhlProgreso === 'function') window.bhlProgreso(null);
   } catch (e) { console.warn('topos nube', e); }
   finally {
     topo.nubeBusy = false;
@@ -9432,6 +9441,164 @@ body.app #plCerrar,body.app #btnPila{display:none}
   window.TINTA = S; pinta();
 })();
 
+// V132: Perfiles — corte transversal sobre el plano: topografías de varias fechas + proyectos, y cuánto material se montó (diferencia entre dos topografías)
+(() => {
+    const P = { on: false, a: null, b: null, cur: null, pend: false, antes: '', desp: '', ancho: 25, dens: 3.0, sel: null };
+  const fx = (n, d) => n == null || isNaN(n) ? '–' : Number(n).toLocaleString('es-PE', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: d == null ? 0 : d });
+  const COLP = ['#e07a4c', '#4aa3df', '#8bc34a', '#c678dd', '#e6c229', '#2ec4b6', '#ef5b8b', '#9aa5b1'];
+
+  const st = document.createElement('style');
+  st.textContent = `.perf-btn{position:absolute;z-index:7;left:10px;top:206px;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
+.perf-btn[aria-pressed=true]{background:#4aa3df;color:#001018;border-color:#4aa3df}
+.perf-hint{position:absolute;z-index:8;left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(20,24,28,.94);color:#fff;font:700 .95rem system-ui,sans-serif;pointer-events:none}
+.perf-hint[hidden]{display:none}
+.perf-dlg{position:fixed;inset:0;z-index:400;background:#1b2024;color:#e8ecef;display:flex;flex-direction:column;font:15px system-ui,sans-serif}
+.perf-dlg[hidden]{display:none}
+.perf-top{display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 8px}
+.perf-top h2{margin:0;white-space:nowrap;font-size:1.1rem;flex:1 1 auto}
+.perf-top h2 small{font-weight:500;color:#a9b4bd;font-size:.85rem;margin-left:6px}
+.perf-dlg button,.perf-dlg select,.perf-dlg input{min-height:42px;border-radius:9px;border:1px solid #4a535b;background:#2a3138;color:#fff;padding:0 10px;font:inherit}
+.perf-ans{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 8px}
+.perf-card{flex:1 1 220px;border-radius:12px;padding:10px 14px;background:#262d33;border-left:6px solid #888}
+.perf-card .t{font-size:.8rem;color:#a9b4bd}
+.perf-card .n{font-size:1.9rem;font-weight:800;line-height:1.15}
+.perf-card .d{font-size:.78rem;color:#a9b4bd;margin-top:2px}
+.perf-cv{flex:1 1 auto;min-height:180px;position:relative;margin:0 6px}
+.perf-cv canvas{position:absolute;inset:0;width:100%;height:100%}
+.perf-bot{padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #394149;display:flex;flex-direction:column;gap:8px}
+.perf-sel{display:flex;gap:8px;flex-wrap:wrap}
+.perf-sel label{flex:1 1 200px;display:flex;flex-direction:column;font-size:.8rem;color:#a9b4bd;gap:3px}
+.perf-sel select{width:100%}
+.perf-bot details{font-size:.85rem;color:#a9b4bd}
+.perf-bot summary{min-height:34px;display:flex;align-items:center}
+.perf-aj{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.perf-aj label{display:flex;flex-direction:column;gap:3px;font-size:.8rem}
+.perf-aj input{width:110px}`;
+  document.head.appendChild(st);
+
+  const w3 = $('v3dWrap');
+  if (!w3 || typeof v3Tocar !== 'function') return;
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'perf-btn'; btn.id = 'btnPerfil3'; btn.textContent = '📐 Perfil'; btn.setAttribute('aria-pressed', 'false'); btn.title = 'Corte transversal: toca dos puntos en el terreno';
+  const hint = document.createElement('div'); hint.className = 'perf-hint'; hint.hidden = true;
+  w3.appendChild(btn); w3.appendChild(hint);
+  const dlg = document.createElement('div'); dlg.className = 'perf-dlg'; dlg.hidden = true; dlg.id = 'perfDlg';
+  dlg.innerHTML = `<div class="perf-top"><h2>📐 Perfil <small id="pfLong"></small></h2><button type="button" id="pfNueva">↺ Otra</button><button type="button" id="pfCerrar">✕</button></div>
+<div class="perf-ans" id="pfRes"></div>
+<div class="perf-cv" id="pfCv"><canvas id="pfCanvas"></canvas></div>
+<div class="perf-bot"><div class="perf-sel"><label>Terreno de ANTES del disparo<select id="pfAntes"></select></label><label>Terreno de DESPUÉS del disparo<select id="pfDesp"></select></label></div>
+<details><summary>⚙ Ajustar el cálculo de toneladas</summary><div class="perf-aj"><label>Ancho del disparo (m)<input id="pfAncho" inputmode="decimal"></label><label>Densidad (t/m³)<input id="pfDens" inputmode="decimal"></label></div></details></div>`;
+  document.body.appendChild(dlg);
+  const $$ = id => document.getElementById(id);
+
+  const msg = () => { hint.textContent = !P.a ? 'Perfil: toca el punto A sobre el terreno' : 'Perfil: toca el punto B'; };
+  const setOn = on => { P.on = on; btn.setAttribute('aria-pressed', String(on)); hint.hidden = !on; if (on) { P.a = P.b = null; msg(); } try { v3Dibujar(); } catch (e) {} };
+  btn.addEventListener('click', () => { if (P.on) { setOn(false); return; } if (window.TINTA && TINTA.on) { try { document.getElementById('btnTinta3').click(); } catch (e) {} } setOn(true); });
+  const t0 = v3Tocar;
+  v3Tocar = (px, py) => {
+    if (!P.on) return t0(px, py);
+    const p = window.pickAny3 && window.pickAny3(px, py); if (!p) { hint.textContent = 'Toca sobre el terreno'; return; }
+    if (!P.a) { P.a = [p.x, p.y]; P.b = null; msg(); }
+    else { P.b = [p.x, p.y]; if (Math.hypot(P.b[0] - P.a[0], P.b[1] - P.a[1]) < 5) { P.b = null; return; } const A = P.a, B = P.b; setOn(false); P.a = A; P.b = B; abrir(); }
+    try { v3Dibujar(); } catch (e) {}
+  };
+  const tx0 = v3Textos;
+  v3Textos = (M, W, H) => {
+    tx0(M, W, H);
+    if (!P.a || !v3.org) return;
+    const cv = document.getElementById('v3dTxt'); if (!cv) return; const ctx = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1), o = v3.org, ex = v3.ex || 1;
+    const pr = (x, y) => { let z = null; try { z = v3Z(x, y); } catch (e) {} return v3Proy(M, W, H, x - o[0], y - o[1], ((z == null ? o[2] : z) + 0.4 - o[2]) * ex); };
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 3.5; ctx.strokeStyle = '#4aa3df'; ctx.setLineDash([10, 6]); ctx.lineCap = 'round';
+    const B = P.b || P.a; ctx.beginPath(); let on = false, last = null;
+    const n = 60; for (let i = 0; i <= n; i++) { const t = i / n, sc = pr(P.a[0] + (B[0] - P.a[0]) * t, P.a[1] + (B[1] - P.a[1]) * t); if (!sc) { on = false; continue; } if (on) ctx.lineTo(sc[0], sc[1]); else { ctx.moveTo(sc[0], sc[1]); on = true; } }
+    ctx.stroke(); ctx.setLineDash([]); ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    [[P.a, 'A'], P.b && [P.b, 'B']].filter(Boolean).forEach(([q, t]) => { const sc = pr(q[0], q[1]); if (!sc) return; ctx.fillStyle = '#4aa3df'; ctx.beginPath(); ctx.arc(sc[0], sc[1], 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(t, sc[0], sc[1] - 12); });
+    ctx.restore();
+  };
+
+  // ---- datos ----
+  const hull = pts => {
+    const p = pts.slice().sort((m, n) => m.x - n.x || m.y - n.y); if (p.length < 3) return p;
+    const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), lo = [], up = [];
+    p.forEach(q => { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); });
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    lo.pop(); up.pop(); return lo.concat(up);
+  };
+  const zonas = () => (t2.projs || []).map((p, i) => {
+    const hs = t2.holes.filter(h => h.pid === p.id); const c = projCode(p);
+    const nombre = c.mina !== '?' ? `${c.mina}-${c.nivel}-${c.nro}` : (p.name || 'Proyecto');
+    return { id: p.id, nombre, col: COLP[i % COLP.length], poly: hs.length >= 3 ? hull(hs.map(h => ({ x: h.x, y: h.y }))) : null, hs: hs.length };
+  }).filter(z => z.poly && z.poly.length >= 3);
+  const nomTopo = t => `${fmtDate(t.fecha)} · ${t.nombre}`;
+  const pinta = async () => {
+    const A = P.a, B = P.b; if (!A || !B) return;
+    const Ls = Math.hypot(B[0] - A[0], B[1] - A[1]); $$('pfLong').textContent = `A → B · ${fx(Ls, 0)} m`;
+    const dA = await topoDem(P.antes), dD = await topoDem(P.desp);
+    const n = Math.max(2, Math.min(1500, Math.round(Ls / 1))), ds = Ls / n, Zs = zonas();
+    const xs = [], zA = [], zD = [];
+    for (let i = 0; i <= n; i++) { const t = i / n, x = A[0] + (B[0] - A[0]) * t, y = A[1] + (B[1] - A[1]) * t; xs.push([x, y]); const a = dA ? demZ(dA, x, y) : null, d = dD ? demZ(dD, x, y) : null; zA.push(a == null || isNaN(a) ? null : a); zD.push(d == null || isNaN(d) ? null : d); }
+    // tramos de cada proyecto sobre la línea
+    const tramos = Zs.map(z => { const r = []; let ini = null; xs.forEach(([x, y], i) => { const dentro = pointInPoly(x, y, z.poly); if (dentro && ini == null) ini = i; if ((!dentro || i === n) && ini != null) { r.push([ini, dentro ? i : i - 1]); ini = null; } }); return Object.assign({}, z, { r }); });
+    // montado = relleno (después más alto que antes) dentro del proyecto
+    const calc = z => { let rel = 0, cor = 0, len = 0; z.r.forEach(([i0, i1]) => { len += (i1 - i0) * ds; for (let i = i0; i <= i1; i++) { if (zA[i] == null || zD[i] == null) continue; const d = zD[i] - zA[i]; if (d > 0) rel += d * ds; else cor += -d * ds; } }); return { rel, cor, len }; };
+    let tot = { rel: 0, cor: 0 }; for (let i = 0; i <= n; i++) if (zA[i] != null && zD[i] != null) { const d = zD[i] - zA[i]; if (d > 0) tot.rel += d * ds; else tot.cor += -d * ds; }
+    const filas = tramos.filter(z => z.r.length).map(z => Object.assign(z, calc(z)));
+    P.sel = { xs, zA, zD, n, ds, Ls, tramos: tramos.filter(z => z.r.length), tot };
+    dibujar();
+    const w = P.ancho || 0, de = P.dens || 0, t = a => a * w * de, r10 = v => fx(Math.round(v / 10) * 10, 0);
+    const con = filas.filter(z => z.rel > 0.5);
+    $$('pfRes').innerHTML = (con.length ? con.map(z => `<div class="perf-card" style="border-color:${z.col}"><div class="t">Sobre el proyecto <b style="color:${z.col}">${z.nombre}</b> se montó</div><div class="n">≈ ${r10(t(z.rel))} t</div><div class="d">${fx(z.rel, 0)} m² de material × ${fx(w, 0)} m de ancho × ${fx(de, 1)} t/m³</div></div>`).join('')
+      : `<div class="perf-card"><div class="t">${!dA || !dD ? 'Falta la topografía de esta zona.' : filas.length ? 'No se montó material nuevo sobre los proyectos de esta línea.' : 'La línea no pasa por ningún proyecto marcado. Marca los proyectos en la pestaña Avance o traza la línea sobre ellos.'}</div></div>`);
+  };
+  const dibujar = () => {
+    const cv = $$('pfCanvas'), box = $$('pfCv'); if (!cv || !P.sel) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
+    cv.width = W * dpr; cv.height = H * dpr; const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const { n, Ls, tramos } = P.sel;
+    /* solo para dibujar: se suaviza el escalón de las celdas de la topografía */
+    const suav = Z => Z.map((v, i) => { if (v == null) return null; let s = 0, k = 0; for (let j = i - 3; j <= i + 3; j++) if (Z[j] != null) { s += Z[j]; k++; } return s / k; });
+    const zA = suav(P.sel.zA), zD = suav(P.sel.zD);
+    c.fillStyle = '#1b2024'; c.fillRect(0, 0, W, H);
+    const vals = zA.concat(zD).filter(v => v != null);
+    if (!vals.length) { c.fillStyle = '#a9b4bd'; c.font = '15px system-ui'; c.textAlign = 'left'; c.fillText('Sin topografía que cubra esta línea.', 12, 30); return; }
+    let z0 = Math.min(...vals), z1 = Math.max(...vals); const rg = Math.max(z1 - z0, 4); z0 -= rg * 0.25; z1 += rg * 0.12;
+    const ml = 56, mr = 8, mt = 34, mb = 26, pw = W - ml - mr, ph = H - mt - mb;
+    const X = i => ml + (i / n) * pw, Y = z => mt + (1 - (z - z0) / (z1 - z0)) * ph;
+    c.font = '12px system-ui'; c.fillStyle = '#8b97a1'; c.strokeStyle = '#2b3238'; c.lineWidth = 1; c.textAlign = 'right';
+    const paso = [1, 2, 5, 10, 20, 25, 50].find(s => (z1 - z0) / s <= 5) || 100;
+    for (let z = Math.ceil(z0 / paso) * paso; z <= z1; z += paso) { c.beginPath(); c.moveTo(ml, Y(z)); c.lineTo(W - mr, Y(z)); c.stroke(); c.fillText(z + ' m', ml - 5, Y(z) + 4); }
+    /* terreno de antes (relleno) */
+    c.beginPath(); let ini = false; zA.forEach((z, i) => { if (z == null) return; if (!ini) { c.moveTo(X(i), H - mb); ini = true; } c.lineTo(X(i), Y(z)); }); if (ini) { const ult = zA.map((z, i) => z == null ? -1 : i).reduce((m, v) => Math.max(m, v), -1); c.lineTo(X(ult), H - mb); c.closePath(); c.fillStyle = '#3b352e'; c.fill(); }
+    /* material montado (rojo) y cortado (verde) entre las dos líneas */
+    for (let i = 0; i < n; i++) { const a0 = zA[i], a1 = zA[i + 1], d0 = zD[i], d1 = zD[i + 1]; if (a0 == null || a1 == null || d0 == null || d1 == null) continue; c.fillStyle = (d0 + d1) >= (a0 + a1) ? 'rgba(255,82,82,.75)' : 'rgba(80,200,120,.55)'; c.beginPath(); c.moveTo(X(i), Y(a0)); c.lineTo(X(i + 1), Y(a1)); c.lineTo(X(i + 1) + .6, Y(d1)); c.lineTo(X(i) - .6, Y(d0)); c.closePath(); c.fill(); }
+    const linea = (Z, col, w) => { c.beginPath(); let on = false; Z.forEach((z, i) => { if (z == null) { on = false; return; } if (on) c.lineTo(X(i), Y(z)); else { c.moveTo(X(i), Y(z)); on = true; } }); c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.stroke(); };
+    linea(zA, '#b9aa95', 1.5); linea(zD, '#ffd60a', 3);
+    /* proyectos: franja de color con su nombre */
+    tramos.forEach(z => z.r.forEach(([i0, i1]) => { const x0 = X(i0), x1 = Math.max(X(i1), x0 + 3); c.fillStyle = z.col + '30'; c.fillRect(x0, mt, x1 - x0, ph); c.fillStyle = z.col; c.fillRect(x0, H - mb - 5, x1 - x0, 5); c.font = 'bold 13px system-ui'; const tw = c.measureText(z.nombre).width + 12, cx = Math.min(W - mr - tw, Math.max(ml, (x0 + x1) / 2 - tw / 2)); c.fillRect(cx, mt - 24, tw, 21); c.fillStyle = '#10151a'; c.textAlign = 'left'; c.fillText(z.nombre, cx + 6, mt - 9); }));
+    /* extremos A y B */
+    c.fillStyle = '#4aa3df'; c.font = 'bold 15px system-ui'; c.textAlign = 'left'; c.fillText('A', ml, H - 7); c.textAlign = 'right'; c.fillText('B', W - mr, H - 7); c.textAlign = 'center'; c.fillStyle = '#8b97a1'; c.font = '12px system-ui'; c.fillText(fx(Ls, 0) + ' m', ml + pw / 2, H - 7);
+    /* leyenda */
+    c.font = 'bold 12px system-ui'; c.textAlign = 'left'; let lx = ml + 4; const ly = H - mb - 14 - 0;
+    [['#b9aa95', 'Antes'], ['#ffd60a', 'Después'], ['#ff5252', 'Montado']].forEach(([col, tx]) => { c.fillStyle = col; c.fillRect(lx, mt + 4, 14, 5); c.fillStyle = '#e8ecef'; c.fillText(tx, lx + 18, mt + 11); lx += 22 + c.measureText(tx).width + 10; });
+  };
+  const recalcula = () => pinta().catch(e => { $$('pfRes').textContent = 'No pude calcular el perfil: ' + e.message; });
+  const abrir = () => {
+    const l = topo.lista.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)); const opts = l.map(t => `<option value="${t.id}">${nomTopo(t)}</option>`).join('');
+    $$('pfAntes').innerHTML = '<option value="">(ninguna)</option>' + opts; $$('pfDesp').innerHTML = '<option value="">(ninguna)</option>' + opts;
+    if (!P.desp || !l.some(t => t.id === P.desp)) P.desp = topo.act || (l[0] && l[0].id) || '';
+    if (!P.antes || !l.some(t => t.id === P.antes) || P.antes === P.desp) P.antes = topo.ant && topo.ant !== P.desp ? topo.ant : ((l.find(t => t.id !== P.desp) || {}).id || '');
+    $$('pfAntes').value = P.antes; $$('pfDesp').value = P.desp; $$('pfAncho').value = P.ancho; $$('pfDens').value = P.dens;
+    dlg.hidden = false; recalcula();
+  };
+  $$('pfAntes').addEventListener('change', e => { P.antes = e.target.value; recalcula(); });
+  $$('pfDesp').addEventListener('change', e => { P.desp = e.target.value; recalcula(); });
+  $$('pfAncho').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.ancho = v; recalcula(); } });
+  $$('pfDens').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (v > 0) { P.dens = v; recalcula(); } });
+  $$('pfCerrar').addEventListener('click', () => { dlg.hidden = true; });
+  $$('pfNueva').addEventListener('click', () => { dlg.hidden = true; setOn(true); });
+  window.addEventListener('resize', () => { if (!dlg.hidden) dibujar(); });
+  window.PERFIL = P; window.perfilAbrir = (a, b) => { P.a = a; P.b = b; abrir(); };
+})();
+
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
 // Cada registro guarda _mod (ms). Lo local se marca _dirty y se sube; gana el cambio más reciente.
 const SYNC = {
@@ -9551,6 +9718,7 @@ const rest = {
   compartidosFirma: () => rest.rpc('bhl_compartidos_firma', {}),
   pushEquipo: (table, rows) => rest.rpc('bhl_push_equipo', { p_table: table, p_rows: rows }),
   compartidosDesde: since => rest.rpc('bhl_compartidos_desde', { p_since: since }),
+  compartidosPagina: (off, n) => rest.rpc('bhl_compartidos_pagina', { p_offset: off, p_limit: n }, 60000),
 };
 // V84: proyectos del equipo editables por todos. El cambio se guarda en el proyecto del compañero (sigue siendo suyo)
 async function guardarEquipo(rec) {
@@ -9593,6 +9761,35 @@ async function mezclarCompartidos(r, completo) {
   return n;
 }
 // Límites que otros usuarios del equipo compartieron (solo lectura, se guardan aparte)
+
+async function bajarCompartidosPaginado(T, firma) {
+  const N1 = 40, N2 = 150; let off = 0, total = null, now = null, hechos = 0, cambia = 0;
+  const acc = { limites: [], finales: [] };
+  try {
+    for (;;) {
+      const r = await T.compartidosPagina(off, off ? N2 : N1);
+      if (!r || !Array.isArray(r.finales)) return null; /* servidor sin la función: se usa el método de antes */
+      if (off === 0) { now = r.now; total = r.total || 0; acc.limites = r.limites || []; }
+      acc.finales.push(...r.finales); off += r.finales.length; hechos = off;
+      if (typeof window.bhlProgreso === 'function') window.bhlProgreso('Proyectos', Math.min(hechos, total || hechos), total || hechos);
+      if (off === r.finales.length) {
+        /* primera parte: ya se puede trabajar con lo más reciente */
+        cambia += await mezclarCompartidos({ limites: acc.limites, finales: acc.finales.slice() }, true);
+        try { await loadLibrary(); await loadLimits(); } catch (e) {}
+      }
+      if (!r.finales.length || off >= (total || 0)) break;
+    }
+    if (acc.finales.length > N1) cambia += await mezclarCompartidos({ limites: [], finales: acc.finales.slice(N1) }, false);
+    if (now) await idbSet('comp-since', now);
+    if (firma) await idbSet('comp-firma', firma);
+    if (typeof window.bhlProgreso === 'function') window.bhlProgreso(null);
+    return cambia || 1;
+  } catch (e) {
+    if (typeof window.bhlProgreso === 'function') window.bhlProgreso(null);
+    console.warn('compartidos paginado', e);
+    return null;
+  }
+}
 async function bajarCompartidos(T, forzar) {
   if (!T.compartidos) return 0;
   if ((await idbGet('comp-ver')) !== 91) { forzar = true; await idbSet('comp-ver', 91); } // V84: ahora vienen todos los proyectos del equipo
@@ -9607,6 +9804,11 @@ async function bajarCompartidos(T, forzar) {
   if (T.compartidosDesde) {
     try {
       const since = forzar ? null : ((await idbGet('comp-since')) || null);
+      /* V135: la primera descarga (≈11 MB) va por partes, lo más reciente primero: se puede trabajar desde la primera parte */
+      if (!since && T.compartidosPagina) {
+        const okp = await bajarCompartidosPaginado(T, firma);
+        if (okp != null) return okp;
+      }
       const r = await T.compartidosDesde(since);
       const cambia = await mezclarCompartidos(r, !since || r.completo);
       if (r.now) await idbSet('comp-since', r.now);
@@ -9837,8 +10039,12 @@ async function sincronizar() {
     }
     if (await subirEquipo(T)) sync.compForzar = true;
     try { if (await bajarCompartidos(T, sync.compForzar)) cambios++; } catch (e) { console.warn('compartidos', e); }
-    try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
-    try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
+    /* V135: topografías y fotos se consultan cada 10 min (o al forzar), no en cada sincronización */
+    if (!sync._listasT || sync.compForzar || Date.now() - sync._listasT > 10 * 60000) {
+      sync._listasT = Date.now();
+      try { if (typeof topoNube === 'function') topoNube(); } catch (e) {}
+      try { if (typeof fotosNube === 'function') fotosNube(); } catch (e) {}
+    }
     sync.compForzar = false;
     // si la nube rechazó algo, la próxima vez se baja todo de nuevo para traer su versión al conflicto
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
@@ -10177,6 +10383,14 @@ async function reportarDispositivo() {
   window.OFFLINE = { preparar, leer };
 })();
 
+/* V135: indicador de avance de las descargas (topografías, proyectos) */
+window.bhlProgreso = (txt, n, total) => {
+  let b = document.getElementById('bhlProg');
+  if (!txt) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'bhlProg'; b.setAttribute('role', 'status'); b.style.cssText = 'position:fixed;left:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:150;background:rgba(20,24,28,.92);color:#fff;font:600 .8rem system-ui,sans-serif;padding:7px 11px;border-radius:9px;pointer-events:none;max-width:calc(100% - 20px)'; document.body.appendChild(b); }
+  b.textContent = `⬇ ${txt}: ${n} de ${total}`;
+};
+
 
 // ===== Actualizaciones (programa instalado, sin internet) =====
 // El programa busca BlastHoleLeyes_PC_Setup_V#.exe en Descargas, Escritorio y Documentos.
@@ -10200,6 +10414,18 @@ function mostrarAvisoAct(a, error) {
   }
   box.querySelector('.x').addEventListener('click', () => { if (a) avisoActOculto = a.version; box.remove(); });
 }
+let actAutoOcupada = false;
+/* V135: actualización obligatoria en la PC: se instala sola, sin preguntar. Solo espera (máx. 60 s) si estás dibujando. */
+async function instalarActAuto(a) {
+  if (actAutoOcupada) return; actAutoOcupada = true;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 60000) { let d = false; try { d = t2.draft.length > 0 || t2.shapes.length > 0; } catch (e) {} if (!d) break; await new Promise(r => setTimeout(r, 3000)); }
+  const capa = document.createElement('div'); capa.id = 'actCapa';
+  capa.innerHTML = `<div>Actualizando BlastHole Leyes a V${a.version}…<small>El programa se cierra y se vuelve a abrir solo en unos segundos. Tus datos se conservan.</small></div>`;
+  document.body.appendChild(capa);
+  try { await window.bhlInstalarActualizacion(a.ruta); }
+  catch (e) { capa.remove(); mostrarAvisoAct(null, String(e && e.message || e)); setTimeout(() => { actAutoOcupada = false; }, 30 * 60000); }
+}
 let VERSION_ACTUAL = VERSION_APP;
 (async () => {
   if (typeof window.bhlVersion !== 'function') return; // solo en el programa instalado
@@ -10207,7 +10433,7 @@ let VERSION_ACTUAL = VERSION_APP;
   $('verBadge').textContent = 'V' + VERSION_ACTUAL;
   $('btnUpd').hidden = false;
   const revisar = async () => {
-    try { const a = await window.bhlBuscarActualizacion(); if (a && a.version > VERSION_ACTUAL && a.version !== avisoActOculto) mostrarAvisoAct(a); } catch (e) {}
+    try { const a = await window.bhlBuscarActualizacion(); if (a && a.version > VERSION_ACTUAL) instalarActAuto(a); } catch (e) {}
   };
   window.bhlRevisarAct = revisar;
   setTimeout(revisar, 1500);
@@ -10244,23 +10470,16 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(reg => {
     // al volver a la app (o cada 30 min) revisa si hay versión nueva
     document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
-    setInterval(() => reg.update().catch(() => {}), 30 * 60000);
+    reg.update().catch(() => {}); setInterval(() => reg.update().catch(() => {}), 10 * 60000);
   }).catch(() => {});
   const ocupado = () => { try { return enFull || t2.draft.length > 0 || t2.shapes.length > 0 || !!document.querySelector('input:focus, select:focus, textarea:focus'); } catch (e) { return false; } };
-  const aviso = () => {
-    if (document.getElementById('bhlNueva')) return;
-    const b = document.createElement('button'); b.id = 'bhlNueva';
-    b.textContent = 'Versión nueva lista · toca para actualizar';
-    b.style.cssText = 'position:fixed;left:50%;bottom:calc(' + (document.body.classList.contains('app') ? 84 : 16) + 'px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:200;font:600 .95rem system-ui;padding:12px 18px;border-radius:10px;border:0;background:#e0774c;color:#1a0f0a;box-shadow:0 4px 16px rgba(0,0,0,.3)';
-    b.onclick = () => location.reload();
-    document.body.appendChild(b);
-  };
+  /* Actualización obligatoria: se instala y se recarga sola, sin avisos ni botones.
+     Solo si estás dibujando espera, y como máximo 90 s. */
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (recargado || !habia) return;
-    // si no estás dibujando, se recarga sola; si estás a mitad de un avance, espera a que termines
-    if (!ocupado()) { recargado = true; location.reload(); return; }
-    aviso();
-    const t = setInterval(() => { if (!ocupado() && document.hidden) { clearInterval(t); recargado = true; location.reload(); } }, 5000);
+    const ir = () => { if (recargado) return; recargado = true; location.reload(); };
+    if (!ocupado()) { ir(); return; }
+    const t0 = Date.now(), t = setInterval(() => { if (!ocupado() || Date.now() - t0 > 90000) { clearInterval(t); ir(); } }, 3000);
   });
 }
 </script>
