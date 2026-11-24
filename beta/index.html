@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v136</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v137</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3923,7 +3923,7 @@ class PlanView {
     const pt = e => { const r = canvas.getBoundingClientRect(); return [this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)]; };
     canvas.addEventListener('pointerdown', e => {
       if (this.drawId != null) return; // mientras se dibuja con el lápiz se ignora la palma/dedo
-      if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e), e); return; }
+      if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e)); return; }
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); mid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; clearTimeout(this._aimT); this.aim = null; }
       // V73: al dibujar con el dedo, mantener presionado muestra una lupa; se arrastra para afinar y al soltar se pone el vértice
       clearTimeout(this._aimT); this.aim = null;
@@ -3937,7 +3937,7 @@ class PlanView {
     canvas.addEventListener('pointermove', e => {
       if (e.pointerType === 'pen' && !e.buttons && !ptrs.size && this.drawId == null) { const r0 = canvas.getBoundingClientRect(); this.hov = { px: e.clientX - r0.left, py: e.clientY - r0.top }; this.draw(); }
       else if (e.pointerType === 'pen' && this.hov && e.buttons) { this.hov = null; }
-      if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev), ev)); return; }
+      if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
       if (this.drawId != null) return;
       const r = canvas.getBoundingClientRect();
       if (this.onMove) this.onMove(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top));
@@ -9382,21 +9382,17 @@ body.app #plCerrar,body.app #btnPila{display:none}
   const cerca = (s, x, y, r) => { const r2 = r * r; return s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }); };
   const quitar = caen => { if (caen.length) { strokes = strokes.filter(s => !caen.includes(s)); S.hist.push({ del: caen }); guardar(); redib(); } };
   const borrarEn = (x, y) => quitar(strokes.filter(s => cerca(s, x, y, 14 / pv.v.s)));
-  /* V136: Apple Pencil: el grosor sigue la presión y la inclinación (como un lápiz de verdad) */
-  const fac = ev => (window.PENCIL && ev && ev.pointerType === 'pen') ? PENCIL.factor(ev) : null;
-  const nuevo = (x, y, ev) => { const f = fac(ev); return f == null ? { c: S.col, w: S.w, p: [[x, y]] } : { c: S.col, w: S.w, p: [[x, y]], q: [f] }; };
-  const cierra = c => { if (c && !c.borra && c.p.length) { if (c.p.length === 1) { c.p.push([c.p[0][0] + .01, c.p[0][1]]); if (c.q) c.q.push(c.q[0]); } strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } };
-  pv.onDraw = (fase, x, y, ev) => {
+  const nuevo = (x, y) => ({ c: S.col, w: S.w, p: [[x, y]] });
+  const cierra = c => { if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } };
+  pv.onDraw = (fase, x, y) => {
     if (!S.pend && !S.cur) return d0 && d0(fase, x, y);
-    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else S.cur = nuevo(x, y, ev); }
-    else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) { S.cur.p.push([x, y]); if (S.cur.q) { const f = fac(ev); S.cur.q.push(f == null ? S.cur.q[S.cur.q.length - 1] : S.cur.q[S.cur.q.length - 1] * .6 + f * .4); } } } }
+    if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else S.cur = nuevo(x, y); }
+    else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) S.cur.p.push([x, y]); } }
     else if (fase === 'end') { const c = S.cur; S.cur = null; cierra(c); redib(); return; }
     pv.draw(); if (w3 && en3d()) { try { v3Dibujar(); } catch (e) {} }
   };
   const trazo = (ctx, v, s) => {
-    const P = s.p; if (!P.length) return;
-    if (s.q && s.q.length === P.length && P.length > 1) { ctx.strokeStyle = s.c; for (let i = 1; i < P.length; i++) { ctx.lineWidth = Math.max(.8, s.w * s.q[i]); ctx.beginPath(); ctx.moveTo(v.sx(P[i - 1][0]), v.sy(P[i - 1][1])); ctx.lineTo(v.sx(P[i][0]), v.sy(P[i][1])); ctx.stroke(); } return; }
-    ctx.beginPath(); ctx.moveTo(v.sx(P[0][0]), v.sy(P[0][1]));
+    const P = s.p; if (!P.length) return; ctx.beginPath(); ctx.moveTo(v.sx(P[0][0]), v.sy(P[0][1]));
     for (let i = 1; i < P.length - 1; i++) { const mx = (v.sx(P[i][0]) + v.sx(P[i + 1][0])) / 2, my = (v.sy(P[i][1]) + v.sy(P[i + 1][1])) / 2; ctx.quadraticCurveTo(v.sx(P[i][0]), v.sy(P[i][1]), mx, my); }
     const L = P[P.length - 1]; ctx.lineTo(v.sx(L[0]), v.sy(L[1]));
     ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.stroke();
@@ -9601,136 +9597,6 @@ body.app #plCerrar,body.app #btnPila{display:none}
   $$('pfNueva').addEventListener('click', () => { dlg.hidden = true; setOn(true); });
   window.addEventListener('resize', () => { if (!dlg.hidden) dibujar(); });
   window.PERFIL = P; window.perfilAbrir = (a, b) => { P.a = a; P.b = b; abrir(); };
-})();
-
-// V136: Apple Pencil (Pro) — presión, inclinación, giro (roll), hover con datos del taladro y prueba del lápiz
-// Safari entrega al sitio web: presión, inclinación, giro y la posición flotando. NO entrega el apretón (squeeze) ni el doble toque:
-// la pantalla «Probar Apple Pencil» muestra exactamente qué señales llegan desde este iPad.
-(() => {
-  const P = window.PENCIL = { pres: 0, tx: 0, ty: 0, alt: null, az: null, twist: 0, tipo: '', hover: false, vio: {} };
-  const num = v => (typeof v === 'number' && !isNaN(v) ? v : 0);
-  /* inclinación total en grados (0 = vertical, 90 = acostado) */
-  const incl = e => { const a = Math.max(Math.abs(num(e.tiltX)), Math.abs(num(e.tiltY))); if (a) return a; if (typeof e.altitudeAngle === 'number' && e.altitudeAngle < 1.5707) return 90 - e.altitudeAngle * 180 / Math.PI; return 0; };
-  /* factor de grosor del trazo: presión (0.35–1.6) × sombreado si el lápiz está inclinado (hasta ×2.4) */
-  P.factor = e => {
-    const p = e.pressure > 0 ? e.pressure : 0.5;
-    const base = 0.35 + 1.25 * p;
-    const t = incl(e), sombra = t > 35 ? 1 + Math.min(1.4, (t - 35) / 40 * 1.4) : 1;
-    return base * sombra;
-  };
-  const leer = e => {
-    if (e.pointerType !== 'pen') return;
-    P.tipo = 'pen'; P.pres = num(e.pressure); P.tx = num(e.tiltX); P.ty = num(e.tiltY);
-    P.alt = typeof e.altitudeAngle === 'number' ? e.altitudeAngle : null; P.az = typeof e.azimuthAngle === 'number' ? e.azimuthAngle : null;
-    P.twist = num(e.twist); P.hover = !e.buttons && e.type !== 'pointerup';
-    const V = P.vio;
-    if (e.buttons && e.pressure > 0 && Math.abs(e.pressure - 0.5) > 0.001) V.presion = true;
-    if (num(e.tiltX) || num(e.tiltY)) V.inclinacion = true;
-    if (num(e.twist)) V.giro = true;
-    if (!e.buttons && e.type === 'pointermove') V.hover = true;
-    if (e.button > 0 || e.buttons > 1) V.boton = true;
-  };
-  document.addEventListener('pointermove', leer, true); document.addEventListener('pointerdown', leer, true); document.addEventListener('pointerup', leer, true);
-  document.addEventListener('contextmenu', () => { if (P.tipo === 'pen') P.vio.menu = true; }, true);
-
-  // ---- vista flotando sobre el plano: aro del pincel de Tinta y datos del taladro más cercano ----
-  if (typeof pv !== 'undefined') {
-    const a1 = pv.after;
-    pv.after = (ctx, v) => {
-      if (a1) a1(ctx, v);
-      const h = pv.hov; if (!h || pv.drawId != null) return;
-      const T = window.TINTA, tintaOn = !!(T && T.on);
-      const otra = t2.tool === 'pen' || t2.tool === 'erase' || (window.regla2 && window.regla2.on) || (window.PERFIL && window.PERFIL.on);
-      if (tintaOn) {
-        const r = T.borra ? 14 : Math.max(3, T.w * 0.9);
-        ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.beginPath(); ctx.arc(h.px, h.py, r + 1, 0, 7); ctx.stroke();
-        ctx.lineWidth = 1.8; ctx.strokeStyle = T.borra ? '#ff6b6b' : T.col; ctx.beginPath(); ctx.arc(h.px, h.py, r + 1, 0, 7); ctx.stroke(); ctx.restore();
-        return;
-      }
-      if (otra || !t2.holes.length) return;
-      /* taladro más cercano al lápiz (a menos de 18 px) */
-      let mejor = null, dm = 18 * 18;
-      for (const q of t2.holes) { const dx = v.sx(q.x) - h.px, dy = v.sy(q.y) - h.py, d = dx * dx + dy * dy; if (d < dm) { dm = d; mejor = q; } }
-      if (!mejor) return;
-      const l = t2.leyBy && t2.leyBy.get(mejor.ck);
-      const f = x => (x == null || isNaN(x) ? '–' : Number(x).toFixed(2));
-      const lin = [`${mejor.id} · ${mejor.pname || ''}`, l && l.hasData !== false ? `Fe ${f(l.fe)} · S ${f(l.s)} · Cu ${f(l.cu)}${l.est ? ' (est.)' : ''}` : 'Sin ley'];
-      ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; const px = v.sx(mejor.x), py = v.sy(mejor.y);
-      ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffd60a'; ctx.beginPath(); ctx.arc(px, py, 9, 0, 7); ctx.stroke();
-      ctx.font = 'bold 13px system-ui'; const w = Math.max(...lin.map(t => ctx.measureText(t).width)) + 16, hh = 40;
-      let bx = Math.min(Math.max(8, px + 14), (pv.W || 800) - w - 8), by = Math.max(8, py - hh - 12);
-      ctx.fillStyle = 'rgba(20,24,28,.94)'; ctx.fillRect(bx, by, w, hh); ctx.fillStyle = '#ffd60a'; ctx.fillText(lin[0], bx + 8, by + 16); ctx.fillStyle = '#fff'; ctx.font = '13px system-ui'; ctx.fillText(lin[1], bx + 8, by + 33);
-      ctx.restore();
-    };
-  }
-
-  // ---- pantalla «Probar Apple Pencil» ----
-  const st = document.createElement('style');
-  st.textContent = `.pen-dlg{position:fixed;inset:0;z-index:410;background:#1b2024;color:#e8ecef;display:flex;flex-direction:column;font:15px system-ui,sans-serif}
-.pen-dlg[hidden]{display:none}
-.pen-top{display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 8px}
-.pen-top h2{margin:0;font-size:1.1rem;flex:1}
-.pen-dlg button{min-height:42px;border-radius:9px;border:1px solid #4a535b;background:#2a3138;color:#fff;padding:0 12px;font:inherit}
-.pen-cv{flex:1 1 auto;position:relative;margin:0 10px;border:2px dashed #4a535b;border-radius:12px;min-height:160px;touch-action:none}
-.pen-cv canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
-.pen-cv .sug{position:absolute;left:12px;top:10px;color:#8b97a1;font-size:.85rem;pointer-events:none;max-width:70%}
-.pen-info{padding:8px 12px calc(12px + env(safe-area-inset-bottom,0px));display:grid;gap:6px;font-size:.9rem}
-.pen-ln{display:flex;gap:8px;align-items:center}
-.pen-ln b{min-width:130px}
-.pen-bar{flex:1;height:10px;border-radius:5px;background:#2a3138;overflow:hidden}
-.pen-bar i{display:block;height:100%;background:#4aa3df;width:0}
-.pen-res{display:grid;gap:3px;margin-top:4px}
-.pen-log{font:12px ui-monospace,Menlo,monospace;color:#8b97a1;max-height:84px;overflow:auto;white-space:pre-wrap}`;
-  document.head.appendChild(st);
-  const dlg = document.createElement('div'); dlg.className = 'pen-dlg'; dlg.hidden = true; dlg.id = 'penDlg';
-  dlg.innerHTML = `<div class="pen-top"><h2>✏ Probar Apple Pencil</h2><button type="button" id="penLimpia">Borrar</button><button type="button" id="penCierra">✕ Cerrar</button></div>
-<div class="pen-cv" id="penCv"><canvas id="penCanvas"></canvas><div class="sug">Dibuja, inclina y gira el lápiz sobre este cuadro. Acércalo sin tocar. Aprieta el lápiz (squeeze) y toca dos veces su lado.</div></div>
-<div class="pen-info">
-<div class="pen-ln"><b>Presión</b><div class="pen-bar"><i id="penBp"></i></div><span id="penVp">0.00</span></div>
-<div class="pen-ln"><b>Inclinación</b><div class="pen-bar"><i id="penBt"></i></div><span id="penVt">0°</span></div>
-<div class="pen-ln"><b>Giro (roll)</b><div class="pen-bar"><i id="penBr"></i></div><span id="penVr">0°</span></div>
-<div class="pen-res" id="penRes"></div><div class="pen-log" id="penLog"></div></div>`;
-  document.body.appendChild(dlg);
-  const $$ = id => document.getElementById(id);
-  const cv = $$('penCanvas'), box = $$('penCv'); let c2 = null, ult = null; const log = [];
-  const ajusta = () => { const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = box.clientWidth * dpr; cv.height = box.clientHeight * dpr; c2 = cv.getContext('2d'); c2.setTransform(dpr, 0, 0, dpr, 0, 0); c2.lineCap = 'round'; };
-  const anota = t => { log.push(new Date().toLocaleTimeString('es-PE') + ' ' + t); if (log.length > 40) log.shift(); $$('penLog').textContent = log.slice(-8).join('\n'); $$('penLog').scrollTop = 1e6; };
-  const marca = (ok, tx, pend) => `<div>${ok ? '✅' : pend ? '⬜' : '❌'} ${tx}</div>`;
-  const resumen = () => {
-    const V = P.vio;
-    $$('penRes').innerHTML = marca(V.presion, 'Presión (el trazo se hace más grueso al apretar)', !V.presion) + marca(V.inclinacion, 'Inclinación (sombreado al acostar el lápiz)', !V.inclinacion)
-      + marca(V.giro, 'Giro / roll del Apple Pencil Pro', !V.giro) + marca(V.hover, 'Hover: lápiz flotando sin tocar', !V.hover)
-      + marca(V.boton || V.menu || V.extra, 'Apretón (squeeze) / doble toque / botón', !(V.boton || V.menu || V.extra));
-  };
-  const actualiza = e => {
-    $$('penBp').style.width = Math.round(num(e.pressure) * 100) + '%'; $$('penVp').textContent = num(e.pressure).toFixed(2);
-    const t = incl(e); $$('penBt').style.width = Math.round(t / 90 * 100) + '%'; $$('penVt').textContent = Math.round(t) + '°';
-    const tw = num(e.twist); $$('penBr').style.width = Math.round(tw / 360 * 100) + '%'; $$('penVr').textContent = Math.round(tw) + '°';
-    resumen();
-  };
-  const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-  box.addEventListener('pointerdown', e => { if (e.pointerType !== 'pen') { anota('toque de ' + e.pointerType + ' (solo cuenta el lápiz)'); return; } box.setPointerCapture(e.pointerId); ult = rel(e); anota(`pointerdown botón=${e.button} buttons=${e.buttons} presión=${num(e.pressure).toFixed(2)}`); actualiza(e); });
-  box.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'pen') return; actualiza(e);
-    if (e.buttons && ult && c2) { const q = rel(e); c2.strokeStyle = '#ffd60a'; c2.lineWidth = Math.max(1, 14 * P.factor(e) / 1.2); c2.beginPath(); c2.moveTo(ult[0], ult[1]); c2.lineTo(q[0], q[1]); c2.stroke(); ult = q; }
-  });
-  box.addEventListener('pointerup', e => { if (e.pointerType === 'pen') { anota(`pointerup botón=${e.button}`); ult = null; } });
-  ['contextmenu', 'auxclick', 'gesturestart', 'gesturechange', 'dblclick'].forEach(n => document.addEventListener(n, e => { if (!dlg.hidden) { anota('evento ' + n); P.vio.extra = true; resumen(); if (n === 'contextmenu') e.preventDefault(); } }, true));
-  document.addEventListener('keydown', e => { if (!dlg.hidden) anota('tecla ' + e.key); }, true);
-  const abre = () => { dlg.hidden = false; ajusta(); resumen(); anota('Listo. Usa el lápiz sobre el cuadro.'); };
-  $$('penCierra').addEventListener('click', () => { dlg.hidden = true; });
-  $$('penLimpia').addEventListener('click', () => { c2 && c2.clearRect(0, 0, cv.width, cv.height); });
-  window.addEventListener('resize', () => { if (!dlg.hidden) ajusta(); });
-  window.PENCIL_PROBAR = abre;
-
-  // botón en Ajustes (modo app: iPhone / iPad)
-  const montar = () => {
-    const ancla = document.getElementById('appSyncBtn'); if (!ancla || document.getElementById('penCard')) return false;
-    const c = document.createElement('div'); c.className = 'acard'; c.id = 'penCard';
-    c.innerHTML = '<button class="arow abtn" type="button" id="penBtn">Probar Apple Pencil<span>›</span></button>';
-    ancla.closest('.acard').after(c); $$('penBtn').addEventListener('click', abre); return true;
-  };
-  if (!montar()) { document.addEventListener('DOMContentLoaded', montar); setTimeout(montar, 1500); setTimeout(montar, 5000); }
 })();
 
 // ===== Sincronización PC ⇄ iPad (Supabase "BlastHole Leyes") =====
