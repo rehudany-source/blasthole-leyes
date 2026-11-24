@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v138</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v139</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1208,6 +1208,16 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
               <label class="f">Densidad del desmonte<input type="number" id="desDens" step="0.01" min="1.5" max="5" placeholder="automática"></label>
             </div>
             <p class="note">Los polígonos de límite <b>sin taladros</b> se toman como desmonte: si el avance entra en ellos, esa parte suma tonelaje con esta ley (FeO, S y demás salen del promedio de tu base para ese Fe) y diluye el promedio. Densidad vacía = la de tu fórmula con ese Fe. Confirma o cambia cada polígono en «Límites».</p>
+          </details>
+          <details class="idw" id="rarBox">
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="rarOn" checked> Datos raros (Fe muy distinto de los vecinos)</label></summary>
+            <div class="grid2">
+              <label class="f">Radio de vecinos (m)<select id="rarR"><option>8</option><option selected>12</option><option>15</option><option>20</option></select></label>
+              <label class="f">Diferencia mínima de Fe (puntos)<select id="rarD"><option>6</option><option>8</option><option selected>10</option><option>15</option></select></label>
+            </div>
+            <label class="chk"><input type="checkbox" id="rarEx"> Excluir los datos raros del promedio</label>
+            <p class="note">Cada taladro se compara con la mediana de sus vecinos del <b>mismo dominio</b> (mineral y desmonte no se mezclan). Si su Fe difiere más que la diferencia mínima y más de 3.5 veces la variación normal del entorno, sale con ◆ morado «?» en el plano. Por defecto <b>solo avisa</b>: un taladro raro puede ser un contacto real o un error de laboratorio; revísalo antes de excluirlo. Se necesitan al menos 4 vecinos.</p>
+            <p class="note" id="rarInfo"></p>
           </details>
           <details class="idw" id="idwBox">
             <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn"> Estimar taladros sin ley (inverso a la distancia)</label></summary>
@@ -4195,6 +4205,7 @@ function renderPlan2(ctx, v) {
   const ringC = new Map();
   if (!viewing) (t2.groups || []).forEach(g => g.keys.forEach(k => { if (!ringC.has(k)) ringC.set(k, g.s ? shColor(g.i) : CAD.sel); }));
   const F = anField(), br = anBreaks(), TODAS = t2.analito === 'all';
+  const raroMapa = raroCalc();
   const showId = v.v.s >= 9, showVal = F && v.v.s >= 7;
   const r = Math.max(2.5, Math.min(7, v.v.s * 0.25));
   t2.holes.forEach(h => {
@@ -4237,6 +4248,7 @@ function renderPlan2(ctx, v) {
     if (showVal && val != null) { ctx.textBaseline = 'bottom'; ctx.fillStyle = le ? (le.des ? '#a0682f' : SUP_COLOR) : prev ? CAD.prevTxt : anColor(val, br); ctx.font = `${le ? 'italic ' : ''}${SOLm ? 800 : 600} ${fs}px Arial, sans-serif`; ctx.fillText(fmt(val, F.dec, '') + (le ? '*' : ''), x, y - r - 2); }
     const qs = has ? qcLey(l) : null;
     if (qs && qs.length) qcMarca(ctx, x, y, r, qs);
+    else if (has && raroMapa.has(h.ck)) raroMarca(ctx, x, y, r);
     if (le) { ctx.beginPath(); ctx.arc(x, y, r * 1.35, 0, Math.PI * 2); ctx.strokeStyle = le.des ? '#a0682f' : SUP_COLOR; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
   });
   if (t2.sup) drawSup(ctx, v, F, br);
@@ -4567,6 +4579,9 @@ function computeT2() {
   // Control de calidad: los valores imposibles no entran; los raros se avisan
   const qcBad = [], qcWarn = [];
   items.forEach(i => { const qs = qcLey(i.ley); if (!qs.length) return; const id = i.hole.id; qs.forEach(q => (q.lvl === 'bad' ? qcBad : qcWarn).push(`${id}: ${qcTxt(q)}`)); i.ley = qcLimpia(i.ley, qs); });
+  const rarL = [], rarM = raroCalc(), rarX = raroCfg().ex;
+  raroInfo();
+  for (let j = items.length - 1; j >= 0; j--) { const r = items[j].hole && rarM.get(items[j].hole.ck); if (!r) continue; rarL.unshift(`${r.id}: Fe ${r.fe.toFixed(1)} vs ${r.med.toFixed(1)} de sus vecinos`); if (rarX) items.splice(j, 1); }
   // Densidad: la medida; si falta o es el 2.74 por defecto, se calcula con el Fe
   const dens = { medida: 0, defecto: 0, falta: 0, none: 0 };
   const conDens = i => { const r = densDe(i.ley); dens[r.src]++; if (r.src !== 'medida' && r.d != null) i.ley = Object.assign({}, i.ley, { density: r.d, densSrc: r.src }); return i; };
@@ -4634,6 +4649,7 @@ function computeT2() {
   if (wNote) notes.push(wNote);
   const lista = ks => { const l = labelsFor(ks); return l.length > 12 ? l.slice(0, 12).join(', ') + ` y ${l.length - 12} más` : l.join(', '); };
   if (qcBad.length) notes.push(`⚠ ${qcBad.length} valor(es) imposible(s), no se usan en el promedio: ${qcBad.slice(0, 6).join(' · ')}${qcBad.length > 6 ? ` y ${qcBad.length - 6} más` : ''}. Corrígelos en la base.`);
+  if (rarL.length) notes.push(`🟣 ${rarL.length} dato(s) raro(s) frente a los vecinos${rarX ? ' (excluidos del promedio)' : ' (siguen en el promedio; puedes excluirlos en «Datos raros»)'}: ${rarL.slice(0, 5).join(' · ')}${rarL.length > 5 ? ` y ${rarL.length - 5} más` : ''}.`);
   if (qcWarn.length) notes.push(`Revisar (poco común): ${qcWarn.slice(0, 6).join(' · ')}${qcWarn.length > 6 ? ` y ${qcWarn.length - 6} más` : ''}.`);
   if (desH.items.length) notes.push(`${desH.items.length} taladro(s) sin ley dentro de polígonos de desmonte (${desH.pols.join(', ')}): entran con la ley del desmonte, Fe ${desH.fe} (marcados con *).`);
   if (est.items.length) notes.push(`${est.items.length} taladro(s) estimado(s) por inverso a la distancia (${t2.result.estPct.toFixed(0)} % del promedio, en morado). Solo con vecinos del mismo límite.`);
@@ -4647,7 +4663,7 @@ function computeT2() {
   if (dens.defecto || dens.falta) notes.push(`Densidad: ${dens.medida} de la base, ${dens.defecto + dens.falta} calculada${dens.defecto + dens.falta === 1 ? '' : 's'} con el Fe (${dens.defecto ? `${dens.defecto} tenían 2.74 por defecto` : ''}${dens.defecto && dens.falta ? ', ' : ''}${dens.falta ? `${dens.falta} sin dato` : ''}) · ${densTxt()}.`);
   if (w.densDef) notes.push(`${w.densDef} taladro(s) sin densidad: se usó ${w.medDensity.toFixed(2)}.`);
   if ((num('avB') || num('avE')) && !H) notes.push('Para ver el tonelaje falta la profundidad.');
-  setMsg('t2Msg', t2.result.estPct > 50 ? 'err' : pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length ? 'warn' : '', notes.join(' '));
+  setMsg('t2Msg', t2.result.estPct > 50 ? 'err' : pending.length || repeated.length || w.densDef || wNote || qcBad.length || qcWarn.length || rarL.length ? 'warn' : '', notes.join(' '));
   t2.notes = { pending: pending.length, noLey: noLey.length, repeated: repeated.length, wNote, sinProf: !H };
   t2.result.sinProf = t2.notes.sinProf;
   $('btnSaveAv').disabled = !items.length; $('btnCopyAv').disabled = !items.length;
@@ -5702,6 +5718,57 @@ function idwEstimar(keys, reales) {
   const upd = () => { const o = {}; ids.forEach(id => { o[id] = id === 'idwOn' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-idw2', JSON.stringify(o)); } catch (e) {} $('idwPsup').textContent = $('idwP').value; if ($('idwOn').checked) { supCalc(); $('idwBox').open = true; } computeT2(); pv.draw(); };
   ids.forEach(id => $(id).addEventListener('change', upd));
   $('idwPsup').textContent = $('idwP').value;
+})();
+
+
+// ===== V139: datos raros (Fe muy distinto de los taladros vecinos) =====
+// Compara cada taladro con la mediana de sus vecinos del MISMO dominio (mineral/desmonte no se mezclan). Solo avisa; excluir es opcional.
+function raroCfg() {
+  const g = id => $(id) ? $(id).value : '';
+  return { on: !$('rarOn') || $('rarOn').checked, ex: !!($('rarEx') && $('rarEx').checked), r: parseFloat(g('rarR')) || 12, d: parseFloat(g('rarD')) || 10 };
+}
+function raroCalc() {
+  const c = raroCfg(); if (!c.on || !t2.holes || !t2.holes.length) return new Map();
+  const sig = [t2.holes.length, t2.leyBy ? t2.leyBy.size : 0, c.r, c.d, (t2.lims || []).length, t2.limOff ? t2.limOff.size : 0, t2.holes[0].ck, t2.holes[t2.holes.length - 1].ck].join('|');
+  if (t2._raroSig === sig && t2._raro) return t2._raro;
+  const out = new Map(), pts = [], doms = limDominios(), cell = c.r, grid = new Map();
+  t2.holes.forEach(h => {
+    const l = t2.leyBy.get(h.ck); if (!l || l.hasData === false || l.est) return;
+    const q = qcLimpia(l, qcLey(l)); if (q.fe == null || isNaN(q.fe)) return;
+    const p = { h, x: h.x, y: h.y, fe: q.fe, dom: doms.length ? dominioDe(h.x, h.y, doms) : '' }; pts.push(p);
+    const k = Math.floor(p.x / cell) + ',' + Math.floor(p.y / cell); (grid.get(k) || grid.set(k, []).get(k)).push(p);
+  });
+  const R2 = c.r * c.r;
+  pts.forEach(p => {
+    const cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell), v = [];
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) (grid.get((cx + i) + ',' + (cy + j)) || []).forEach(q => {
+      if (q === p || q.dom !== p.dom) return; const dx = q.x - p.x, dy = q.y - p.y; if (dx * dx + dy * dy <= R2) v.push(q.fe);
+    });
+    if (v.length < 4) return;
+    v.sort((a, b) => a - b); const md = a => { const n = a.length; return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2; };
+    const med = md(v), mad = md(v.map(x => Math.abs(x - med)).sort((a, b) => a - b)), sd = Math.max(1.4826 * mad, 2), dif = p.fe - med;
+    if (Math.abs(dif) >= Math.max(c.d, 3.5 * sd)) out.set(p.h.ck, { fe: p.fe, med, n: v.length, dif, id: p.h.id });
+  });
+  t2._raroSig = sig; t2._raro = out; return out;
+}
+function raroMarca(ctx, x, y, r) {
+  const s = Math.max(5, r * 1.2), cx = x - r - s * 0.7, cy = y - r - s * 0.5;
+  ctx.beginPath(); ctx.moveTo(cx, cy - s); ctx.lineTo(cx + s, cy); ctx.lineTo(cx, cy + s); ctx.lineTo(cx - s, cy); ctx.closePath();
+  ctx.fillStyle = '#b44cff'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.round(s * 1.05)}px Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', cx, cy + s * 0.08);
+}
+function raroInfo() {
+  const el = $('rarInfo'); if (!el) return;
+  const m = raroCalc(), c = raroCfg();
+  if (!c.on) { el.textContent = 'Desactivado.'; return; }
+  if (!m.size) { el.textContent = t2.holes && t2.holes.length ? 'Ningún taladro raro en este nivel. 👍' : ''; return; }
+  const L = [...m.values()].sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif));
+  el.innerHTML = `<b>${m.size}</b> taladro${m.size > 1 ? 's' : ''} raro${m.size > 1 ? 's' : ''} en este nivel: ` + L.slice(0, 12).map(r => `${esc(String(r.id))} (Fe ${r.fe.toFixed(1)} vs ${r.med.toFixed(1)})`).join(' · ') + (L.length > 12 ? ` y ${L.length - 12} más` : '') + '.';
+}
+(() => {
+  const ids = ['rarOn', 'rarEx', 'rarR', 'rarD'];
+  try { const g = JSON.parse(localStorage.getItem('bhl-raro') || 'null'); if (g) ids.forEach(id => { if (g[id] != null && $(id)) { if ($(id).type === 'checkbox') $(id).checked = !!g[id]; else $(id).value = g[id]; } }); } catch (e) {}
+  const upd = () => { const o = {}; ids.forEach(id => { if ($(id)) o[id] = $(id).type === 'checkbox' ? $(id).checked : $(id).value; }); try { localStorage.setItem('bhl-raro', JSON.stringify(o)); } catch (e) {} t2._raroSig = null; raroInfo(); computeT2(); pv.draw(); };
+  ids.forEach(id => $(id) && $(id).addEventListener('change', upd));
 })();
 
 // Marca ⚠ junto al taladro: rojo = valor imposible, ámbar = poco común
@@ -10230,6 +10297,13 @@ function abrirPanelSync() {
       } catch (e) { o.textContent = 'No pude leer los errores: ' + e.message; }
     });
   }
+  /* V139: panel de equipos — quién tiene qué versión y quién está desactualizado */
+  if (conectado && esAdmin() && !$('admEqBtn')) {
+    const dv = document.createElement('div');
+    dv.innerHTML = '<h3>Equipos y versiones</h3><p class="note">Todos los equipos que usan el programa: versión, última conexión y quién está desactualizado.</p><div class="btnrow"><button class="btn sec small" id="admEqBtn" type="button">Ver equipos</button></div><div id="admEqOut" hidden style="margin-top:8px"></div>';
+    $('syncAdmin').appendChild(dv);
+    $('admEqBtn').addEventListener('click', panelEquipos);
+  }
   // versión de pruebas: solo el administrador, en la app web (la PC recibe su instalador de pruebas aparte)
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
   $('admBeta').hidden = !(conectado && esAdmin() && enWeb);
@@ -10442,6 +10516,27 @@ document.addEventListener('click', async e => {
   pintarSync(n ? 'conflicto' : 'ok');
 });
 
+async function panelEquipos() {
+  const o = $('admEqOut'); o.hidden = false; o.innerHTML = '<p class="note">Cargando…</p>';
+  try {
+    const rows = (await rest.rpc('bhl_admin_dispositivos', {}, 20000)) || [];
+    const ahora = Date.now(), dias = d => Math.floor((ahora - new Date(d).getTime()) / 864e5);
+    const normales = rows.filter(r => !(r.info && r.info.canal === 'beta') && r.version);
+    const ref = normales.reduce((m, r) => Math.max(m, r.version), 0);
+    const cuando = d => { const n = dias(d); return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`; };
+    const est = r => {
+      if (r.info && r.info.canal === 'beta') return ['pruebas', 'adm-tag'];
+      if (!r.version) return ['sin versión', 'adm-tag'];
+      if (r.version < ref) return [`desactualizado (V${ref})`, 'adm-viejo'];
+      return ['al día', 'adm-ok'];
+    };
+    const viejos = rows.filter(r => est(r)[1] === 'adm-viejo');
+    const ord = rows.slice().sort((a, b) => (est(b)[1] === 'adm-viejo') - (est(a)[1] === 'adm-viejo') || new Date(b.visto) - new Date(a.visto));
+    const ayuda = r => r.plataforma === 'PC' && r.version && r.version < 132 ? 'Se actualiza cuando abran el programa (versión antigua).' : r.plataforma === 'PC' ? 'Se actualiza sola en menos de 30 min con el programa abierto.' : 'Se actualiza sola al abrir la app con internet.';
+    o.innerHTML = `<p class="note"><b>${rows.length}</b> equipos · versión actual <b>V${ref || '?'}</b> · ${viejos.length ? `<b style="color:#b45309">${viejos.length} desactualizado${viejos.length > 1 ? 's' : ''}</b>` : '<b style="color:#15803d">todos al día</b>'}</p>` +
+      ord.map(r => { const [t, c] = est(r), sin = dias(r.visto) >= 7; return `<div class="adm-u"><div><b>${esc(r.usuario || '?')}</b> <span>${esc(r.plataforma || '?')} · V${r.version || '?'}</span><small>Última conexión ${cuando(r.visto)}${sin ? ' · <b>sin conectar</b>' : ''}${c === 'adm-viejo' ? '<br>' + ayuda(r) : ''}${r.info && r.info.nTopos != null ? '<br>' + r.info.nTopos + ' topografías' : ''}</small></div><span class="${c}" style="font-size:.72rem;white-space:nowrap;${c === 'adm-viejo' ? 'color:#b45309;font-weight:700' : c === 'adm-ok' ? 'color:#15803d' : ''}">${esc(t)}</span></div>`; }).join('');
+  } catch (e) { o.innerHTML = `<p class="msg err">No pude leer los equipos: ${esc(e.message)}</p>`; }
+}
 // V104: cada equipo le dice a la nube qué versión usa y qué topografías tiene (solo lo ve el administrador), para saber quién está desactualizado
 async function reportarDispositivo() {
   try {
@@ -10451,7 +10546,7 @@ async function reportarDispositivo() {
     const ua = navigator.userAgent || '';
     const plat = typeof window.bhlVersion === 'function' ? 'PC' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : 'Web';
     const ts = (typeof topo !== 'undefined' && topo.lista || []).map(t => ({ n: t.nombre, f: t.fecha, m: t.mina }));
-    await rest.rpc('bhl_dispositivo', { p_id: id, p_version: ver, p_plataforma: plat, p_info: { topos: ts.slice(0, 12), nTopos: ts.length, ua: ua.slice(0, 100), sync: new Date().toISOString() } }, 20000);
+    await rest.rpc('bhl_dispositivo', { p_id: id, p_version: ver, p_plataforma: plat, p_info: { topos: ts.slice(0, 12), nTopos: ts.length, canal: window.BHL_CANAL === 'beta' ? 'beta' : 'normal', ua: ua.slice(0, 100), sync: new Date().toISOString() } }, 20000);
   } catch (e) {}
 }
 
