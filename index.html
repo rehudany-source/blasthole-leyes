@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v135</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v138</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -6700,18 +6700,82 @@ function topoInfo(extra) {
 // grilla de cotas cada 2 m, en decímetros, guardada como diferencias por fila (Int16) y comprimida: ~1 MB en vez de 118 MB
 function b64De(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
 function b64A(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-async function topoEmpacar(m, Z) {
+async function topoEmpacarBin(m, Z) {
   let zb = Infinity; for (let k = 0; k < Z.length; k++) if (Z[k] === Z[k] && Z[k] < zb) zb = Z[k]; zb = Math.floor(zb === Infinity ? 0 : zb);
   const q = new Int16Array(m.W * m.H);
   for (let j = 0; j < m.H; j++) { let prev = 0; for (let i = 0; i < m.W; i++) { const k = j * m.W + i, z = Z[k]; if (z !== z) { q[k] = -32768; continue; } const v = Math.max(-32767, Math.min(32767, Math.round((z - zb) * 10))); q[k] = v - prev; prev = v; } }
   const raw = new Uint8Array(q.buffer); let comp = null; try { comp = await deflateRaw(raw); } catch (e) {}
-  return { meta: { mina: minaDe(m), x0: m.x0, y0: m.y0, cel: m.cel, W: m.W, H: m.H, zb, nT: m.nT || 0, fmt: comp ? 'd16z' : 'd16' }, data: b64De(comp || raw) };
+  return { zb, u8: comp || raw, fmt: comp ? 'd16z' : 'd16' };
 }
-async function topoDesempacar(meta, data) {
-  let u = b64A(data); if (meta.fmt === 'd16z') u = await inflateRaw(u);
+async function topoEmpacar(m, Z) {
+  const r = await topoEmpacarBin(m, Z);
+  return { meta: { mina: minaDe(m), x0: m.x0, y0: m.y0, cel: m.cel, W: m.W, H: m.H, zb: r.zb, nT: m.nT || 0, fmt: r.fmt }, data: b64De(r.u8) };
+}
+function topoQ2Z(meta, u) {
   const q = new Int16Array(u.buffer, u.byteOffset, meta.W * meta.H), Z = new Float32Array(meta.W * meta.H);
   for (let j = 0; j < meta.H; j++) { let prev = 0; for (let i = 0; i < meta.W; i++) { const k = j * meta.W + i, d = q[k]; if (d === -32768) { Z[k] = NaN; continue; } prev += d; Z[k] = meta.zb + prev / 10; } }
   return Z;
+}
+async function topoDesempacar(meta, data) {
+  let u = b64A(data); if (meta.fmt === 'd16z') u = await inflateRaw(u);
+  return topoQ2Z(meta, u);
+}
+/* V138: las topografías se guardan en el equipo comprimidas (≈3.5 MB en vez de 26 MB cada una).
+   El valor guardado es { tz: 1, fmt, zb, W, H, u }: idbGet lo vuelve a armar solo, así el resto del programa no cambia. */
+const idbGetCrudo = idbGet, idbSetCrudo = idbSet;
+idbGet = async function (k) {
+  const v = await idbGetCrudo(k);
+  if (v && v.tz === 1 && typeof k === 'string' && k.indexOf('topo:') === 0) { let u = v.u instanceof Uint8Array ? v.u : new Uint8Array(v.u); if (v.fmt === 'd16z') u = await inflateRaw(u); return topoQ2Z(v, u); }
+  return v;
+};
+window.idbGetCrudo = idbGetCrudo;
+async function topoGuardarPaquete(id, meta, u8) { return idbSetCrudo('topo:' + id, { tz: 1, fmt: meta.fmt, zb: meta.zb, W: meta.W, H: meta.H, u: u8 }); }
+/* Pasa a comprimido las topografías que ya están en la nube y siguen guardadas como Float32 (26 MB). Verifica antes de reemplazar. */
+let topoCompactando = false; setTimeout(() => { try { topoCompactar(); } catch (e) {} }, 25000);
+async function topoCompactar() {
+  if (topoCompactando) return; topoCompactando = true; let liberados = 0;
+  try {
+    for (const m of (topo.lista || []).slice()) {
+      if (!m.nube) continue;
+      const raw = await idbGetCrudo('topo:' + m.id);
+      if (!raw || raw.tz === 1 || !(raw instanceof Float32Array || raw instanceof ArrayBuffer)) continue;
+      const Z = raw instanceof Float32Array ? raw : new Float32Array(raw); if (Z.length !== m.W * m.H) continue;
+      const r = await topoEmpacarBin(m, Z);
+      let u = r.u8; if (r.fmt === 'd16z') u = await inflateRaw(u);
+      const Z2 = topoQ2Z({ zb: r.zb, W: m.W, H: m.H }, u); let ok = true;
+      for (let k = 0; k < Z.length; k += 997) { const a = Z[k], b = Z2[k]; if (a !== a) { if (b === b) { ok = false; break; } } else if (!(Math.abs(a - b) <= 0.06)) { ok = false; break; } }
+      if (!ok) continue;
+      if (await topoGuardarPaquete(m.id, { fmt: r.fmt, zb: r.zb, W: m.W, H: m.H }, r.u8)) liberados += 22;
+      await new Promise(res => setTimeout(res, 1500));
+    }
+  } catch (e) { try { errorRemoto('topo-compactar', e); } catch (e2) {} }
+  topoCompactando = false; return liberados;
+}
+/* V138: descarga de una topografía por trozos que se pueden reanudar: si se corta la conexión, la próxima vez sigue donde quedó */
+async function topoBajarTrozos(r, hechas, total) {
+  const clave = 'topo-parcial:' + r.id, PASO = 512 * 1024;
+  let est = null; try { est = await idbGetCrudo(clave); } catch (e) {}
+  let partes = est && Array.isArray(est.partes) ? est.partes : [], off = partes.reduce((s, p) => s + p.length, 0), tot = est ? est.total : 0;
+  try {
+    for (let guard = 0; guard < 400; guard++) {
+      const t = await rest.rpc('bhl_topo_trozo', { p_id: r.id, p_desde: off, p_largo: PASO }, 60000);
+      if (!t || t.dato == null) return null;
+      if (tot && t.total !== tot) { partes = []; off = 0; tot = t.total; continue; } /* la topografía cambió en la nube: se empieza de nuevo */
+      tot = t.total; if (!t.dato.length && off < tot) throw new Error('Descarga de topografía incompleta.');
+      partes.push(t.dato); off += t.dato.length;
+      if (typeof window.bhlProgreso === 'function') window.bhlProgreso('Topografías', hechas + Math.min(0.99, off / tot), total);
+      if (off >= tot) break;
+      await idbSetCrudo(clave, { total: tot, partes });
+    }
+  } catch (e) {
+    if (/function|does not exist|not found|404|PGRST202/i.test((e && e.message) || '')) { /* servidor sin la función nueva: se baja entera como antes */
+      return await rest.rpc('bhl_topo_dato', { p_id: r.id }, 240000);
+    }
+    throw e;
+  }
+  await idbSetCrudo(clave, null);
+  const data = partes.join(''); if (data.length !== tot) throw new Error('La topografía bajó incompleta; se reintentará.');
+  return data;
 }
 async function topoNube() {
   if (typeof sync === 'undefined' || !sync.session || sync.mode === 'mcp' || !navigator.onLine) return;
@@ -6751,18 +6815,17 @@ async function topoNube() {
       const mr = minaR(r);
       const masNuevas = topo.lista.filter(m => minaDe(m) === mr && m.fecha > r.fecha).length; if (masNuevas >= TOPO_POR_MINA) { hechas++; continue; }
       if (typeof window.bhlProgreso === 'function') window.bhlProgreso('Topografías', hechas, total);
-      const data = await rest.rpc('bhl_topo_dato', { p_id: r.id }, 240000); if (!data) { hechas++; continue; }
-      const Z = await topoDesempacar(r.meta, data);
-      await idbSet('topo:' + r.id, Z);
+      const data = await topoBajarTrozos(r, hechas, total); if (!data) { hechas++; continue; }
+      { const u8 = b64A(data); if (!(await topoGuardarPaquete(r.id, r.meta, u8))) throw new Error('No hay espacio en este equipo para guardar la topografía.'); }
       topo.lista.push({ id: r.id, nombre: r.nombre, fecha: String(r.fecha).slice(0, 10), mina: mr, nube: true, de: r.mio ? '' : r.de, nT: r.meta.nT, x0: r.meta.x0, y0: r.meta.y0, cel: r.meta.cel, W: r.meta.W, H: r.meta.H, kb: Math.round((r.bytes || 0) / 1024), cargada: new Date().toISOString() });
       cambio = true; hechas++;
       /* cada topografía queda disponible apenas baja, sin esperar a las demás */
       try { await idbSet('topos', topo.lista); topoDefaults(); if (topo.act && !topo.dems.has(topo.act)) await topoDem(topo.act); topoPintar(); pv.draw(); } catch (e) {}
     }
     if (typeof window.bhlProgreso === 'function') window.bhlProgreso(null);
-  } catch (e) { console.warn('topos nube', e); }
+  } catch (e) { console.warn('topos nube', e); try { if (!/Sin conexi|muy lenta/i.test(e && e.message || '')) errorRemoto('topos', e); } catch (e2) {} }
   finally {
-    topo.nubeBusy = false;
+    topo.nubeBusy = false; setTimeout(() => { try { topoCompactar(); } catch (e) {} }, 4000);
     if (cambio) {
       await topoRecortar();
       await idbSet('topos', topo.lista); topoDefaults();
@@ -9610,6 +9673,30 @@ const SYNC = {
 };
 const sync = { mode: null, session: null, mcp: null, busy: false, again: false, last: null, err: '', timer: null, on: false };
 
+// ---- V138: registro de errores de los equipos (se ve en Ajustes → administrador o directo en la base) ----
+const ERRQ = 'bhl-errq', errVisto = new Map();
+function errorRemoto(tipo, err, ctx) {
+  try {
+    const m = String((err && err.message) || err || '').slice(0, 400); if (!m || /ResizeObserver|Script error/i.test(m)) return;
+    const k = tipo + '|' + m, t = Date.now(); if (errVisto.get(k) && t - errVisto.get(k) < 10 * 60000) return; errVisto.set(k, t);
+    const q = JSON.parse(localStorage.getItem(ERRQ) || '[]'); q.push({ t: tipo, m, c: ctx || null, at: new Date().toISOString() });
+    localStorage.setItem(ERRQ, JSON.stringify(q.slice(-30)));
+  } catch (e) {}
+}
+async function errorVaciar() {
+  try {
+    const q = JSON.parse(localStorage.getItem(ERRQ) || '[]'); if (!q.length || sync.mode !== 'rest' || !sync.session) return;
+    let id = ''; try { id = localStorage.getItem('bhl-dev') || ''; } catch (e) {}
+    const ver = parseInt((($('verBadge') || {}).textContent || '').replace(/\D+/g, ''), 10) || null, ua = navigator.userAgent || '';
+    const plat = typeof window.bhlVersion === 'function' ? 'PC' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : 'Web';
+    await rest.rpc('bhl_error_log', { p_dev: id, p_ver: ver, p_plat: plat, p_items: q.slice(0, 20) }, 20000);
+    localStorage.setItem(ERRQ, JSON.stringify(q.slice(20)));
+  } catch (e) {}
+}
+window.addEventListener('error', e => { if (e && e.message) errorRemoto('js', e.message + (e.filename ? ' @' + String(e.filename).split('/').pop() + ':' + e.lineno : '')); });
+window.addEventListener('unhandledrejection', e => errorRemoto('promesa', e && e.reason));
+setInterval(() => { try { if (navigator.onLine) errorVaciar(); } catch (e) {} }, 5 * 60000);
+
 // ---- V44 (A-03): hora corregida con la del servidor ----
 // Cada sincronización mide la diferencia entre el reloj de este equipo y el de la nube; las marcas _mod usan esa hora
 // corregida, así un equipo con la hora atrasada o adelantada no gana ni pierde cambios por error.
@@ -9635,6 +9722,15 @@ async function dbRemove(store, id) {
   pedirSync();
   return ok;
 }
+/* V138: cuántos cambios de este equipo aún no subieron (se muestra junto al estado de la conexión) */
+async function contarPend() {
+  try {
+    let n = 0; for (const st of ['projects', 'avances']) n += (await dbAll(st)).filter(r => r._dirty).length;
+    n += ((await idbGet('limites')) || []).filter(l => l._dirty).length + ((await idbGet('bhl-tomb')) || []).length + ((await idbGet('equipo-pend')) || []).length;
+    sync.pend = n;
+  } catch (e) {}
+  return sync.pend || 0;
+}
 async function addTombs(list) {
   const t = (await idbGet('bhl-tomb')) || [];
   list.forEach(x => t.push({ store: x.store, id: x.id, _mod: ahora() }));
@@ -9653,7 +9749,10 @@ async function saveLimites(arr, prev) {
 // ---- Transporte 1: programa de la PC (inicio de sesión con correo y contraseña) ----
 const rest = {
   async auth(path, body) {
-    const r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const ac = new AbortController(), to = setTimeout(() => ac.abort(), 25000); let r;
+    try { r = await fetch(`${SYNC.url}/auth/v1/${path}`, { method: 'POST', headers: { apikey: SYNC.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ac.signal }); }
+    catch (e) { throw new Error(e && e.name === 'AbortError' ? 'La conexión está muy lenta: la nube no respondió a tiempo.' : 'Sin conexión a internet.'); }
+    finally { clearTimeout(to); }
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw Object.assign(new Error(traducirError(j.error_description || j.msg || j.message || j.error || `Error ${r.status}`)), { status: r.status, raw: String(j.error_description || j.msg || j.message || j.error || '') });
     return j;
@@ -9694,17 +9793,30 @@ const rest = {
     if (!sync.session) throw Object.assign(new Error('Inicia sesión para sincronizar.'), { code: 'login' });
     return sync.session.access_token;
   },
+  /* V138: toda consulta tiene tiempo máximo (antes una conexión colgada dejaba la sincronización congelada) y las lecturas se reintentan solas */
   async rpc(fn, body, ms) {
+    const lectura = /^(bhl_pull|bhl_topo_lista|bhl_foto_lista|bhl_compartidos|bhl_compartidos_firma|bhl_compartidos_desde|bhl_compartidos_pagina|bhl_topo_dato|bhl_topo_hd)$/.test(fn);
+    const plazo = ms || (fn === 'bhl_pull' || fn === 'bhl_push' || fn === 'bhl_push_equipo' ? 120000 : 60000), n = lectura ? 3 : 1;
+    for (let i = 0; ; i++) {
+      try { return await rest._rpc1(fn, body, plazo); }
+      catch (e) { if (i >= n - 1 || !/Sin conexi|muy lenta/i.test((e && e.message) || '')) throw e; await new Promise(r => setTimeout(r, 1500 * (i + 1))); }
+    }
+  },
+  async _rpc1(fn, body, ms) {
     const tk = await rest.token();
-    // V104: ms (opcional) corta la espera si la nube no responde; sin ms se espera como antes
-    const ac = ms ? new AbortController() : null, to = ms ? setTimeout(() => ac.abort(), ms) : 0;
+    const ac = new AbortController(), to = setTimeout(() => ac.abort(), ms);
     try {
-      const r = await fetch(`${SYNC.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+      const r = await fetch(`${SYNC.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SYNC.key, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ac.signal });
       const j = await r.json().catch(() => null);
       if (!r.ok) throw new Error((j && (j.message || j.hint)) || `Error ${r.status}`);
       return j;
-    } catch (e) { if (e && e.name === 'AbortError') throw new Error('La nube tardó demasiado en responder.'); throw e; }
-    finally { if (to) clearTimeout(to); }
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw new Error('La conexión está muy lenta: la nube no respondió a tiempo.');
+      /* Safari dice «Load failed», Chrome «Failed to fetch», Firefox «NetworkError»: todo es lo mismo, no hay red */
+      if (e instanceof TypeError || /load failed|failed to fetch|networkerror|network connection|internet connection/i.test((e && e.message) || '')) throw new Error('Sin conexión a internet.');
+      throw e;
+    }
+    finally { clearTimeout(to); }
   },
   async cambiarPw(pw) {
     const tk = await rest.token();
@@ -9786,7 +9898,7 @@ async function bajarCompartidosPaginado(T, firma) {
     return cambia || 1;
   } catch (e) {
     if (typeof window.bhlProgreso === 'function') window.bhlProgreso(null);
-    console.warn('compartidos paginado', e);
+    console.warn('compartidos paginado', e); try { errorRemoto('compartidos', e); } catch (e2) {}
     return null;
   }
 }
@@ -9958,9 +10070,9 @@ async function subirLote(T, store, part) {
 }
 async function sincronizar() {
   if (!sync.on) return;
-  if (sync.busy) { sync.again = true; return; }
+  if (sync.busy) { if (Date.now() - (sync._busyDesde || 0) > 4 * 60000) { sync.busy = false; try { errorRemoto('sync-colgada', new Error('La sincronización llevaba más de 4 min sin terminar; se reinició.')); } catch (e) {} } else { sync.again = true; return; } }
   if (!navigator.onLine) { pintarSync('offline'); return; }
-  sync.busy = true; pintarSync('busy');
+  sync.busy = true; sync._busyDesde = Date.now(); await contarPend(); pintarSync('busy');
   const T = transporte();
   try {
     let cambios = 0, nuevosConf = 0;
@@ -10050,7 +10162,7 @@ async function sincronizar() {
     if (sync.forzarPull) { sync.forzarPull = false; await idbSet('bhl-since', new Date(new Date(since).getTime() - 60000).toISOString()); }
     else if (res.now) await idbSet('bhl-since', res.now);
     try { if (!sync._repT || Date.now() - sync._repT > 10 * 60000) { sync._repT = Date.now(); reportarDispositivo(); } } catch (e) {}
-    sync.last = new Date(); sync.err = '';
+    sync.last = new Date(); sync.err = ''; sync.fallas = 0; errorVaciar(); await contarPend();
     if (cambios || nuevosConf) { await loadLibrary(); await loadLimits(); }
     const nConf = (await leerConflictos()).length;
     sync.conflictos = nConf;
@@ -10058,7 +10170,12 @@ async function sincronizar() {
     if (nuevosConf) pedirSync(1500);
   } catch (e) {
     sync.err = e.message || String(e);
-    pintarSync(e.code === 'login' ? 'login' : /conexión|fetch/i.test(sync.err) ? 'offline' : 'error');
+    const sinRed = /conexi|fetch|load failed|network/i.test(sync.err), lenta = /muy lenta/i.test(sync.err);
+    await contarPend();
+    /* reintento con espera creciente (5 s, 20 s, 1 min) cuando la nube falló o está lenta; sin red se espera a que vuelva */
+    sync.fallas = (sync.fallas || 0) + 1; if (!sinRed && e.code !== 'login') pedirSync([5000, 20000, 60000][Math.min(sync.fallas - 1, 2)]);
+    if (e.code !== 'login' && !sinRed && !lenta) { try { errorRemoto('sync', e); } catch (e2) {} }
+    pintarSync(e.code === 'login' ? 'login' : sinRed ? 'offline' : lenta ? 'lenta' : 'error');
   } finally {
     sync.busy = false;
     if (sync.again) { sync.again = false; pedirSync(300); }
@@ -10071,12 +10188,13 @@ function pintarSync(estado, cambios) {
   b.hidden = false;
   b.dataset.estado = estado;
   const hora = sync.last ? sync.last.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
-  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet', error: 'Error al sincronizar', conflicto: `Conflicto (${sync.conflictos || 1})` }[estado] || 'Sincronizar';
+  const np = sync.pend || 0, pp = np ? ` · ${np} pendiente${np > 1 ? 's' : ''}` : '';
+  const txt = { off: 'Sincronizar', login: 'Iniciar sesión', busy: np ? `Subiendo ${np} cambio${np > 1 ? 's' : ''}…` : 'Sincronizando…', ok: `Sincronizado ${hora}`, offline: 'Sin internet' + pp, lenta: 'Conexión lenta' + pp, error: 'Error al sincronizar' + pp, conflicto: `Conflicto (${sync.conflictos || 1})` }[estado] || 'Sincronizar';
   b.innerHTML = `<span class="sy-i">☁</span><span class="sy-t"> ${txt}</span>`; b.setAttribute('aria-label', txt);
   const at = document.getElementById('appSyncTxt');
   if (at) {
     const quien = sync.session ? nombreDe(sync.session.email) : '';
-    at.textContent = estado === 'conflicto' ? `${quien} · conflicto de sincronización` : estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
+    at.textContent = estado === 'conflicto' ? `${quien} · conflicto de sincronización` : estado === 'login' || (!sync.session && sync.mode === 'rest') ? 'Sin iniciar sesión' : estado === 'offline' ? `${quien} · sin internet${pp}` : estado === 'lenta' ? `${quien} · conexión lenta, reintentando${pp}` : estado === 'error' ? `${quien} · error` : estado === 'busy' ? `${quien} · sincronizando…` : `${quien} · ${hora || 'listo'}`;
     at.style.color = estado === 'login' || estado === 'error' || estado === 'conflicto' ? 'var(--bad, #c0392b)' : '';
     const bt = document.getElementById('appSyncBtn');
     if (bt) bt.firstChild.textContent = sync.session ? 'Cuenta, contraseña y usuarios' : 'Iniciar sesión';
@@ -10100,6 +10218,18 @@ function abrirPanelSync() {
   $('syncWipeL').hidden = sync.mode !== 'rest';
   pintarConflictos();
   $('syncAdmin').hidden = !(conectado && esAdmin());
+  if (conectado && esAdmin() && !$('admErrBtn')) {
+    const dv = document.createElement('div');
+    dv.innerHTML = '<h3>Errores de los equipos</h3><p class="note">Fallas que reportan los teléfonos, tablets y PC (versión, equipo y mensaje).</p><div class="btnrow"><button class="btn sec small" id="admErrBtn" type="button">Ver errores recientes</button></div><pre id="admErrOut" style="white-space:pre-wrap;font-size:.74rem;max-height:240px;overflow:auto;margin-top:8px" hidden></pre>';
+    $('syncAdmin').appendChild(dv);
+    $('admErrBtn').addEventListener('click', async () => {
+      const o = $('admErrOut'); o.hidden = false; o.textContent = 'Cargando…';
+      try {
+        const rows = (await rest.rpc('bhl_admin_errores', { p_n: 60 }, 20000)) || [];
+        o.textContent = rows.length ? rows.map(r => `${new Date(r.creado).toLocaleString('es-PE')} · ${r.plataforma || '?'} V${r.version || '?'} · ${r.tipo}\n   ${r.mensaje}`).join('\n') : 'Sin errores registrados. 👍';
+      } catch (e) { o.textContent = 'No pude leer los errores: ' + e.message; }
+    });
+  }
   // versión de pruebas: solo el administrador, en la app web (la PC recibe su instalador de pruebas aparte)
   const enWeb = /^https?:/.test(location.protocol) && typeof window.bhlVersion !== 'function';
   $('admBeta').hidden = !(conectado && esAdmin() && enWeb);
@@ -10339,7 +10469,7 @@ async function reportarDispositivo() {
       try { R.p = (await dbAll('projects')).length; R.a = (await dbAll('avances')).length; } catch (e) {}
       try { R.l = cuenta(await idbGet('limites')); } catch (e) {}
       try { R.f = cuenta(await idbGet('fotos')); } catch (e) {}
-      try { const L = (typeof topo !== 'undefined' && topo.lista) || []; R.tt = L.length; for (const m of L) if (await idbGet('topo:' + m.id)) R.tp++; } catch (e) {}
+      try { const L = (typeof topo !== 'undefined' && topo.lista) || []; R.tt = L.length; for (const m of L) if (await (window.idbGetCrudo || idbGet)('topo:' + m.id)) R.tp++; } catch (e) {}
       try { if (navigator.storage && navigator.storage.persist) R.persist = (await navigator.storage.persisted()) || (await navigator.storage.persist()); } catch (e) {}
       try { if (navigator.storage && navigator.storage.estimate) { const q = await navigator.storage.estimate(); R.mb = Math.round((q.usage || 0) / 1048576); } } catch (e) {}
       try { R.shell = !!navigator.serviceWorker && !!navigator.serviceWorker.controller && (await caches.keys()).some(k => /^bhl-(beta-)?v-/.test(k)); } catch (e) {}
@@ -10388,7 +10518,7 @@ window.bhlProgreso = (txt, n, total) => {
   let b = document.getElementById('bhlProg');
   if (!txt) { if (b) b.remove(); return; }
   if (!b) { b = document.createElement('div'); b.id = 'bhlProg'; b.setAttribute('role', 'status'); b.style.cssText = 'position:fixed;left:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:150;background:rgba(20,24,28,.92);color:#fff;font:600 .8rem system-ui,sans-serif;padding:7px 11px;border-radius:9px;pointer-events:none;max-width:calc(100% - 20px)'; document.body.appendChild(b); }
-  b.textContent = `⬇ ${txt}: ${n} de ${total}`;
+  b.textContent = `⬇ ${txt}: ${Math.floor(n)} de ${total}`;
 };
 
 
