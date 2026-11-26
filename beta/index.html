@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v140</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">Pruebas v141</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -7182,7 +7182,7 @@ async function v3Construir() {
   const R = v3Region();
   // V75: alrededor de los proyectos se usa la topografía de 1 m (si la hay)
   v3.hd = false;
-  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { $('v3dMsg').textContent = 'Cargando la topografía en alta resolución…'; const hd = await topoHDRegion(v3.topoId, R); if (hd) { v3.dem = hd; v3.hd = true; } } catch (e) {} }
+  if (R && v3.dem && !v3.dem.multi && firma !== v3.built && typeof topoHDRegion === 'function') { try { const hd = await topoHDRegion(v3.topoId, R, { soloLocal: true }); if (hd) { v3.dem = hd; v3.hd = true; } else v3HDFondo(v3.topoId, R); } catch (e) {} }
   else if (R && firma === v3.built && v3.hdDem) { v3.dem = v3.hdDem; v3.hd = true; }
   v3.hdDem = v3.hd ? v3.dem : null;
   if (!R) { $('v3dMsg').innerHTML = 'Para ver en 3D: sube la topografía (.msr) con «Cargar archivos» y marca los proyectos en la pestaña 2.'; v3Borrar(); v3.built = ''; v3Dibujar(); return; }
@@ -7524,6 +7524,44 @@ body.app .split-btn { min-height: 44px; font-size: .95rem; padding: 8px 14px; }
   const sT = showTab; showTab = n => { if (v3.split) poner(false); return sT(n); };
   // el 3D sigue al plano: cuando cambian los polígonos o el resultado, se redibuja
   const a1 = pv.after; pv.after = (ctx, v) => { if (a1) a1(ctx, v); if (v3.split) { const f = sig(); if (f !== firma) { firma = f; clearTimeout(poner.t); poner.t = setTimeout(() => { try { v3Dibujar(); } catch (e) {} }, 120); } } };
+})();
+
+// ===== V140: el 3D dibuja al instante con la topografía que ya está en el equipo; el detalle de 1 m se baja aparte =====
+function v3HDFondo(id, R) {
+  if (typeof topoHDBajar !== 'function' || !topoHDRed()) return;
+  const k = id + '|' + [R.x0, R.y0, R.x1, R.y1].map(Math.round).join(',');
+  if (v3._hdK === k) return; v3._hdK = k;
+  const w = $('v3dWrap'); let pill = $('v3dHDpill');
+  if (!pill && w) { pill = document.createElement('div'); pill.id = 'v3dHDpill'; pill.style.cssText = 'position:absolute;left:10px;bottom:10px;z-index:6;pointer-events:none;background:rgba(20,24,28,.86);color:#fff;font:600 .78rem system-ui,sans-serif;padding:5px 10px;border-radius:999px'; w.appendChild(pill); }
+  if (pill) { pill.textContent = '⬇ Mejorando el detalle del terreno…'; pill.hidden = false; }
+  (async () => {
+    let n = 0; try { n = await topoHDBajar(id, R); } catch (e) { console.warn('3D detalle', e); }
+    if (pill) pill.hidden = true;
+    if (n && v3.topoId === id) { v3.built = ''; try { await v3Construir(); } catch (e) {} }
+    setTimeout(() => { if (v3._hdK === k) v3._hdK = null; }, n ? 1000 : 90000); // si falló, reintenta más tarde (no en cada redibujado)
+  })();
+}
+
+// ===== V140: pantalla completa del 3D =====
+(() => {
+  const w = document.getElementById('v3dWrap'); if (!w) return;
+  const st = document.createElement('style');
+  st.textContent = `#v3dPant { position: absolute; right: 10px; top: 10px; z-index: 7; padding: 8px 12px; border-radius: 10px; border: 1px solid #4a535b; background: rgba(32,38,44,.92); color: #fff; font: 700 .85rem system-ui, sans-serif; cursor: pointer; min-height: 40px; }
+body.app #v3dPant { min-height: 44px; font-size: .95rem; }
+#v3dWrap.v3full { position: fixed !important; inset: 0; width: 100vw !important; height: 100vh !important; height: 100dvh !important; max-height: none !important; z-index: 65; border-radius: 0; border: 0; }
+#v3dWrap.v3full #v3dPant { right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); background: #ffd60a; color: #1a1500; border-color: #ffd60a; }
+#v3dWrap.v3full #v3dPmLegend { left: calc(10px + env(safe-area-inset-left)); top: calc(10px + env(safe-area-inset-top)); }
+body.v3fullon { overflow: hidden; }`;
+  document.head.appendChild(st);
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'v3dPant'; b.textContent = '⛶ Pantalla completa'; b.setAttribute('aria-pressed', 'false'); w.appendChild(b);
+  const poner = on => {
+    w.classList.toggle('v3full', on); document.body.classList.toggle('v3fullon', on); b.textContent = on ? '✕ Salir' : '⛶ Pantalla completa'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    try { if (on && w.requestFullscreen && !document.fullscreenElement) w.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+    setTimeout(() => { window.dispatchEvent(new Event('resize')); try { v3Dibujar(); } catch (e) {} }, 60); setTimeout(() => window.dispatchEvent(new Event('resize')), 350);
+  };
+  b.addEventListener('click', e => { e.stopPropagation(); poner(!w.classList.contains('v3full')); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && w.classList.contains('v3full')) poner(false); });
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && w.classList.contains('v3full')) poner(false); });
 })();
 
 // V106: regla para medir distancias en el plano 2D (pestaña Avance) y en la vista 3D
@@ -8883,15 +8921,31 @@ async function topoHDSubir() {
 }
 (() => { if (typeof topoNube !== 'function') return; const t0 = topoNube; topoNube = async function () { const r = await t0.apply(this, arguments); try { await topoHDSubir(); } catch (e) {} return r; }; })();
 // Mosaico de 1 m para una zona (la de la vista 3D). Devuelve null si esa topografía no tiene alta resolución.
-async function topoHDRegion(id, R) {
+// V140: con soloLocal NO espera la nube: si faltan mosaicos y hay red devuelve null (el 3D dibuja con la de 2 m y los baja aparte con topoHDBajar)
+const topoHDRed = () => typeof sync !== 'undefined' && sync.session && navigator.onLine;
+async function topoHDLocal(id) { let tiles = topoHD.cache.get(id); if (!tiles) { tiles = (await idbGet('topohd:' + id)) || (await idbGet('topohdc:' + id)) || {}; topoHD.cache.set(id, tiles); } return tiles; }
+const topoHDQuiero = R => { const q = []; for (let ty = Math.floor(R.y0 / HD_TILE); ty <= Math.floor(R.y1 / HD_TILE); ty++) for (let tx = Math.floor(R.x0 / HD_TILE); tx <= Math.floor(R.x1 / HD_TILE); tx++) q.push([tx, ty]); return q; };
+async function topoHDBajar(id, R) {
+  if (!id || !R || topoHD.sinHD.has(id) || !topoHDRed()) return 0;
+  const tiles = await topoHDLocal(id), faltan = topoHDQuiero(R).filter(([tx, ty]) => !(tx + ',' + ty in tiles)); if (!faltan.length) return 0;
+  let n = 0;
+  for (let i = 0; i < faltan.length; i += 3) { // de a pocos mosaicos: cada uno que llega ya queda guardado en el equipo
+    const lote = faltan.slice(i, i + 3), rs = (await rest.rpc('bhl_topo_hd', { p_topo: id, p_tiles: lote }, 45000)) || [];
+    rs.forEach(r => { tiles[r.tx + ',' + r.ty] = { meta: r.meta, data: r.data }; n++; });
+    lote.forEach(([tx, ty]) => { if (!(tx + ',' + ty in tiles)) tiles[tx + ',' + ty] = null; });
+    await idbSet('topohdc:' + id, tiles);
+  }
+  if (!n && !Object.values(tiles).some(Boolean)) { topoHD.sinHD.add(id); return 0; }
+  return n;
+}
+async function topoHDRegion(id, R, opc) {
   if (!id || !R || topoHD.sinHD.has(id)) return null;
   if (R.x1 - R.x0 > 2400 || R.y1 - R.y0 > 2400) return null;
-  let tiles = topoHD.cache.get(id);
-  if (!tiles) { tiles = (await idbGet('topohd:' + id)) || (await idbGet('topohdc:' + id)) || {}; topoHD.cache.set(id, tiles); }
-  const quiero = [];
-  for (let ty = Math.floor(R.y0 / HD_TILE); ty <= Math.floor(R.y1 / HD_TILE); ty++) for (let tx = Math.floor(R.x0 / HD_TILE); tx <= Math.floor(R.x1 / HD_TILE); tx++) quiero.push([tx, ty]);
+  let tiles = await topoHDLocal(id);
+  const quiero = topoHDQuiero(R);
   const faltan = quiero.filter(([tx, ty]) => !(tx + ',' + ty in tiles));
-  if (faltan.length && typeof sync !== 'undefined' && sync.session && navigator.onLine) {
+  if (opc && opc.soloLocal && faltan.length && topoHDRed()) return null;
+  if (!(opc && opc.soloLocal) && faltan.length && typeof sync !== 'undefined' && sync.session && navigator.onLine) {
     try {
       const rs = (await rest.rpc('bhl_topo_hd', { p_topo: id, p_tiles: faltan })) || [];
       rs.forEach(r => { tiles[r.tx + ',' + r.ty] = { meta: r.meta, data: r.data }; });
