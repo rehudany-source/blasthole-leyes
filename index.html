@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v143</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v144</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3612,10 +3612,15 @@ async function loadLibrary() {
   lib.avances = (await dbAll('avances')).map(normAvance);
   lib.avComp = ((await idbGet('avances-comp')) || []).filter(a => avShapes(a).length);
   renderLibrary();
-  if (!t2.selIds) { // primera carga: recuperar la última selección
+  if (!t2.selIds || t2._selPend) { // primera carga: recuperar la última selección
     let last = []; try { last = JSON.parse(localStorage.getItem('bhl-sel') || '[]'); } catch (e) {}
-    t2.selIds = new Set(last.filter(id => lib.projects.some(p => p.id === id)));
-    if (!t2.selIds.size && lib.projects.length) t2.selIds.add(lib.projects[0].id);
+    const ini = last.filter(id => lib.projects.some(p => p.id === id));
+    if (!ini.length && lib.projects.length) ini.push(lib.projects[0].id);
+    if (t2._selPend) { // V144: la app abrió directo en 3D antes de cargar la biblioteca: se llenan las selecciones provisionales
+      t2._selPend = false; const g = v3Ind.g2 && v3Ind.g2.sel; if (g) ini.forEach(id => g.add(id));
+      if (v3Ind.sel && !v3Ind.sel.size) ini.forEach(id => v3Ind.sel.add(id));
+      if (!t2.selIds) t2.selIds = new Set(ini);
+    } else t2.selIds = new Set(ini);
   }
   [...t2.selIds].forEach(id => { if (!lib.projects.some(p => p.id === id)) t2.selIds.delete(id); });
   refreshT2();
@@ -7499,6 +7504,7 @@ function v3Guardar() { try { localStorage.setItem('bhl-3d-sel', JSON.stringify([
 function v3PonerFiltros(m, n) { $('fMina').value = m; fillFilters(); $('fNivel').value = n; }
 function v3Entrar() {
   if (v3On) return;
+  if (!t2.selIds) { t2.selIds = new Set(); t2._selPend = true; } // V144: nunca null (antes fallaba con «t2.selIds.has» en el iPhone)
   v3Ind.g2 = { sel: t2.selIds, fm: $('fMina').value, fn: $('fNivel').value };
   // V142: si la app abre directo en 3D, la biblioteca aún no cargó (t2.selIds es null): no se inventa una selección vacía; loadLibrary la restaura
   if (!v3Ind.sel && t2.selIds) { v3Ind.sel = new Set(t2.selIds); v3Ind.fm = v3Ind.g2.fm; v3Ind.fn = v3Ind.g2.fn; } // la primera vez parte de lo que había en el plano
@@ -10247,6 +10253,7 @@ async function sincronizar() {
     const since = (await idbGet('bhl-since')) || '1970-01-01T00:00:00Z';
     const desde = new Date(new Date(since).getTime() - 5000).toISOString();
     const t0 = Date.now(); const res = await T.pull(desde); const t1 = Date.now();
+    if (!res || typeof res !== 'object') throw new Error('Conexión muy lenta: la nube no devolvió datos; se reintenta.'); // V144: antes fallaba con «res.now» de null
     if (res.now) ajustarReloj(res.now, t0, t1);
     // ¿hay conflicto? local con cambios sin subir + la nube cambió desde la versión que este equipo conocía
     const choca = (loc, rm) => loc && loc._dirty && (loc._base != null ? rm !== loc._base : rm > (loc._mod || 0));
