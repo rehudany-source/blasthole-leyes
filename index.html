@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v142</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v143</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3934,8 +3934,13 @@ class PlanView {
     canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); this.zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
     const pt = e => { const r = canvas.getBoundingClientRect(); return [this.wx(e.clientX - r.left), this.wy(e.clientY - r.top)]; };
     canvas.addEventListener('pointerdown', e => {
-      if (this.drawId != null) return; // mientras se dibuja con el lápiz se ignora la palma/dedo
-      if (this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.onDraw('start', ...pt(e)); return; }
+      let conv = false;
+      if (this.drawId != null) {
+        // V143: pintando con UN dedo (iPhone), un segundo dedo cierra el trazo y pasa a mover / hacer zoom
+        if (this.pinchAlDibujar && e.pointerType === 'touch' && this.drawTouch && this._dp) { const id0 = this.drawId; this.drawId = null; this.drawTouch = false; conv = true; try { this.onDraw('end2'); } catch (err) {} ptrs.set(id0, this._dp); }
+        else return; // mientras se dibuja con el lápiz se ignora la palma/dedo
+      }
+      if (!conv && !(this.pinchAlDibujar && e.pointerType === 'touch' && ptrs.size) && this.wantsDraw && this.wantsDraw(e)) { e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (err) {} this.drawId = e.pointerId; this.drawTouch = e.pointerType === 'touch'; this._dp = { x: e.clientX, y: e.clientY }; this.onDraw('start', ...pt(e)); return; }
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; canvas.classList.add('drag'); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); mid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; clearTimeout(this._aimT); this.aim = null; }
       // V73: al dibujar con el dedo, mantener presionado muestra una lupa; se arrastra para afinar y al soltar se pone el vértice
       clearTimeout(this._aimT); this.aim = null;
@@ -3949,7 +3954,7 @@ class PlanView {
     canvas.addEventListener('pointermove', e => {
       if (e.pointerType === 'pen' && !e.buttons && !ptrs.size && this.drawId == null) { const r0 = canvas.getBoundingClientRect(); this.hov = { px: e.clientX - r0.left, py: e.clientY - r0.top }; this.draw(); }
       else if (e.pointerType === 'pen' && this.hov && e.buttons) { this.hov = null; }
-      if (this.drawId === e.pointerId) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
+      if (this.drawId === e.pointerId) { this._dp = { x: e.clientX, y: e.clientY }; (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => this.onDraw('move', ...pt(ev))); return; }
       if (this.drawId != null) return;
       const r = canvas.getBoundingClientRect();
       if (this.onMove) this.onMove(this.wx(e.clientX - r.left), this.wy(e.clientY - r.top));
@@ -7380,9 +7385,18 @@ function v3Eventos(cv) {
   // ---- dedo: 1 dedo gira, 2 dedos acercan/alejan y mueven, toque corto elige taladro ----
   let tp = null, tmov = 0, tmulti = false;
   const pos = ts => [...ts].map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
-  cv.addEventListener('touchstart', e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches); }, { passive: false });
+  // V143: con «Tinta» y el dedo activado, 1 dedo pinta sobre el terreno y 2 dedos mueven / hacen zoom (iPhone)
+  let pint = false; const tintaDedo = () => { const T = window.TINTA; return T && T.on && T.dedo && T.pen3 ? T : null; };
+  cv.addEventListener('touchstart', e => {
+    if (stylus(e)) return; e.preventDefault();
+    const T = tintaDedo(), r = cv.getBoundingClientRect();
+    if (T && e.touches.length === 1) { const t = e.touches[0]; pint = true; tmov = 999; tmulti = false; tp = pos(e.touches); T.pen3.down(t.clientX - r.left, t.clientY - r.top, 'dedo'); return; }
+    if (pint && e.touches.length >= 2) { pint = false; try { const T2 = window.TINTA; if (T2.cur && T2.cur.p && T2.cur.p.length <= 3) T2.pen3.cancel(); else T2.pen3.up(); } catch (er) {} }
+    if (e.touches.length === 1) { tmov = 0; tmulti = false; } else tmulti = true; tp = pos(e.touches);
+  }, { passive: false });
   cv.addEventListener('touchmove', e => {
     if (stylus(e)) return; e.preventDefault(); const now = pos(e.touches); if (!tp || !now.length) return;
+    if (pint) { if (now.length === 1 && window.TINTA && window.TINTA.pen3) { const r = cv.getBoundingClientRect(); window.TINTA.pen3.move(now[0].x - r.left, now[0].y - r.top); tp = now; } return; }
     if (now.length === 1 && tp.length === 1) {
       const dx = now[0].x - tp[0].x, dy = now[0].y - tp[0].y; tmov += Math.abs(dx) + Math.abs(dy);
       c.yaw -= dx * 0.008; c.pitch = Math.max(0.08, Math.min(1.55, c.pitch + dy * 0.006));
@@ -7394,7 +7408,7 @@ function v3Eventos(cv) {
     }
     tp = now; v3Dibujar();
   }, { passive: false });
-  const tfin = e => { if (stylus(e)) return; e.preventDefault(); if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
+  const tfin = e => { if (stylus(e)) return; e.preventDefault(); if (pint) { if (e.touches.length === 0) { pint = false; try { window.TINTA.pen3.up(); } catch (er) {} tp = null; } return; } if (e.touches.length === 0) { if (!tmulti && tmov < 8 && e.type === 'touchend' && e.changedTouches.length) { const r = cv.getBoundingClientRect(), t = e.changedTouches[0]; v3Tocar(t.clientX - r.left, t.clientY - r.top); } tp = null; } else tp = pos(e.touches); };
   cv.addEventListener('touchend', tfin, { passive: false }); cv.addEventListener('touchcancel', tfin, { passive: false });
   cv.addEventListener('wheel', e => { e.preventDefault(); c.dist = Math.max(15, Math.min(v3.span * 6, c.dist * Math.exp(e.deltaY * 0.0015))); v3Dibujar(); }, { passive: false });
   window.addEventListener('resize', () => { if (v3Vis()) v3Dibujar(); });
@@ -9530,7 +9544,10 @@ body.app #plCerrar,body.app #btnPila{display:none}
   if (!wrap || typeof pv === 'undefined') return;
   let strokes = []; try { strokes = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) { strokes = []; }
   // trazo = { c: color, w: grosor en px, p: [[x, y], ...] } en coordenadas del mundo: el mismo trazo se ve en el plano y en el 3D (pegado al terreno)
-  const S = { on: false, show: true, col: COLS[0], w: 4, borra: false, dedo: false, cur: null, pend: false, hist: [] };
+  // V143: en el iPhone (sin Apple Pencil) el dedo pinta por defecto; 2 dedos mueven y hacen zoom. La elección se recuerda.
+  const CELU = (() => { try { return /iPhone|iPod/.test(navigator.userAgent) || (/Android/.test(navigator.userAgent) && Math.min(screen.width, screen.height) < 600); } catch (e) { return false; } })();
+  let dedo0 = CELU; try { const g = localStorage.getItem('bhl-tinta-dedo'); if (g === '1') dedo0 = true; else if (g === '0') dedo0 = false; } catch (e) {}
+  const S = { on: false, show: true, col: COLS[0], w: 4, borra: false, dedo: dedo0, cur: null, pend: false, hist: [] };
   const guardar = () => { try { localStorage.setItem(LS, JSON.stringify(strokes)); } catch (e) {} };
   const en3d = () => { try { return typeof v3Vis === 'function' && v3Vis() && !!w3 && w3.offsetParent !== null; } catch (e) { return false; } };
   const redib = () => { try { pv.draw(); } catch (e) {} if (w3) { try { v3Dibujar(); } catch (e) {} } };
@@ -9544,15 +9561,16 @@ body.app #plCerrar,body.app #btnPila{display:none}
 .tinta-pan .tw{display:inline-flex;align-items:center;justify-content:center;width:42px}
 .cadwrap.tinta-on .inplan{display:none!important}
 .tinta-pan .tw i{display:block;background:#fff;border-radius:50%}
+.tinta-pan .hint{flex-basis:100%;text-align:center;color:#aab4bc;font:600 .74rem system-ui,sans-serif;line-height:1.2}
 .tinta-pan .sep{width:1px;height:28px;background:#4a535b}
 .tinta-btn{position:absolute;z-index:7;right:12px;top:calc(46% - 58px);min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid #4a535b;background:rgba(32,38,44,.92);color:#fff;font:700 .9rem system-ui,sans-serif;touch-action:manipulation}
 .tinta-btn[aria-pressed=true]{background:#ffd60a;color:#1a1500;border-color:#ffd60a}
 #btnTinta3{top:154px;right:auto;left:10px}`;
   document.head.appendChild(st);
 
-  const HTML = COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
+  const HTML = '<span class="hint"></span>' + COLS.map(c => `<button type="button" class="tc" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('') + '<span class="sep"></span>'
     + ANCH.map(w => `<button type="button" class="tw" data-w="${w}" aria-label="grosor"><i style="width:${w + 4}px;height:${w + 4}px"></i></button>`).join('') + '<span class="sep"></span>'
-    + '<button type="button" data-a="e" title="Borrar trazo">🧽</button><button type="button" data-a="u" title="Deshacer">↩</button><button type="button" data-a="v" title="Ocultar o mostrar">👁</button><button type="button" data-a="f" title="Dibujar también con el dedo">☝</button><button type="button" data-a="x" title="Borrar todo">🗑</button><button type="button" data-a="ok" title="Listo" style="background:#ffd60a;color:#1a1500">✓</button>';
+    + '<button type="button" data-a="e" title="Borrar trazo">🧽</button><button type="button" data-a="u" title="Deshacer">↩</button><button type="button" data-a="v" title="Ocultar o mostrar">👁</button><button type="button" data-a="f" title="Dedo: pintar o mover">☝</button><button type="button" data-a="x" title="Borrar todo">🗑</button><button type="button" data-a="ok" title="Listo" style="background:#ffd60a;color:#1a1500">✓</button>';
   const hechos = [];
   const montar = (host, idBtn) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'tinta-btn'; if (idBtn) b.id = idBtn; b.textContent = '🖍 Tinta'; b.setAttribute('aria-pressed', 'false'); b.title = 'Dibujar encima (no calcula nada)';
@@ -9566,7 +9584,7 @@ body.app #plCerrar,body.app #btnPila{display:none}
       else if (x.dataset.a === 'e') S.borra = !S.borra;
       else if (x.dataset.a === 'u') { const h = S.hist.pop(); if (h) { if (h.add) strokes = strokes.filter(s => s !== h.add); else if (h.del) strokes.push(...h.del); guardar(); } }
       else if (x.dataset.a === 'v') S.show = !S.show;
-      else if (x.dataset.a === 'f') S.dedo = !S.dedo;
+      else if (x.dataset.a === 'f') { S.dedo = !S.dedo; try { localStorage.setItem('bhl-tinta-dedo', S.dedo ? '1' : '0'); } catch (e) {} }
       else if (x.dataset.a === 'x') { if (strokes.length && confirm('¿Borrar todos los trazos de tinta?')) { S.hist.push({ del: strokes.slice() }); strokes = []; guardar(); } }
       else if (x.dataset.a === 'ok') { setOn(false); return; }
       pinta(); redib();
@@ -9578,6 +9596,7 @@ body.app #plCerrar,body.app #btnPila{display:none}
     pan.querySelector('[data-a=e]').setAttribute('aria-pressed', String(S.borra));
     pan.querySelector('[data-a=v]').setAttribute('aria-pressed', String(!S.show));
     pan.querySelector('[data-a=f]').setAttribute('aria-pressed', String(S.dedo));
+    const h = pan.querySelector('.hint'); if (h) { h.textContent = S.dedo ? '☝ 1 dedo pinta · 2 dedos mueven y hacen zoom' : '☝ Apagado: el dedo mueve · pinta con el lápiz o activa ☝'; h.hidden = !CELU && !S.dedo; }
     b.setAttribute('aria-pressed', String(S.on));
   });
   const setOn = on => { S.on = on; if (on) S.show = true; hechos.forEach(({ pan, host }) => { pan.hidden = !on; host.classList.toggle('tinta-on', on); }); pinta(); redib(); };
@@ -9586,6 +9605,7 @@ body.app #plCerrar,body.app #btnPila{display:none}
 
   // ---------- plano ----------
   // el lápiz (o el ratón) dibuja; el dedo sigue moviendo y haciendo zoom, salvo que se active «Dedo»
+  pv.pinchAlDibujar = true;
   const w0 = pv.wantsDraw, d0 = pv.onDraw;
   pv.wantsDraw = e => { if (S.on && (e.pointerType !== 'touch' || S.dedo)) { S.pend = true; return true; } S.pend = false; return w0 ? w0(e) : false; };
   const cerca = (s, x, y, r) => { const r2 = r * r; return s.p.some((q, i) => { if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < r2) return true; if (!i) return false; const a = s.p[i - 1], dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; if (!L) return false; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L)); return (a[0] + t * dx - x) ** 2 + (a[1] + t * dy - y) ** 2 < r2; }); };
@@ -9594,10 +9614,11 @@ body.app #plCerrar,body.app #btnPila{display:none}
   const nuevo = (x, y) => ({ c: S.col, w: S.w, p: [[x, y]] });
   const cierra = c => { if (c && !c.borra && c.p.length) { if (c.p.length === 1) c.p.push([c.p[0][0] + .01, c.p[0][1]]); strokes.push(c); S.hist.push({ add: c }); if (S.hist.length > 60) S.hist.shift(); guardar(); } };
   pv.onDraw = (fase, x, y) => {
+    if (fase === 'end2' && !S.cur) return;
     if (!S.pend && !S.cur) return d0 && d0(fase, x, y);
     if (fase === 'start') { S.pend = false; if (S.borra) { S.cur = { borra: true }; borrarEn(x, y); } else S.cur = nuevo(x, y); }
     else if (fase === 'move' && S.cur) { if (S.cur.borra) borrarEn(x, y); else { const a = S.cur.p[S.cur.p.length - 1]; if (Math.hypot(x - a[0], y - a[1]) * pv.v.s >= 1.2) S.cur.p.push([x, y]); } }
-    else if (fase === 'end') { const c = S.cur; S.cur = null; cierra(c); redib(); return; }
+    else if (fase === 'end' || fase === 'end2') { const c = S.cur; S.cur = null; if (!(fase === 'end2' && c && c.p && c.p.length <= 3)) cierra(c); redib(); return; } // end2: llegó un 2.º dedo; si era solo un toque se descarta
     pv.draw(); if (w3 && en3d()) { try { v3Dibujar(); } catch (e) {} }
   };
   const trazo = (ctx, v, s) => {
