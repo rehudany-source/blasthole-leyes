@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v141</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v142</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -3619,6 +3619,8 @@ async function loadLibrary() {
   }
   [...t2.selIds].forEach(id => { if (!lib.projects.some(p => p.id === id)) t2.selIds.delete(id); });
   refreshT2();
+  // V142: si la app abrió directo en la pestaña 3D y aún no se había podido dibujar, se arma ahora que ya hay proyectos
+  try { if (typeof v3Vis === 'function' && $('tab3') && !$('tab3').hidden && !v3.built) v3Mostrar(); } catch (e) {}
 }
 // Avances viejos (un solo proyecto) -> formato multi-proyecto con claves "proyecto|taladro"
 function normAvance(a) {
@@ -5336,7 +5338,8 @@ if (ES_APP) {
   });
   $('histCards').addEventListener('click', e => { const b = e.target.closest('button[data-act="view"]'); if (b && t2.viewing) appTab('avance'); });
   let ini = 'avance'; try { ini = localStorage.getItem('bhl-apptab') || 'avance'; } catch (e) {}
-  appTab(ini);
+  // V142: la pestaña 3D se abre cuando YA terminó de cargar todo el código (antes se llamaba a v3Mostrar() cuando v3 y pm aún no existían y el 3D quedaba en negro)
+  if (ini === '3d') { appTab('avance'); setTimeout(() => appTab('3d'), 0); } else appTab(ini);
 }
 
 // ===== Pestaña 1: ver proyectos guardados (solo vista / impresión) =====
@@ -7407,11 +7410,19 @@ function v3LeyendaMinado() {
  const esquema=PM_ESQ[pm.esq];box.hidden=false;
  box.innerHTML='<b>'+esc(pm.esq==='m'?'Material M1–M5 · S/FeS':pm.esq==='cu'?'Ley de Cu (%)':pm.esq==='s100'?'S_100 (%)':pm.esq==='zn'?'Ley de Zn (%)':'Ley de Fe')+'</b>'+esquema.clases.map(c=>'<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><i style="display:inline-block;flex:none;width:11px;height:11px;border-radius:2px;background:'+esc(c.col)+'"></i><span>'+esc(c.nom)+(c.sub?' · '+esc(c.sub):'')+'</span></div>').join('');
 }
+// V142: avisos DENTRO del recuadro del 3D (antes el texto salía debajo y se veía solo una pantalla negra)
+function v3Aviso(txt) {
+  const w = $('v3dWrap'); if (!w) return; let el = $('v3dAviso');
+  if (!el) { el = document.createElement('div'); el.id = 'v3dAviso'; el.style.cssText = 'position:absolute;left:0;right:0;top:42%;z-index:5;pointer-events:none;text-align:center;color:#cfd6dc;font:600 .95rem system-ui,sans-serif;padding:0 28px;line-height:1.4'; w.appendChild(el); }
+  el.textContent = txt || ''; el.hidden = !txt;
+}
 async function v3Mostrar() {
   v3LeyendaMinado();
+  v3Aviso('Preparando la vista 3D…');
   $('v3dMsg').textContent = 'Preparando la vista 3D…';
   try { if (typeof refreshT2 === 'function' && !t2.holes.length && t2.selIds && t2.selIds.size) refreshT2(); } catch (e) {}
-  try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; }
+  try { await v3Construir(); } catch (e) { $('v3dMsg').innerHTML = `<span class="errc">No se pudo armar la vista 3D: ${esc(e.message)}</span>`; v3Aviso('No se pudo armar la vista 3D: ' + e.message); }
+  if (v3.built) v3Aviso(''); else if (!$('v3dMsg').querySelector('.errc')) v3Aviso(t2.holes.length || (t2.selIds && t2.selIds.size) ? 'Preparando la vista 3D…' : (topo.lista && topo.lista.length ? 'Marca uno o más proyectos (pestaña Avance o Proyectos) para verlos en 3D.' : 'Todavía no hay topografía en este equipo. Se baja sola al tener internet, o súbela con «Cargar archivos».'));
   const tl = $('v3dTopo'); if (tl) tl.textContent = v3.sinCobertura ? 'Sin topografía que cubra estos proyectos' : v3.topoId ? (() => { const m = topo.lista.find(t => t.id === v3.topoId); return m ? `⛰ ${fmtDate(m.fecha)} · ${m.nombre}` : ''; })() : 'Sin topografía';
 }
 (() => {
@@ -7475,9 +7486,10 @@ function v3PonerFiltros(m, n) { $('fMina').value = m; fillFilters(); $('fNivel')
 function v3Entrar() {
   if (v3On) return;
   v3Ind.g2 = { sel: t2.selIds, fm: $('fMina').value, fn: $('fNivel').value };
-  if (!v3Ind.sel) { v3Ind.sel = new Set(t2.selIds); v3Ind.fm = v3Ind.g2.fm; v3Ind.fn = v3Ind.g2.fn; } // la primera vez parte de lo que había en el plano
+  // V142: si la app abre directo en 3D, la biblioteca aún no cargó (t2.selIds es null): no se inventa una selección vacía; loadLibrary la restaura
+  if (!v3Ind.sel && t2.selIds) { v3Ind.sel = new Set(t2.selIds); v3Ind.fm = v3Ind.g2.fm; v3Ind.fn = v3Ind.g2.fn; } // la primera vez parte de lo que había en el plano
   v3On = true; t2.selIds = v3Ind.sel; v3PonerFiltros(v3Ind.fm, v3Ind.fn);
-  t2.fitted = false; refreshT2();
+  t2.fitted = false; if (t2.selIds) refreshT2();
 }
 function v3Salir() {
   if (!v3On) return;
