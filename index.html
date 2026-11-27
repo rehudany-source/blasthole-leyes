@@ -939,7 +939,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
   <div class="apptop" id="appTop"><h1 id="appTitle">Avance</h1><div class="apptop-r" id="appTopR"></div></div>
   <header>
     <div class="brand">
-      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v144</small></h1>
+      <h1>BlastHole <span>Leyes</span> <small class="ver" id="verBadge">iPad v145</small></h1>
       <p class="sub">Dibuja taladros con sus leyes, guarda cada proyecto y saca el promedio ponderado de cada avance.</p>
     </div>
     <div class="hdr-r">
@@ -1198,11 +1198,11 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
             <label class="f">Tipo material<input type="text" id="avMat" placeholder="automático por S/FeS" autocomplete="off" readonly tabindex="-1" title="Se llena solo según S/FeS (M1 ≤0.30 · M2 ≤0.60 · M3 ≤0.90 · M4 ≤1.50 · M5 &gt;1.50). Escribe aquí solo si quieres otro."></label>
             <label class="f">Obs.<input type="text" id="avObs" placeholder="opcional" autocomplete="off"></label>
           </div>
-          <label class="chk"><input type="checkbox" id="avExcl" checked> No repetir taladros de avances anteriores</label>
-          <label class="chk"><input type="checkbox" id="avRecorte" checked> Cortar cada polígono nuevo contra los ya dibujados (sin superponer)</label>
-          <label class="chk"><input type="checkbox" id="avRecLim" checked> Cortar los polígonos con los límites de los proyectos</label>
+          <label class="chk"><input type="checkbox" id="avExcl"> No repetir taladros de avances anteriores</label>
+          <label class="chk"><input type="checkbox" id="avRecorte"> Cortar cada polígono nuevo contra los ya dibujados (sin superponer)</label>
+          <label class="chk"><input type="checkbox" id="avRecLim"> Cortar los polígonos con los límites de los proyectos</label>
           <details class="idw" id="desBox" open>
-            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn" checked> Desmonte sin taladros entra como dilución</label></summary>
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="desOn"> Desmonte sin taladros entra como dilución</label></summary>
             <div class="grid2">
               <label class="f">Fe del desmonte (%)<input type="number" id="desFe" step="0.5" min="0" max="40" value="16.5"></label>
               <label class="f">Densidad del desmonte<input type="number" id="desDens" step="0.01" min="1.5" max="5" placeholder="automática"></label>
@@ -1210,7 +1210,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
             <p class="note">Los polígonos de límite <b>sin taladros</b> se toman como desmonte: si el avance entra en ellos, esa parte suma tonelaje con esta ley (FeO, S y demás salen del promedio de tu base para ese Fe) y diluye el promedio. Densidad vacía = la de tu fórmula con ese Fe. Confirma o cambia cada polígono en «Límites».</p>
           </details>
           <details class="idw" id="rarBox">
-            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="rarOn" checked> Datos raros (Fe muy distinto de los vecinos)</label></summary>
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="rarOn"> Datos raros (Fe muy distinto de los vecinos)</label></summary>
             <div class="grid2">
               <label class="f">Radio de vecinos (m)<select id="rarR"><option>8</option><option selected>12</option><option>15</option><option>20</option></select></label>
               <label class="f">Diferencia mínima de Fe (puntos)<select id="rarD"><option>6</option><option>8</option><option selected>10</option><option>15</option></select></label>
@@ -1220,7 +1220,7 @@ body:not(.app) .v3d-capas-in { display: flex; flex-wrap: wrap; gap: 8px 14px; al
             <p class="note" id="rarInfo"></p>
           </details>
           <details class="idw" id="idwBox">
-            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn"> Estimar taladros sin ley (inverso a la distancia)</label></summary>
+            <summary><label class="chk" onclick="event.stopPropagation()"><input type="checkbox" id="idwOn" checked> Estimar taladros sin ley (inverso a la distancia)</label></summary>
             <div class="grid2">
               <label class="f">Usar leyes de<select id="idwSrc"><option value="ambos">Mismo nivel + banco de arriba</option><option value="nivel">Solo mismo nivel</option><option value="sup">Solo banco de arriba</option></select></label>
               <label class="f">Potencia<select id="idwP"><option value="2">2 (el cercano pesa mucho más)</option><option value="1">1 (más suave)</option></select></label>
@@ -3583,6 +3583,16 @@ document.querySelectorAll('.tema button').forEach(b => b.addEventListener('click
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyCadTheme(); draw(); if (typeof pv !== 'undefined') pv.draw(); });
 applyCadTheme();
 
+// V145: opciones del panel de avance por defecto — solo «Estimar taladros sin ley» activada. Se aplica UNA vez en cada equipo (PC, iPhone, iPad, Android, web) y luego se respeta lo que cada quien cambie.
+(() => {
+  try {
+    if (localStorage.getItem('bhl-defs') === '145') return;
+    localStorage.setItem('bhl-reclim', '0'); localStorage.setItem('bhl-recorte', '0');
+    const mod = (k, campo, val) => { let o = {}; try { o = JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (e) {} o[campo] = val; localStorage.setItem(k, JSON.stringify(o)); };
+    mod('bhl-des', 'desOn', false); mod('bhl-raro', 'rarOn', false); mod('bhl-idw2', 'idwOn', true);
+    localStorage.setItem('bhl-defs', '145');
+  } catch (e) {}
+})();
 // ===== Almacenamiento: proyectos y avances (IndexedDB en esta PC) =====
 function idbStoreOp(store, mode, fn) {
   return idb().then(db => new Promise(res => {
